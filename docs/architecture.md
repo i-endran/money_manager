@@ -1,8 +1,8 @@
-# Money Manager – Architecture Documentation
+# PiggyBook – Architecture Documentation
 
 ## Overview
 
-Money Manager is a **React Native** mobile application targeting iOS and Android. The app records personal financial transactions, categorizes them, and provides a monthly ledger view.
+PiggyBook is a **React Native** mobile application targeting iOS and Android. The app records personal financial transactions, categorizes them, and provides a monthly ledger view.
 
 ### Core Technology Stack
 

@@ -1,4 +1,4 @@
-# Money Manager - Milestone 1: Transaction Ledger
+# PiggyBook - Milestone 1: Transaction Ledger
 
 ## Planning
 - [x] Gather requirements and clarify doubts

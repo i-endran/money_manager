@@ -1,4 +1,4 @@
-# Money Manager — Milestone 1 Test Cases
+# PiggyBook — Milestone 1 Test Cases
 
 ## How to Use
 After each git checkpoint, run all test cases tagged for that checkpoint. Mark `[x]` when passing.
