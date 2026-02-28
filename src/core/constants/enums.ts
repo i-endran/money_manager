@@ -18,7 +18,6 @@ export enum AccountType {
 export enum CategoryType {
   EXPENSE = 'expense',
   INCOME = 'income',
-  BOTH = 'both',
 }
 
 // Theme modes
