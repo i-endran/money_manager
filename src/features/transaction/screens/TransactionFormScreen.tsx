@@ -6,16 +6,16 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    SafeAreaView,
     Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { TransactionType } from '../../../core/constants';
 import { AccountPicker } from '../components/AccountPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
-import { DatePicker } from '../components/DatePicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
@@ -390,12 +390,19 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 )}
                 onSelect={setSelectedCategory}
             />
-            <DatePicker
-                visible={datePickerVisible}
-                onClose={() => setDatePickerVisible(false)}
-                selectedDate={date}
-                onSelect={setDate}
-            />
+            {datePickerVisible && (
+                <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={(event: any, selectedDate?: Date) => {
+                        setDatePickerVisible(false);
+                        if (event.type === 'set' && selectedDate) {
+                            setDate(selectedDate);
+                        }
+                    }}
+                />
+            )}
         </SafeAreaView>
     );
 };

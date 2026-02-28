@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    SafeAreaView,
     SectionList,
     StyleSheet,
     Text,
@@ -10,6 +9,7 @@ import {
     Platform,
     StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { useMonthlyLedger } from '../hooks/useMonthlyLedger';
@@ -67,7 +67,7 @@ export const LedgerScreen: React.FC = () => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { backgroundColor: theme.background }]}>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>PiggyBook</Text>
             </View>

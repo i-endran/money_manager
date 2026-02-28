@@ -10,6 +10,29 @@ import {
 import { useAppTheme } from '../../../core/theme';
 import { Category } from '../../../database/schema';
 
+// Helper to fix Android emoji baseline shift
+function splitEmoji(name: string): { emoji: string; text: string } {
+    const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u;
+    const match = name.match(emojiRegex);
+    if (match) {
+        return {
+            emoji: match[0],
+            text: name.slice(match[0].length).trim(),
+        };
+    }
+    return { emoji: '', text: name };
+}
+
+const CategoryLabel = ({ name, textStyle }: { name: string; textStyle?: any }) => {
+    const { emoji, text } = splitEmoji(name);
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {!!emoji && <Text style={[textStyle, { marginRight: 6 }]}>{emoji}</Text>}
+            <Text style={textStyle}>{text}</Text>
+        </View>
+    );
+};
+
 interface CategoryPickerProps {
     visible: boolean;
     onClose: () => void;
@@ -50,16 +73,27 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                         <View style={styles.headerLeft}>
                             {currentParentId !== null && (
                                 <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-                                    <Text style={{ color: colors.primary }}>← Back</Text>
+                                    <Text style={{ color: colors.primary, fontSize: 16 }}>← Back</Text>
                                 </TouchableOpacity>
                             )}
-                            <Text style={[styles.title, { color: theme.text }]}>
-                                {parentCategory ? parentCategory.name : 'Select Category'}
-                            </Text>
                         </View>
-                        <TouchableOpacity onPress={onClose}>
-                            <Text style={{ color: colors.primary }}>Cancel</Text>
-                        </TouchableOpacity>
+
+                        <View style={styles.headerCenter}>
+                            {parentCategory ? (
+                                <CategoryLabel
+                                    name={parentCategory.name}
+                                    textStyle={[styles.title, { color: theme.text }]}
+                                />
+                            ) : (
+                                <Text style={[styles.title, { color: theme.text }]}>Select Category</Text>
+                            )}
+                        </View>
+
+                        <View style={styles.headerRight}>
+                            <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+                                <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <FlatList
@@ -73,9 +107,10 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                                         onSelect(parentCategory);
                                         onClose();
                                     }}>
-                                    <Text style={{ color: colors.primary, fontWeight: '600' }}>
-                                        ✓ Select "{parentCategory.name}"
-                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Text style={{ color: colors.primary, fontWeight: '600', marginRight: 4, fontSize: 16 }}>✓ Select</Text>
+                                        <CategoryLabel name={parentCategory.name} textStyle={{ color: colors.primary, fontWeight: '600', fontSize: 16 }} />
+                                    </View>
                                 </TouchableOpacity>
                             ) : null
                         }
@@ -91,11 +126,9 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                                         onClose();
                                     }
                                 }}>
-                                <Text style={[styles.itemText, { color: theme.text }]}>
-                                    {item.name}
-                                </Text>
+                                <CategoryLabel name={item.name} textStyle={[styles.itemText, { color: theme.text }]} />
                                 {categories.some(c => c.parentId === item.id) && (
-                                    <Text style={{ color: theme.textSecondary }}>›</Text>
+                                    <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
                                 )}
                             </TouchableOpacity>
                         )}
@@ -139,16 +172,29 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
+        justifyContent: 'center',
     },
     headerLeft: {
-        flexDirection: 'row',
+        position: 'absolute',
+        left: 0,
+        zIndex: 1,
+    },
+    headerCenter: {
         alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerRight: {
+        position: 'absolute',
+        right: 0,
+        zIndex: 1,
     },
     backBtn: {
-        marginRight: 12,
+        padding: 4,
+    },
+    cancelBtn: {
+        padding: 4,
     },
     title: {
         fontSize: 18,
