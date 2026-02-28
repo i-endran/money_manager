@@ -120,7 +120,7 @@ export const LedgerScreen: React.FC = () => {
                     keyExtractor={item => item.id.toString()}
                     renderItem={renderItem}
                     renderSectionHeader={renderSectionHeader}
-                    stickySectionHeadersEnabled={true}
+                    stickySectionHeadersEnabled={false}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>
