@@ -40,6 +40,7 @@ This document provides a compressed overview of the **Pocket Log** project for A
 - **Latest Features**:
   - **Theme Profiles**: Added `settingsStore` backing Light, Dark, and System Default options with reactive styling.
   - **Account Management**: Nesting support (1-level "Reserves"), Grouped UI, and true Drag-to-Reorder via `react-native-draggable-flatlist`. The Account Picker uses a drill-down UI for reserves.
+  - **Category Management**: True 3-level hierarchical nesting under Expense and Income groups, styled with squircle cards mimicking Account Management.
   - **Closed-Box Logic**: Accounts can be excluded from summaries; transfers into them count as expense, out count as income.
   - **Carry Forward Balance**: Computes and displays opening balance row from prior months.
   - **Unified Header**: Month selector and summary merged into a single bubble.

@@ -21,7 +21,6 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
     const categoryId = route.params?.categoryId;
 
     const [name, setName] = useState('');
-    const [iconName, setIconName] = useState('📁');
     const [type, setType] = useState<CategoryType>(CategoryType.EXPENSE);
     const [parentId, setParentId] = useState<number | null>(null);
     const [isActive, setIsActive] = useState(true);
@@ -38,8 +37,7 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
             if (categoryId) {
                 const [cat] = await db.select().from(schema.categories).where(eq(schema.categories.id, categoryId)).limit(1);
                 if (cat) {
-                    setName(cat.name);
-                    setIconName(cat.iconName || '📁');
+                    setName((cat.iconName ? cat.iconName + ' ' : '') + cat.name);
                     setType(cat.type as CategoryType);
                     setParentId(cat.parentId);
                     setIsActive(cat.isActive);
@@ -47,10 +45,19 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                         setParentCategory(list.find(c => c.id === cat.parentId) || null);
                     }
                 }
+            } else {
+                if (route.params?.initialType) {
+                    setType(route.params.initialType as CategoryType);
+                }
+                if (route.params?.parentId) {
+                    setParentId(route.params.parentId);
+                    const parent = list.find(c => c.id === route.params.parentId) || null;
+                    setParentCategory(parent);
+                }
             }
         }
         load();
-    }, [categoryId]);
+    }, [categoryId, route.params]);
 
     const handleSave = async () => {
         if (!name.trim()) {
@@ -71,8 +78,8 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
         try {
             if (categoryId) {
                 await db.update(schema.categories).set({
-                    name,
-                    iconName,
+                    name: name.trim(),
+                    iconName: '',
                     type,
                     parentId: parentCategory?.id || null,
                     level,
@@ -80,8 +87,8 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                 }).where(eq(schema.categories.id, categoryId));
             } else {
                 await db.insert(schema.categories).values({
-                    name,
-                    iconName,
+                    name: name.trim(),
+                    iconName: '',
                     type,
                     parentId: parentCategory?.id || null,
                     level,
@@ -142,27 +149,15 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
             </View>
 
             <View style={styles.content}>
-                <View style={styles.row}>
-                    <View style={[styles.inputGroup, { flex: 0.3, marginRight: 16 }]}>
-                        <Text style={[styles.label, { color: theme.textSecondary }]}>Emoji</Text>
-                        <TextInput
-                            style={[styles.input, { color: theme.text, borderBottomColor: theme.border, textAlign: 'center' }]}
-                            value={iconName}
-                            onChangeText={setIconName}
-                            maxLength={2}
-                        />
-                    </View>
-
-                    <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={[styles.label, { color: theme.textSecondary }]}>Name</Text>
-                        <TextInput
-                            style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
-                            value={name}
-                            onChangeText={setName}
-                            placeholder="e.g., Food"
-                            placeholderTextColor={theme.textSecondary}
-                        />
-                    </View>
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Name (Include Emoji if desired)</Text>
+                    <TextInput
+                        style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
+                        value={name}
+                        onChangeText={setName}
+                        placeholder="e.g., 🍔 Food"
+                        placeholderTextColor={theme.textSecondary}
+                    />
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -237,7 +232,6 @@ const styles = StyleSheet.create({
     title: { fontSize: 18, fontWeight: 'bold' },
     saveText: { fontWeight: 'bold', fontSize: 16 },
     content: { padding: 16 },
-    row: { flexDirection: 'row' },
     inputGroup: { marginBottom: 24 },
     label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
     input: {

@@ -137,3 +137,6 @@ After each git checkpoint, run all test cases tagged for that checkpoint. Mark `
 | M2.8 | Closed Box transfers | Transfer OUT of Closed Box | Summary counts it as INCOME |
 | M2.9 | Nested Picker UI | Transaction form -> Account Picker | Reserves shown formatted as `Paren.. > Reserve` |
 | M2.10 | Account Name Live Update | Edit account name -> View Ledger | Ledger reflects new name immediately without restart |
+| M2.11 | Categories Grouping | Settings -> Manage Categories | Categories are grouped into Expense and Income sections |
+| M2.12 | Nested Category Creation | Manage Categories -> Tap inline `+` | New Category form opens with Expense/Income & Parent predrawn |
+| M2.13 | Integrated Category Emojis | Add Category | Emoji typed into Name field displays natively; custom Emoji input is absent |
