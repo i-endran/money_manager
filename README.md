@@ -1,4 +1,4 @@
-# 🐷 PiggyBook
+# 💰 Pocket Log
 
 A personal finance mobile app built with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
 
@@ -9,24 +9,22 @@ A personal finance mobile app built with **React Native**. Track expenses, incom
 | Document | Description |
 |---|---|
 | [Architecture](./docs/architecture.md) | Full technical architecture, directory structure, data flow |
-| [Milestone 1 Task Plan](./docs/task_plan.md) | Detailed feature checklist for M1 |
+| [Task Plan](./docs/task_plan.md) | Detailed feature checklist and completion status |
 | [Test Cases](./docs/test_cases.md) | 75+ test cases organized by checkpoint |
 
 ---
 
 ## ✨ Features (Milestone 1)
 
-- 📅 **Month-view Ledger** with income/expense/balance summary
-- ➕ **Add / Edit / Delete** transactions (expense, income, transfer)
-- 🏦 **Multi-account** support (Bank, Cash, Card, Wallet, etc.)
-- 🗂️ **3-level Hierarchical Categories** with emoji icons
-- 🔄 **Atomic Transfers** — linked debit/credit entries with safe deletion
-- 📆 **Custom iOS Month Picker** — grid-based date selection
-- ⚙️ **Settings & Entity Management** — CRUD for accounts and categories
-- 🔒 **Biometric / PIN Lock Screen** — secured via `react-native-keychain`
-- 🌄 **Native Splash Screen** — via `react-native-bootsplash`
-- 🌑 **Dark Mode** — automatic system-adaptive theme (Material 3 + Cupertino)
-- 🪟 **Liquid Glass Modals** — `@react-native-community/blur` for frosted glass forms
+- 📅 **Unified Ledger Header** — Merged month selector and monthly summary in a single clean bubble.
+- ⏭️ **Carry Forward Balance** — Option to see previous month's net balance as an opening balance row.
+- ➕ **Add / Edit / Delete** transactions (expense, income, transfer) with strict numeric validation.
+- 🏦 **Multi-account** support (Bank, Cash, Card, Wallet, etc.) with grouped selection.
+- 🗂️ **3-level Hierarchical Categories** with emoji icons.
+- 🔄 **Atomic Transfers** — Linked debit/credit entries with safe deletion and "From → To" display.
+- ⚙️ **iOS Settings Style** — Squircle-rounded lists and grouped sections throughout the app.
+- 🔒 **Biometric / PIN Lock Screen** — Secured via `react-native-keychain`.
+- 🌄 **Native Branding** — Custom "Pocket Log" splash screen and app icon.
 
 ---
 
@@ -35,11 +33,11 @@ A personal finance mobile app built with **React Native**. Track expenses, incom
 | Layer | Technology |
 |---|---|
 | UI | React Native 0.84 + TypeScript |
-| Navigation | React Navigation 7 (Native Stack) |
+| Navigation | React Navigation 7 (Tabs + Stack) |
 | Database | `op-sqlite` + Drizzle ORM |
 | State | Zustand |
 | Security | `react-native-keychain`, `react-native-biometrics` |
-| Styling | Vanilla StyleSheet (theme tokens) |
+| Styling | Vanilla StyleSheet (Navy Blue `#1B3A5C` accent) |
 
 ---
 
@@ -86,10 +84,10 @@ src/
 ├── database/       # Drizzle ORM schema, migrations, and seed
 ├── features/
 │   ├── auth/       # Lock Screen (PIN + biometrics)
-│   ├── ledger/     # Main ledger view
+│   ├── ledger/     # Main ledger view & carry-forward logic
 │   ├── transaction/# Add/edit form and pickers
-│   └── settings/   # Settings hub and entity management
-├── navigation/     # Root stack navigator
+│   └── settings/   # Settings hub & entity management
+├── navigation/     # Root stack & bottom tab navigators
 └── stores/         # Zustand global state (auth, ledger)
 ```
 
@@ -106,100 +104,3 @@ PIN codes are stored securely in the device keychain (never in AsyncStorage or p
 ## 📄 License
 
 Private project — all rights reserved.
-
-
-# Getting Started
-
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
-
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.

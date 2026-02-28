@@ -1,21 +1,16 @@
-# PiggyBook - Milestone 1: Transaction Ledger
+# Pocket Log - Milestone 1: Transaction Ledger
 
 ## Planning
 - [x] Gather requirements and clarify doubts
 - [x] Create implementation plan
 - [x] Incorporate user feedback (emoji, iOS picker, liquid glass, splash, export, git checkpoints)
 - [x] Create comprehensive test cases (75+ cases, 7 checkpoints)
-- [ ] Get user approval on plan
+- [x] Get user approval on plan
 
-## Project Setup (Checkpoint 1)
-- [x] Verify build toolchain (Node, npm, JDK, Android SDK, Xcode)
-- [x] Initialize React Native project
-- [x] Configure dependencies
-- [x] Initialize git + first commit
-
-## Core Layer (Checkpoint 2)
-- [x] Platform-adaptive theme (Material 3 + Cupertino)
-- [x] Auto-palette color system
+## Core Layer (Checkpoint 1-2)
+- [x] Verify build toolchain & Initialize project
+- [x] Configure dependencies & Git
+- [x] Platform-adaptive theme (Navy Blue accent)
 - [x] Currency formatter, date utilities
 
 ## Database Layer (Checkpoint 3)
@@ -41,7 +36,13 @@
 - [x] Category CRUD (3-level, emoji support)
 - [x] Liquid glass transitions (iOS)
 
-## Auth & Splash (Checkpoint 7)
+## Auth & Splash (Checkpoint 7-8)
 - [x] Splash screen (react-native-bootsplash)
 - [x] PIN / biometric auth
 - [x] Lock screen on app launch
+
+## Branding & UI Polish (Final Checkpoints)
+- [x] **Rebranding**: Renamed to Pocket Log, new icon, navy blue splash.
+- [x] **UI Overhaul**: iOS Settings-style squircle lists throughout.
+- [x] **Features**: Carry Forward Balance toggle & opening balance row.
+- [x] **UX Polish**: Unified header bubble, centered titles, tightened spacing.
