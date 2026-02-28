@@ -36,8 +36,11 @@ This document provides a compressed overview of the **Pocket Log** project for A
 
 ## 📊 Current Project Status
 
-- **Status**: Milestone 1 (Core Ledger App) — **100% Complete**.
+- **Status**: Milestone 2 (Settings Revamp) — **100% Complete**.
 - **Latest Features**:
+  - **Theme Profiles**: Added `settingsStore` backing Light, Dark, and System Default options with reactive styling.
+  - **Account Management**: Nesting support (1-level "Reserves"), Grouped UI, and true Drag-to-Reorder via `react-native-draggable-flatlist`.
+  - **Closed-Box Logic**: Accounts can be excluded from summaries; transfers into them count as expense, out count as income.
   - **Carry Forward Balance**: Computes and displays opening balance row from prior months.
   - **Unified Header**: Month selector and summary merged into a single bubble.
   - **App Icon & Splash**: Updated to the new Pocket Log branding (Navy Blue).

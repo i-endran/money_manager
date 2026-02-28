@@ -120,3 +120,20 @@ After each git checkpoint, run all test cases tagged for that checkpoint. Mark `
 - [x] **CP 13**: Delete button relocation
 - [x] **CP 16**: Numeric input sync
 - [x] **CP 17**: Final Branding & UI Overhaul (Pocket Log, Squircle, Carry Forward)
+
+---
+
+## Milestone 2 Test Cases
+
+| ID | Test Case | Steps | Expected |
+|---|---|---|---|
+| M2.1 | Theme Profiles | Settings -> Change Theme (Light/Dark/System) | App switches colors immediately with elegant contrast |
+| M2.2 | Currency Symbol Reactivity | Settings -> Change Currency | All ledger screens, transaction forms, and summaries show new symbol |
+| M2.3 | Grouped Account Management | Settings -> Manage Accounts | Accounts are grouped by Type (Bank, Cash, etc) |
+| M2.4 | Account Reordering | Account Manage -> Edit Order -> Drag | Accounts reorder, drag handles appear, order persists on reload |
+| M2.5 | Add Nested Reserve | Save new account -> click Yes on prompt | Reserve form opens with parent ID set, saves under parent |
+| M2.6 | Closed Box Account | Add/Edit Account -> Toggle Closed-Box | Account receives "Closed-Box" badge in management |
+| M2.7 | Closed Box excluded from picker | Open Income/Expense form | Closed-box account does NOT appear in account picker |
+| M2.8 | Closed Box transfers | Transfer OUT of Closed Box | Summary counts it as INCOME |
+| M2.9 | Nested Picker UI | Transaction form -> Account Picker | Reserves shown formatted as `Paren.. > Reserve` |
+| M2.10 | Account Name Live Update | Edit account name -> View Ledger | Ledger reflects new name immediately without restart |

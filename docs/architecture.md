@@ -76,10 +76,13 @@ src/database/
 
 | Table | Purpose | Key Columns |
 |---|---|---|
-| `accounts` | User bank/cash accounts | `name`, `type`, `isActive` |
+| `accounts` | User bank/cash accounts | `name`, `type`, `isActive`, `parentId`, `excludeFromSummaries`, `sortOrder` |
 | `categories` | 3-level hierarchy | `name`, `iconName`, `parentId` |
 | `transactions` | Ledger entries | `amount`, `type`, `date`, `linkedTransactionId` |
 | `appSettings` | Key-value store | `key`, `value` |
+
+### Feature: Closed-Box Accounts & Nested Reserves
+Accounts support 1-level deep nesting (Reserves) and custom grouping. Accounts marked `excludeFromSummaries` (Closed-Box) do not participate directly in the monthly income/expense totals. Special ledger logic ensures transfers *to* a closed box count as expenses, while transfers *from* a closed box count as income.
 
 ### Feature: Carry Forward Balance
 The `appSettings` table stores a `carryForwardBalance` toggle. When enabled, the ledger hook queries all transactions prior to the current month to calculate an opening balance, which is then injected as a virtual row in the ledger.
