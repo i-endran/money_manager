@@ -293,14 +293,10 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                                 keyboardType="decimal-pad"
                                 value={amount}
                                 onChangeText={(text) => {
-                                    // Allow only numbers and one decimal point
-                                    let filtered = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                                    // Limit to 2 decimal places
-                                    const parts = filtered.split('.');
-                                    if (parts.length === 2 && parts[1].length > 2) {
-                                        filtered = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                                    // Strictly allow only valid currency strings (stops native flicker)
+                                    if (text === '' || /^\d*\.?\d{0,2}$/.test(text)) {
+                                        setAmount(text);
                                     }
-                                    setAmount(filtered);
                                 }}
                                 placeholder="0.00"
                                 placeholderTextColor={theme.textSecondary}
