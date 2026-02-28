@@ -45,6 +45,7 @@ export const SettingsScreen = () => {
     const [currencyCode, setCurrencyCode] = useState('INR');
     const [currencySymbol, setCurrencySymbol] = useState('₹');
     const [themeMode, setThemeMode] = useState<ThemeMode>(ThemeMode.SYSTEM);
+    const [carryForward, setCarryForward] = useState(false);
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [themePickerVisible, setThemePickerVisible] = useState(false);
 
@@ -55,6 +56,7 @@ export const SettingsScreen = () => {
                 if (s.key === SettingsKey.CURRENCY_CODE) setCurrencyCode(s.value);
                 if (s.key === SettingsKey.CURRENCY_SYMBOL) setCurrencySymbol(s.value);
                 if (s.key === SettingsKey.THEME_MODE) setThemeMode(s.value as ThemeMode);
+                if (s.key === SettingsKey.CARRY_FORWARD_BALANCE) setCarryForward(s.value === 'true');
             });
         }
         loadSettings();
@@ -89,6 +91,12 @@ export const SettingsScreen = () => {
 
     const handleExport = () => {
         Alert.alert('Coming Soon', 'CSV/Excel export functionality is under development.');
+    };
+
+    const handleCarryForwardToggle = async () => {
+        const newValue = !carryForward;
+        setCarryForward(newValue);
+        await saveSetting(SettingsKey.CARRY_FORWARD_BALANCE, newValue.toString());
     };
 
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
@@ -145,8 +153,27 @@ export const SettingsScreen = () => {
                         label="Theme"
                         value={currentThemeLabel}
                         onPress={() => setThemePickerVisible(true)}
-                        isLast
                     />
+                    <Separator />
+                    <TouchableOpacity
+                        style={[
+                            styles.item,
+                            {
+                                backgroundColor: theme.surface,
+                                borderBottomLeftRadius: 12,
+                                borderBottomRightRadius: 12,
+                            },
+                        ]}
+                        onPress={handleCarryForwardToggle}
+                    >
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.itemLabel, { color: theme.text }]}>Carry Forward Balance</Text>
+                            <Text style={[styles.itemValue, { color: theme.textSecondary }]}>Show last month's balance as opening</Text>
+                        </View>
+                        <View style={[styles.toggle, carryForward ? { backgroundColor: colors.primary } : { backgroundColor: theme.border }]}>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{carryForward ? 'ON' : 'OFF'}</Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* MANAGEMENT */}
@@ -286,6 +313,11 @@ const styles = StyleSheet.create({
     separator: {
         height: StyleSheet.hairlineWidth,
         marginLeft: 16,
+    },
+    toggle: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 14,
     },
     footer: {
         marginTop: 40,

@@ -41,6 +41,7 @@ export enum SettingsKey {
   AUTH_ENABLED = 'authEnabled',
   AUTH_METHOD = 'authMethod',
   PIN_HASH = 'pinHash',
+  CARRY_FORWARD_BALANCE = 'carryForwardBalance',
 }
 
 // Max category nesting depth

@@ -42,6 +42,32 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         transaction.categoryName || 'Uncategorized',
     );
 
+    // Opening balance pseudo-entry
+    if (transaction.isOpeningBalance) {
+        return (
+            <View style={[styles.container, { opacity: 0.5 }]}>
+                <View style={styles.left}>
+                    <View style={[styles.iconPlaceholder, { backgroundColor: theme.border }]}>
+                        <Text style={styles.iconText}>{transaction.type === TransactionType.INCOME ? '📥' : '📤'}</Text>
+                    </View>
+                    <View style={styles.details}>
+                        <Text style={[styles.category, { color: theme.textSecondary }]}>
+                            Opening Balance
+                        </Text>
+                        <Text style={[styles.note, { color: theme.textSecondary }]} numberOfLines={1}>
+                            {transaction.note}
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.right}>
+                    <Text style={[styles.amount, { color: theme.textSecondary }]}>
+                        {formatCurrency(transaction.amount)}
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <TouchableOpacity
             onPress={() => onPress(transaction)}
