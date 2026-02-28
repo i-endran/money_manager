@@ -256,7 +256,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 <Text style={[styles.title, { color: theme.text }]}>
                     {transactionId ? 'Edit Transaction' : 'New Transaction'}
                 </Text>
-                <View style={{ width: 50 }} /> {/* Spacer for flex balance */}
+                <View style={{ width: 50 }} />
             </View>
 
             <ScrollView style={styles.content}>
