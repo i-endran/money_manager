@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     SectionList,
-    TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,16 +14,16 @@ import { eq } from 'drizzle-orm';
 import { AccountType } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
 
 // Helper to map AccountType to UI Display
-const TYPE_CONFIG = {
-    [AccountType.CASH]: { title: '💵 Cash', icon: 'payments' },
-    [AccountType.BANK]: { title: '🏦 Bank', icon: 'account-balance' },
-    [AccountType.CARD]: { title: '💳 Cards', icon: 'credit-card' },
-    [AccountType.WALLET]: { title: '👛 Wallets', icon: 'account-balance-wallet' },
-    [AccountType.DEPOSITS]: { title: '🏦 Deposits', icon: 'savings' },
-    [AccountType.CUSTOM]: { title: '📁 Custom', icon: 'category' },
+const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
+    [AccountType.CASH]: { title: '💵 CASH', emoji: '💵' },
+    [AccountType.BANK]: { title: '🏦 BANK', emoji: '🏦' },
+    [AccountType.CARD]: { title: '💳 CARDS', emoji: '💳' },
+    [AccountType.WALLET]: { title: '👛 WALLETS', emoji: '👛' },
+    [AccountType.DEPOSITS]: { title: '🏦 DEPOSITS', emoji: '🏦' },
+    [AccountType.CUSTOM]: { title: '📁 CUSTOM', emoji: '📁' },
 };
 
 type AccountWithReserves = schema.Account & { reserves: schema.Account[] };
@@ -78,7 +77,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
         }));
     }, [rootsWithReserves]);
 
-    const handleDragEnd = async ({ data }: { data: AccountWithReserves[] }) => {
+    const handleDragEnd = ({ data }: { data: AccountWithReserves[] }) => {
         // Update local state by reconstructing flat accounts array
         const updatedAccounts = [...accounts];
 
@@ -93,18 +92,18 @@ export const AccountManagementScreen = ({ navigation }: any) => {
 
         setAccounts(updatedAccounts);
 
-        // Bulk update Database
-        // Note: SQLite might not support massive bulk UPDATE with CASE WHEN elegantly out-of-the-box in this ORM version
-        // Loop is fine since we typically have < 20 accounts.
-        try {
-            for (let i = 0; i < data.length; i++) {
-                await db.update(schema.accounts)
-                    .set({ sortOrder: i })
-                    .where(eq(schema.accounts.id, data[i].id));
+        // Bulk update Database without an async callback from UI thread event
+        (async () => {
+            try {
+                for (let i = 0; i < data.length; i++) {
+                    await db.update(schema.accounts)
+                        .set({ sortOrder: i })
+                        .where(eq(schema.accounts.id, data[i].id));
+                }
+            } catch (error) {
+                console.error('Failed to save sort order:', error);
             }
-        } catch (error) {
-            console.error('Failed to save sort order:', error);
-        }
+        })();
     };
 
     const renderReserve = (reserve: schema.Account, isLastReserve: boolean) => (
@@ -159,7 +158,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                             </View>
                         )}
                         <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.black : colors.white }]}>
-                            <Icon name={item.iconName} size={20} color={colors.primary} />
+                            <Text style={{ fontSize: 18 }}>{TYPE_CONFIG[item.type as AccountType]?.emoji || '🏦'}</Text>
                         </View>
                         <View>
                             <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
