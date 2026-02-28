@@ -5,9 +5,10 @@
  * @returns Formatted string
  */
 export function formatCurrency(amount: number, symbol: string = '₹'): string {
+    const sign = amount < 0 ? '-' : '';
     const formatted = Math.abs(amount).toLocaleString('en-IN', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
-    return `${symbol}${formatted}`;
+    return `${sign}${symbol}${formatted}`;
 }

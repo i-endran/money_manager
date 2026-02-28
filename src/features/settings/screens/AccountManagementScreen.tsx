@@ -15,7 +15,8 @@ import { eq } from 'drizzle-orm';
 import { AccountType } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
-import { scheduleOnRN } from 'react-native-worklets';
+import { runOnJS } from 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Helper to map AccountType to UI Display
 const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
@@ -209,34 +210,10 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            <SectionList
-                sections={sections}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.listContent}
-                renderItem={({ item, index, section }) =>
-                    renderNode(item, index === 0, index === section.data.length - 1)
-                }
-                renderSectionHeader={({ section: { title, type } }) => (
-                    <View style={styles.sectionHeader}>
-                        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('AccountForm', { initialType: type })}>
-                            <Icon name="add-circle" size={22} color={colors.primary} />
-                        </TouchableOpacity>
-                    </View>
-                )}
-                stickySectionHeadersEnabled={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={{ color: theme.textSecondary }}>No accounts found</Text>
-                    </View>
-                }
-            />
-
-            {/* {isEditing ? (
+            {isEditing ? (
                 <DraggableFlatList
                     data={rootsWithReserves}
-                    //onDragEnd={({ data }) => scheduleOnRN(handleDragEnd, { data })}
-                    //onDragEnd={handleDragEnd}
+                    onDragEnd={({ data }) => runOnJS(handleDragEnd)({ data })}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.listContent}
                     renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<AccountWithReserves>) => {
@@ -267,7 +244,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         </View>
                     }
                 />
-            )} */}
+            )}
         </SafeAreaView>
     );
 };

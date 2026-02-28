@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -52,6 +52,13 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     const [catPickerVisible, setCatPickerVisible] = useState(false);
     const [datePickerVisible, setDatePickerVisible] = useState(false);
 
+    // Memoize category filters to avoid repeating them in render/validation
+    const availableCategories = useMemo(() => {
+        return categories.filter(c =>
+            type === TransactionType.EXPENSE ? c.type !== 'income' : c.type !== 'expense'
+        );
+    }, [categories, type]);
+
     useEffect(() => {
         async function loadData() {
             const accList = await db.select().from(schema.accounts).where(eq(schema.accounts.isActive, true));
@@ -96,10 +103,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     const handleSave = async (addAnother = false) => {
         if (!amount || !selectedAccount || (!selectedCategory && type !== TransactionType.TRANSFER)) {
             if (type !== TransactionType.TRANSFER) {
-                const availableCats = categories.filter(c =>
-                    type === TransactionType.EXPENSE ? c.type !== 'income' : c.type !== 'expense'
-                );
-                if (availableCats.length === 0) {
+                if (availableCategories.length === 0) {
                     Alert.alert('Missing Categories', `Please add a category for ${type.toUpperCase()} in Settings first.`);
                     return;
                 }
@@ -450,9 +454,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             <CategoryPicker
                 visible={catPickerVisible}
                 onClose={() => setCatPickerVisible(false)}
-                categories={categories.filter(c =>
-                    type === TransactionType.EXPENSE ? c.type !== 'income' : c.type !== 'expense'
-                )}
+                categories={availableCategories}
                 onSelect={setSelectedCategory}
             />
             {datePickerVisible && (
@@ -482,7 +484,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: { fontSize: 18, fontWeight: 'bold' },
-    saveText: { fontWeight: 'bold', fontSize: 16 },
     content: { padding: 16 },
     segmentContainer: {
         flexDirection: 'row',

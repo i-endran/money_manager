@@ -34,6 +34,11 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
         return accounts.find(a => a.id === currentParentId);
     }, [accounts, currentParentId]);
 
+    // Precompute parent IDs for sub-account indicators
+    const parentIdSet = useMemo(() => {
+        return new Set(accounts.map(a => a.parentId).filter(id => id !== null));
+    }, [accounts]);
+
     const handleBack = () => {
         if (parentAccount && parentAccount.parentId) {
             setCurrentParentId(parentAccount.parentId);
@@ -57,11 +62,11 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
         };
 
         const groups: Record<string, Account[]> = {};
+        const accountIdSet = new Set(accounts.map(a => a.id));
 
         const roots = accounts.filter(a => !a.parentId);
-
         // Also handle cases where a child's parent is not in the list (e.g. filtered out by excludeFromSummaries)
-        const childOrphans = accounts.filter(a => !!a.parentId && !accounts.find(p => p.id === a.parentId));
+        const childOrphans = accounts.filter(a => !!a.parentId && !accountIdSet.has(a.parentId));
 
         [...roots, ...childOrphans].forEach(acc => {
             const key = acc.type || 'custom';
@@ -83,6 +88,35 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
         return accounts.filter(a => a.parentId === currentParentId);
     }, [accounts, currentParentId]);
 
+    const AccountRow = ({ item, isFirst, isLast, onPress }: { item: Account, isFirst?: boolean, isLast?: boolean, onPress: () => void }) => (
+        <TouchableOpacity
+            style={[
+                styles.item,
+                { backgroundColor: theme.surface },
+                !isLast && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                isFirst && { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+                isLast && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+            ]}
+            onPress={onPress}>
+            <View style={styles.itemRow}>
+                <Text style={[styles.itemText, { color: theme.text }]}>
+                    {item.name}
+                </Text>
+                {item.excludeFromSummaries && (
+                    <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
+                        <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
+                            Closed-Box
+                        </Text>
+                    </View>
+                )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {parentIdSet.has(item.id) && (
+                    <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
+                )}
+            </View>
+        </TouchableOpacity>
+    );
 
     return (
         <Modal
@@ -131,49 +165,22 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                     </Text>
                                 </View>
                             )}
-                            renderItem={({ item, index, section }) => {
-                                const hasChildren = accounts.some(a => a.parentId === item.id);
-                                const isFirst = index === 0;
-                                const isLast = index === section.data.length - 1;
-
-                                return (
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.item,
-                                            { backgroundColor: theme.surface },
-                                            !isLast && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
-                                            isFirst && { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-                                            isLast && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-                                        ]}
-                                        onPress={() => {
-                                            if (hasChildren) {
-                                                setCurrentParentId(item.id);
-                                            } else {
-                                                onSelect(item);
-                                                onClose();
-                                                setTimeout(() => setCurrentParentId(null), 300);
-                                            }
-                                        }}>
-                                        <View style={styles.itemRow}>
-                                            <Text style={[styles.itemText, { color: theme.text }]}>
-                                                {item.name}
-                                            </Text>
-                                            {item.excludeFromSummaries && (
-                                                <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
-                                                    <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
-                                                        Closed-Box
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            {hasChildren && (
-                                                <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
-                                            )}
-                                        </View>
-                                    </TouchableOpacity>
-                                );
-                            }}
+                            renderItem={({ item, index, section }) => (
+                                <AccountRow
+                                    item={item}
+                                    isFirst={index === 0}
+                                    isLast={index === section.data.length - 1}
+                                    onPress={() => {
+                                        if (parentIdSet.has(item.id)) {
+                                            setCurrentParentId(item.id);
+                                        } else {
+                                            onSelect(item);
+                                            onClose();
+                                            setTimeout(() => setCurrentParentId(null), 300);
+                                        }
+                                    }}
+                                />
+                            )}
                             ListEmptyComponent={
                                 <View style={{ padding: 20, alignItems: 'center' }}>
                                     <Text style={{ color: theme.textSecondary }}>No available accounts</Text>
@@ -206,44 +213,21 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                     </TouchableOpacity>
                                 ) : null
                             }
-                            renderItem={({ item, index }) => {
-                                const isLast = index === reservesList.length - 1;
-                                return (
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.item,
-                                            { backgroundColor: theme.surface },
-                                            !isLast && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
-                                            isLast && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 }
-                                        ]}
-                                        onPress={() => {
-                                            const hasChildren = accounts.some(a => a.parentId === item.id);
-                                            if (hasChildren) {
-                                                setCurrentParentId(item.id);
-                                            } else {
-                                                onSelect(item);
-                                                onClose();
-                                                setTimeout(() => setCurrentParentId(null), 300);
-                                            }
-                                        }}>
-                                        <View style={styles.itemRow}>
-                                            <Text style={[styles.itemText, { color: theme.text }]}>
-                                                {item.name}
-                                            </Text>
-                                            {item.excludeFromSummaries && (
-                                                <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
-                                                    <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
-                                                        Closed-Box
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        {accounts.some(a => a.parentId === item.id) && (
-                                            <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            }}
+                            renderItem={({ item, index }) => (
+                                <AccountRow
+                                    item={item}
+                                    isLast={index === reservesList.length - 1}
+                                    onPress={() => {
+                                        if (parentIdSet.has(item.id)) {
+                                            setCurrentParentId(item.id);
+                                        } else {
+                                            onSelect(item);
+                                            onClose();
+                                            setTimeout(() => setCurrentParentId(null), 300);
+                                        }
+                                    }}
+                                />
+                            )}
                             ListEmptyComponent={
                                 <View style={{ padding: 24, alignItems: 'center' }}>
                                     <Text style={{ color: theme.textSecondary }}>No sub-accounts</Text>
@@ -338,14 +322,5 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
         borderRadius: 4,
         marginLeft: 4,
-    },
-    itemType: {
-        fontSize: 12,
-        textTransform: 'uppercase',
-    },
-    selectParentItem: {
-        paddingVertical: 14,
-        paddingHorizontal: 4,
-        borderBottomWidth: StyleSheet.hairlineWidth,
     },
 });

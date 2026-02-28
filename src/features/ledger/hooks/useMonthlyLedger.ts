@@ -36,22 +36,7 @@ export function useMonthlyLedger() {
                     .from(transactions)
                     .where(lt(transactions.date, start.toISOString()));
 
-                priorRows.forEach(row => {
-                    const txn = row.transaction;
-                    if (txn.type === TransactionType.INCOME) openingBalance += txn.amount;
-                    if (txn.type === TransactionType.EXPENSE) openingBalance -= txn.amount;
-
-                    if (txn.type === TransactionType.TRANSFER && txn.linkedTransactionId && txn.toAccountId) {
-                        // For historical transfers, we must also apply closed-box logic.
-                        // To avoid double counting, only process the 'from' side of the pair (usually the one with lower ID, or just ensure we don't count both).
-                        // Since we aren't merging historical rows, we have BOTH debit & credit rows in priorRows.
-                        // Wait, creating a set of processed ids is better.
-                    }
-                });
-
-                // Better approach for opening balance transfers:
                 const priorIds = new Set<number>();
-                openingBalance = 0;
                 priorRows.forEach(row => {
                     const txn = row.transaction;
                     if (priorIds.has(txn.id)) return;

@@ -9,22 +9,10 @@ import {
 } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
 import { Category } from '../../../database/schema';
-
-// Helper to fix Android emoji baseline shift
-function splitEmoji(name: string): { emoji: string; text: string } {
-    const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u;
-    const match = name.match(emojiRegex);
-    if (match) {
-        return {
-            emoji: match[0],
-            text: name.slice(match[0].length).trim(),
-        };
-    }
-    return { emoji: '', text: name };
-}
+import { splitEmoji } from '../../../core/utils';
 
 const CategoryLabel = ({ name, textStyle }: { name: string; textStyle?: any }) => {
-    const { emoji, text } = splitEmoji(name);
+    const { emoji, text } = splitEmoji(name, '');
     return (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {!!emoji && <Text style={[textStyle, { marginRight: 6 }]}>{emoji}</Text>}
@@ -48,6 +36,11 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
 }) => {
     const { theme, colors } = useAppTheme();
     const [currentParentId, setCurrentParentId] = useState<number | null>(null);
+
+    // Precompute parent IDs for sub-category indicators
+    const parentIdSet = useMemo(() => {
+        return new Set(categories.map(c => c.parentId).filter(id => id !== null));
+    }, [categories]);
 
     // Filter categories by parent
     const visibleCategories = useMemo(() => {
@@ -118,7 +111,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                             <TouchableOpacity
                                 style={styles.item}
                                 onPress={() => {
-                                    const hasChildren = categories.some(c => c.parentId === item.id);
+                                    const hasChildren = parentIdSet.has(item.id);
                                     if (hasChildren) {
                                         setCurrentParentId(item.id);
                                     } else {

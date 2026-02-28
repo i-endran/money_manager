@@ -1,27 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
-import { formatCurrency } from '../../../core/utils';
+import { formatCurrency, splitEmoji } from '../../../core/utils';
 import { TransactionType } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
 
 interface TransactionItemProps {
     transaction: any;
     onPress: (txn: any) => void;
-}
-
-// Extract leading emoji from a string like "🍕 Food" → { emoji: "🍕", text: "Food" }
-function splitEmoji(name: string): { emoji: string; text: string } {
-    // Match emoji at the start (including compound emoji sequences)
-    const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u;
-    const match = name.match(emojiRegex);
-    if (match) {
-        return {
-            emoji: match[0],
-            text: name.slice(match[0].length).trim(),
-        };
-    }
-    return { emoji: '💰', text: name };
 }
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({

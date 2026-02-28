@@ -1,0 +1,37 @@
+FAIL __tests__/utils/string.test.ts
+  splitEmoji
+    √ splits emoji prefix from text correctly (2 ms)
+    √ uses default emoji when no prefix is found (1 ms)
+    √ handles empty or null strings
+    √ handles strings with only emoji
+    × handles compound emoji sequences (like flags) (2 ms)
+
+  ● splitEmoji › handles compound emoji sequences (like flags)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "emoji": "🇮🇳",
+    -   "text": "India",
+    +   "emoji": "🇮",
+    +   "text": "🇳 India",
+      }
+
+    [0m [90m 23 |[39m     it([32m'handles compound emoji sequences (like flags)'[39m[33m,[39m () [33m=>[39m {
+     [90m 24 |[39m         [90m// Flag emoji are often two regional indicator symbols[39m
+    [31m[1m>[22m[39m[90m 25 |[39m         expect(splitEmoji([32m'🇮🇳 India'[39m))[33m.[39mtoEqual({ emoji[33m:[39m [32m'🇮🇳'[39m[33m,[39m text[33m:[39m [32m'India'[39m })[33m;[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 26 |[39m     })[33m;[39m
+     [90m 27 |[39m })[33m;[39m
+     [90m 28 |[39m[0m
+
+      at Object.toEqual (__tests__/utils/string.test.ts:25:42)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        0.494 s
+Ran all test suites matching /__tests__\\utils\\string.test.ts/i.
