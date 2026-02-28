@@ -7,11 +7,17 @@ import {
     SafeAreaView,
     ScrollView,
     Alert,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../navigation/RootNavigator';
 
-export const SettingsScreen = ({ navigation }: any) => {
+export const SettingsScreen = () => {
     const { theme, colors, isDark } = useAppTheme();
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
     const handleExport = () => {
         Alert.alert('Coming Soon', 'CSV/Excel export functionality is under development.');
@@ -19,7 +25,7 @@ export const SettingsScreen = ({ navigation }: any) => {
 
     const SettingItem = ({ label, value, onPress, isPlaceholder }: any) => (
         <TouchableOpacity
-            style={[styles.item, { borderBottomColor: theme.border }]}
+            style={[styles.item, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}
             onPress={onPress}
         >
             <View>
@@ -31,13 +37,9 @@ export const SettingsScreen = ({ navigation }: any) => {
     );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={{ color: colors.primary }}>Back</Text>
-                </TouchableOpacity>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+            <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
-                <View style={{ width: 40 }} />
             </View>
 
             <ScrollView>
@@ -85,7 +87,7 @@ export const SettingsScreen = ({ navigation }: any) => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Money Manager v1.0.0</Text>
+                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>PiggyBook v1.0.0</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -95,13 +97,10 @@ export const SettingsScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
-    headerTitle: { fontSize: 18, fontWeight: 'bold' },
+    headerTitle: { fontSize: 28, fontWeight: 'bold' },
     section: { marginTop: 24 },
     sectionTitle: {
         fontSize: 12,
@@ -114,7 +113,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 16,
-        backgroundColor: 'white', // Should be theme.surface in real app
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     itemLabel: { fontSize: 16 },
@@ -125,3 +123,4 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
 });
+

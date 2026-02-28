@@ -7,6 +7,8 @@ import {
     View,
     ActivityIndicator,
     TouchableOpacity,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
 import { useLedgerStore } from '../../../stores/ledgerStore';
@@ -53,13 +55,9 @@ export const LedgerScreen: React.FC = () => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-            <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-                <View style={{ width: 40 }} />
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Money Manager</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerBtn}>
-                    <Text style={{ color: colors.primary, fontSize: 20 }}>⚙️</Text>
-                </TouchableOpacity>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+            <View style={[styles.header, { backgroundColor: theme.background }]}>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>PiggyBook</Text>
             </View>
 
             <MonthSelector
@@ -113,19 +111,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: 16,
-        height: 56,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        paddingVertical: 12,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 28,
         fontWeight: 'bold',
-    },
-    headerBtn: {
-        padding: 8,
     },
     center: {
         flex: 1,
@@ -148,8 +139,8 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: 24,
-        right: 24,
+        bottom: 16,
+        right: 20,
         width: 56,
         height: 56,
         borderRadius: 28,
