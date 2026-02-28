@@ -4,7 +4,7 @@ import {
     Text,
     StyleSheet,
     SectionList,
-    Pressable,
+    TouchableOpacity as RNTouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -109,8 +109,9 @@ export const AccountManagementScreen = ({ navigation }: any) => {
 
     const renderReserve = (reserve: schema.Account, isLastReserve: boolean) => (
         <View key={reserve.id} style={styles.reserveRowContainer}>
-            <Pressable
+            <RNTouchableOpacity
                 style={styles.reserveRow}
+                activeOpacity={0.6}
                 onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
                 disabled={isEditing}
             >
@@ -121,7 +122,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         { backgroundColor: reserve.isActive ? '#34C759' : '#AEAEB2' }
                     ]} />
                 )}
-            </Pressable>
+            </RNTouchableOpacity>
         </View>
     );
 
