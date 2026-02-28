@@ -98,17 +98,19 @@ export const LedgerScreen: React.FC = () => {
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Pocket Log</Text>
             </View>
 
-            <MonthSelector
-                currentDate={currentDate}
-                onPrev={prevMonth}
-                onNext={nextMonth}
-            />
-
-            <MonthlySummary
-                income={summary.income}
-                expense={summary.expense}
-                balance={summary.balance}
-            />
+            <View style={[styles.summaryBubble, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <MonthSelector
+                    currentDate={currentDate}
+                    onPrev={prevMonth}
+                    onNext={nextMonth}
+                />
+                <View style={[styles.bubbleDivider, { backgroundColor: theme.border }]} />
+                <MonthlySummary
+                    income={summary.income}
+                    expense={summary.expense}
+                    balance={summary.balance}
+                />
+            </View>
 
             {loading ? (
                 <View style={styles.center}>
@@ -151,6 +153,18 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 28,
         fontWeight: 'bold',
+    },
+    summaryBubble: {
+        marginHorizontal: 16,
+        marginTop: 8,
+        marginBottom: 4,
+        borderRadius: 12,
+        borderWidth: StyleSheet.hairlineWidth,
+        overflow: 'hidden',
+    },
+    bubbleDivider: {
+        height: StyleSheet.hairlineWidth,
+        marginHorizontal: 16,
     },
     center: {
         flex: 1,
