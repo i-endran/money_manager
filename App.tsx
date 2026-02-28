@@ -7,6 +7,7 @@ import RNBootSplash from 'react-native-bootsplash';
 import { useAuthStore } from './src/stores/authStore';
 import { LockScreen } from './src/features/auth/screens/LockScreen';
 import { useSettingsStore } from './src/stores/settingsStore';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function App(): React.JSX.Element {
   const { isLocked, initialize, lockApp } = useAuthStore();
@@ -34,12 +35,16 @@ function App(): React.JSX.Element {
 
   if (!isReady) return <React.Fragment />;
 
-  return isLocked ? (
-    <LockScreen />
-  ) : (
-    <NavigationContainer>
-      <RootNavigator />
-    </NavigationContainer>
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {isLocked ? (
+        <LockScreen />
+      ) : (
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      )}
+    </GestureHandlerRootView>
   );
 }
 

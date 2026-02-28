@@ -212,18 +212,16 @@ export const AccountManagementScreen = ({ navigation }: any) => {
             </View>
 
             {isEditing ? (
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                    <DraggableFlatList
-                        data={rootsWithReserves}
-                        onDragEnd={handleDragEnd}
-                        keyExtractor={(item) => item.id.toString()}
-                        contentContainerStyle={styles.listContent}
-                        renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<AccountWithReserves>) => {
-                            const index = getIndex() ?? 0;
-                            return renderNode(item, index === 0, index === rootsWithReserves.length - 1, drag, isActive);
-                        }}
-                    />
-                </GestureHandlerRootView>
+                <DraggableFlatList
+                    data={rootsWithReserves}
+                    onDragEnd={handleDragEnd}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<AccountWithReserves>) => {
+                        const index = getIndex() ?? 0;
+                        return renderNode(item, index === 0, index === rootsWithReserves.length - 1, drag, isActive);
+                    }}
+                />
             ) : (
                 <SectionList
                     sections={sections}
