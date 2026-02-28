@@ -393,6 +393,16 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     <Text style={styles.primaryBtnText}>Save</Text>
                 </TouchableOpacity>
 
+                {/* Delete Button (Only in Edit Mode) */}
+                {transactionId && (
+                    <TouchableOpacity
+                        style={[styles.deleteBtn, { borderColor: colors.expense, marginTop: 10, marginBottom: 10 }]}
+                        onPress={handleDelete}
+                    >
+                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Transaction</Text>
+                    </TouchableOpacity>
+                )}
+
                 {/* Secondary 'Add Another' Button */}
                 {!transactionId && (
                     <TouchableOpacity
@@ -414,15 +424,6 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                             </Text>
                         )}
                     </View>
-                )}
-
-                {transactionId && (
-                    <TouchableOpacity
-                        style={[styles.deleteBtn, { borderColor: colors.expense }]}
-                        onPress={handleDelete}
-                    >
-                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Transaction</Text>
-                    </TouchableOpacity>
                 )}
             </ScrollView>
 
