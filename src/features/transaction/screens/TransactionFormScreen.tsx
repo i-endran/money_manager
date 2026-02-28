@@ -259,7 +259,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 <View style={{ width: 50 }} />
             </View>
 
-            <ScrollView style={styles.content}>
+            <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 120 }}>
                 {/* Type Selector — Color-coded */}
                 <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : '#ECEDF0' }]}>
                     {[
@@ -482,28 +482,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         borderRadius: 8,
         padding: 4,
-        marginBottom: 24,
+        marginBottom: 16,
     },
     segment: {
         flex: 1,
-        paddingVertical: 8,
+        paddingVertical: 6,
         alignItems: 'center',
         borderRadius: 6,
     },
     segmentText: { fontSize: 12, fontWeight: 'bold' },
-    inputGroup: { marginBottom: 20 },
-    label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+    inputGroup: { marginBottom: 16 },
+    label: { fontSize: 12, fontWeight: '500', marginBottom: 4 },
     currencySymbol: { fontSize: 32, fontWeight: '300', marginRight: 4 },
     amountInput: { fontSize: 40, fontWeight: 'bold', flex: 1 },
     pickerField: {
-        paddingVertical: 12,
+        paddingVertical: 10,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        marginBottom: 20,
+        marginBottom: 16,
     },
     pickerValue: { fontSize: 16, marginTop: 4 },
     textInput: {
         fontSize: 16,
-        paddingVertical: 8,
+        paddingVertical: 6,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     primaryBtn: {
