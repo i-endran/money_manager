@@ -1,0 +1,415 @@
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    ScrollView,
+    SafeAreaView,
+    Alert,
+} from 'react-native';
+import { useAppTheme } from '../../../core/theme';
+import { db } from '../../../database';
+import * as schema from '../../../database/schema';
+import { TransactionType } from '../../../core/constants';
+import { AccountPicker } from '../components/AccountPicker';
+import { CategoryPicker } from '../components/CategoryPicker';
+import { MonthPicker } from '../components/MonthPicker';
+import { useLedgerStore } from '../../../stores/ledgerStore';
+import { eq, or } from 'drizzle-orm';
+import { format } from 'date-fns';
+
+export const TransactionFormScreen = ({ navigation, route }: any) => {
+    const { theme, colors } = useAppTheme();
+    const { refresh } = useLedgerStore();
+    const transactionId = route.params?.transactionId;
+
+    const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
+    const [amount, setAmount] = useState('');
+    const [note, setNote] = useState('');
+    const [description, setDescription] = useState('');
+    const [date, setDate] = useState(new Date());
+
+    const [selectedAccount, setSelectedAccount] = useState<schema.Account | null>(null);
+    const [toAccount, setToAccount] = useState<schema.Account | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<schema.Category | null>(null);
+
+    const [accounts, setAccounts] = useState<schema.Account[]>([]);
+    const [categories, setCategories] = useState<schema.Category[]>([]);
+
+    const [accPickerVisible, setAccPickerVisible] = useState(false);
+    const [toAccPickerVisible, setToAccPickerVisible] = useState(false);
+    const [catPickerVisible, setCatPickerVisible] = useState(false);
+    const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+
+    useEffect(() => {
+        async function loadData() {
+            const accList = await db.select().from(schema.accounts).where(eq(schema.accounts.isActive, true));
+            const catList = await db.select().from(schema.categories).where(eq(schema.categories.isActive, true));
+            setAccounts(accList);
+            setCategories(catList);
+
+            if (accList.length > 0) setSelectedAccount(accList[0]);
+
+            if (transactionId) {
+                // Load existing transaction for edit
+                const [txn] = await db
+                    .select()
+                    .from(schema.transactions)
+                    .where(eq(schema.transactions.id, transactionId))
+                    .limit(1);
+
+                if (txn) {
+                    setType(txn.type as TransactionType);
+                    setAmount(txn.amount.toString());
+                    setNote(txn.note);
+                    setDescription(txn.description || '');
+                    setDate(new Date(txn.date));
+                    setSelectedAccount(accList.find(a => a.id === txn.accountId) || null);
+                    setSelectedCategory(catList.find(c => c.id === txn.categoryId) || null);
+                    if (txn.toAccountId) {
+                        setToAccount(accList.find(a => a.id === txn.toAccountId) || null);
+                    }
+                }
+            }
+        }
+        loadData();
+    }, [transactionId]);
+
+    const handleSave = async () => {
+        if (!amount || !selectedAccount || (!selectedCategory && type !== TransactionType.TRANSFER)) {
+            Alert.alert('Error', 'Please fill in all required fields');
+            return;
+        }
+
+        const now = new Date().toISOString();
+        const dateStr = date.toISOString();
+        const numericAmount = parseFloat(amount);
+
+        try {
+            if (type === TransactionType.TRANSFER) {
+                if (!toAccount) return;
+
+                // 1. Create Debit entry
+                const [res1] = await db.insert(schema.transactions).values({
+                    amount: numericAmount,
+                    type: TransactionType.TRANSFER,
+                    accountId: selectedAccount.id,
+                    toAccountId: toAccount.id,
+                    categoryId: 0,
+                    note: note || `Transfer to ${toAccount.name}`,
+                    date: dateStr,
+                    createdAt: now,
+                    updatedAt: now,
+                }).returning({ insertedId: schema.transactions.id });
+
+                // 2. Create Credit entry
+                const [res2] = await db.insert(schema.transactions).values({
+                    amount: numericAmount,
+                    type: TransactionType.TRANSFER,
+                    accountId: toAccount.id,
+                    toAccountId: selectedAccount.id,
+                    categoryId: 0,
+                    note: note || `Transfer from ${selectedAccount.name}`,
+                    date: dateStr,
+                    linkedTransactionId: res1.insertedId,
+                    createdAt: now,
+                    updatedAt: now,
+                }).returning({ insertedId: schema.transactions.id });
+
+                // 3. Link back the first one
+                await db
+                    .update(schema.transactions)
+                    .set({ linkedTransactionId: res2.insertedId })
+                    .where(eq(schema.transactions.id, res1.insertedId));
+
+            } else {
+                if (transactionId) {
+                    await db
+                        .update(schema.transactions)
+                        .set({
+                            amount: numericAmount,
+                            type,
+                            accountId: selectedAccount.id,
+                            categoryId: selectedCategory?.id || 0,
+                            note,
+                            description,
+                            date: dateStr,
+                            updatedAt: now,
+                        })
+                        .where(eq(schema.transactions.id, transactionId));
+                } else {
+                    await db.insert(schema.transactions).values({
+                        amount: numericAmount,
+                        type,
+                        accountId: selectedAccount.id,
+                        categoryId: selectedCategory?.id || 0,
+                        note,
+                        description,
+                        date: dateStr,
+                        createdAt: now,
+                        updatedAt: now,
+                    });
+                }
+            }
+
+            refresh();
+            navigation.goBack();
+        } catch (error) {
+            console.error('Save failed:', error);
+            Alert.alert('Error', 'Failed to save transaction');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!transactionId) return;
+
+        Alert.alert('Delete', 'Are you sure you want to delete this transaction?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        const [txn] = await db
+                            .select()
+                            .from(schema.transactions)
+                            .where(eq(schema.transactions.id, transactionId))
+                            .limit(1);
+
+                        if (txn?.linkedTransactionId) {
+                            await db
+                                .delete(schema.transactions)
+                                .where(
+                                    or(
+                                        eq(schema.transactions.id, transactionId),
+                                        eq(schema.transactions.id, txn.linkedTransactionId),
+                                    ),
+                                );
+                        } else {
+                            await db
+                                .delete(schema.transactions)
+                                .where(eq(schema.transactions.id, transactionId));
+                        }
+
+                        refresh();
+                        navigation.goBack();
+                    } catch (error) {
+                        console.error('Delete failed:', error);
+                    }
+                },
+            },
+        ]);
+    };
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Text style={{ color: colors.primary }}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={[styles.title, { color: theme.text }]}>
+                    {transactionId ? 'Edit Transaction' : 'New Transaction'}
+                </Text>
+                <TouchableOpacity onPress={handleSave}>
+                    <Text style={[styles.saveText, { color: colors.primary }]}>Save</Text>
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.content}>
+                {/* Type Selector */}
+                <View style={styles.segmentContainer}>
+                    {[TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER].map(
+                        t => (
+                            <TouchableOpacity
+                                key={t}
+                                onPress={() => setType(t)}
+                                style={[
+                                    styles.segment,
+                                    type === t && { backgroundColor: colors.primary },
+                                ]}>
+                                <Text style={[styles.segmentText, type === t && { color: 'white' }]}>
+                                    {t.toUpperCase()}
+                                </Text>
+                            </TouchableOpacity>
+                        ),
+                    )}
+                </View>
+
+                {/* Amount */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Amount</Text>
+                    <TextInput
+                        style={[styles.amountInput, { color: theme.text }]}
+                        keyboardType="numeric"
+                        value={amount}
+                        onChangeText={setAmount}
+                        placeholder="0.00"
+                        placeholderTextColor={theme.textSecondary}
+                        autoFocus
+                    />
+                </View>
+
+                {/* Date Picker */}
+                <TouchableOpacity
+                    style={styles.pickerField}
+                    onPress={() => setMonthPickerVisible(true)}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Date</Text>
+                    <Text style={[styles.pickerValue, { color: theme.text }]}>
+                        {format(date, 'MMMM yyyy')}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Account Pickers */}
+                <TouchableOpacity
+                    style={styles.pickerField}
+                    onPress={() => setAccPickerVisible(true)}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>
+                        {type === TransactionType.TRANSFER ? 'From Account' : 'Account'}
+                    </Text>
+                    <Text style={[styles.pickerValue, { color: theme.text }]}>
+                        {selectedAccount?.name || 'Select Account'}
+                    </Text>
+                </TouchableOpacity>
+
+                {type === TransactionType.TRANSFER && (
+                    <TouchableOpacity
+                        style={styles.pickerField}
+                        onPress={() => setToAccPickerVisible(true)}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>To Account</Text>
+                        <Text style={[styles.pickerValue, { color: theme.text }]}>
+                            {toAccount?.name || 'Select Account'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Category Picker */}
+                {type !== TransactionType.TRANSFER && (
+                    <TouchableOpacity
+                        style={styles.pickerField}
+                        onPress={() => setCatPickerVisible(true)}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Category</Text>
+                        <Text style={[styles.pickerValue, { color: theme.text }]}>
+                            {selectedCategory?.name || 'Select Category'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Note */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Note</Text>
+                    <TextInput
+                        style={[styles.textInput, { color: theme.text, borderBottomColor: theme.border }]}
+                        value={note}
+                        onChangeText={setNote}
+                        placeholder="Short note"
+                        placeholderTextColor={theme.textSecondary}
+                    />
+                </View>
+
+                {/* Description */}
+                <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>
+                    <TextInput
+                        style={[styles.textInput, { color: theme.text, borderBottomColor: theme.border }]}
+                        value={description}
+                        onChangeText={setDescription}
+                        placeholder="Optional details"
+                        placeholderTextColor={theme.textSecondary}
+                        multiline
+                    />
+                </View>
+
+                {transactionId && (
+                    <TouchableOpacity
+                        style={[styles.deleteBtn, { borderColor: colors.expense }]}
+                        onPress={handleDelete}
+                    >
+                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Transaction</Text>
+                    </TouchableOpacity>
+                )}
+            </ScrollView>
+
+            <AccountPicker
+                visible={accPickerVisible}
+                onClose={() => setAccPickerVisible(false)}
+                accounts={accounts}
+                onSelect={setSelectedAccount}
+                title="Select Account"
+            />
+            <AccountPicker
+                visible={toAccPickerVisible}
+                onClose={() => setToAccPickerVisible(false)}
+                accounts={accounts.filter(a => a.id !== selectedAccount?.id)}
+                onSelect={setToAccount}
+                title="Select Destination Account"
+            />
+            <CategoryPicker
+                visible={catPickerVisible}
+                onClose={() => setCatPickerVisible(false)}
+                categories={categories.filter(c =>
+                    type === TransactionType.EXPENSE ? c.type !== 'income' : c.type !== 'expense'
+                )}
+                onSelect={setSelectedCategory}
+            />
+            <MonthPicker
+                visible={monthPickerVisible}
+                onClose={() => setMonthPickerVisible(false)}
+                selectedDate={date}
+                onSelect={setDate}
+            />
+        </SafeAreaView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        alignItems: 'center',
+    },
+    title: { fontSize: 18, fontWeight: 'bold' },
+    saveText: { fontWeight: 'bold', fontSize: 16 },
+    content: { padding: 16 },
+    segmentContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#eee',
+        borderRadius: 8,
+        padding: 4,
+        marginBottom: 24,
+    },
+    segment: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: 6,
+    },
+    segmentText: { fontSize: 12, fontWeight: 'bold', color: '#666' },
+    inputGroup: { marginBottom: 20 },
+    label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+    amountInput: { fontSize: 40, fontWeight: 'bold' },
+    pickerField: {
+        paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#eee',
+        marginBottom: 20,
+    },
+    pickerValue: { fontSize: 16, marginTop: 4 },
+    textInput: {
+        fontSize: 16,
+        paddingVertical: 8,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    deleteBtn: {
+        marginTop: 40,
+        marginBottom: 80,
+        paddingVertical: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 8,
+    },
+});

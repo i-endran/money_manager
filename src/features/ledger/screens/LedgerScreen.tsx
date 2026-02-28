@@ -6,6 +6,7 @@ import {
     Text,
     View,
     ActivityIndicator,
+    TouchableOpacity,
 } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
 import { useLedgerStore } from '../../../stores/ledgerStore';
@@ -15,14 +16,22 @@ import { MonthlySummary } from '../components/MonthlySummary';
 import { TransactionItem } from '../components/TransactionItem';
 import { formatDateLabel, isWeekend } from '../../../core/utils';
 
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../navigation/RootNavigator';
+
 export const LedgerScreen: React.FC = () => {
     const { theme, colors } = useAppTheme();
     const { currentDate, nextMonth, prevMonth } = useLedgerStore();
     const { data, summary, loading } = useMonthlyLedger();
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
     const handleTransactionPress = (txn: any) => {
-        console.log('Edit transaction:', txn.id);
-        // TODO: Navigate to Edit Transaction
+        navigation.navigate('TransactionForm', { transactionId: txn.id });
+    };
+
+    const handleAddPress = () => {
+        navigation.navigate('TransactionForm');
     };
 
     const renderSectionHeader = ({ section: { title } }: any) => {
@@ -59,7 +68,7 @@ export const LedgerScreen: React.FC = () => {
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color={theme.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : (
                 <SectionList
@@ -81,10 +90,12 @@ export const LedgerScreen: React.FC = () => {
                 />
             )}
 
-            {/* FAB Placeholder for Add */}
-            <View style={[styles.fab, { backgroundColor: theme.primary }]}>
+            {/* FAB for Add */}
+            <TouchableOpacity
+                style={[styles.fab, { backgroundColor: colors.primary }]}
+                onPress={handleAddPress}>
                 <Text style={styles.fabText}>+</Text>
-            </View>
+            </TouchableOpacity>
         </SafeAreaView>
     );
 };

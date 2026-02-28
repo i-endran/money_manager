@@ -14,12 +14,12 @@ export const MonthSelector: React.FC<MonthSelectorProps> = ({
     onPrev,
     onNext,
 }) => {
-    const { theme } = useAppTheme();
+    const { theme, colors } = useAppTheme();
 
     return (
         <View style={[styles.container, { backgroundColor: theme.surface }]}>
             <TouchableOpacity onPress={onPrev} style={styles.button}>
-                <Text style={[styles.arrow, { color: theme.primary }]}>←</Text>
+                <Text style={[styles.arrow, { color: colors.primary }]}>←</Text>
             </TouchableOpacity>
 
             <Text style={[styles.label, { color: theme.text }]}>
@@ -27,7 +27,7 @@ export const MonthSelector: React.FC<MonthSelectorProps> = ({
             </Text>
 
             <TouchableOpacity onPress={onNext} style={styles.button}>
-                <Text style={[styles.arrow, { color: theme.primary }]}>→</Text>
+                <Text style={[styles.arrow, { color: colors.primary }]}>→</Text>
             </TouchableOpacity>
         </View>
     );
