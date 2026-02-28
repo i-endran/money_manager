@@ -11,8 +11,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
+import { eq } from 'drizzle-orm';
 import { AccountType } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Helper to map AccountType to UI Display
 const TYPE_CONFIG = {
@@ -29,28 +32,31 @@ type AccountWithReserves = schema.Account & { reserves: schema.Account[] };
 export const AccountManagementScreen = ({ navigation }: any) => {
     const { theme, colors, isDark } = useAppTheme();
     const [accounts, setAccounts] = useState<schema.Account[]>([]);
+    const [isEditing, setIsEditing] = useState(false);
+
+    const load = useCallback(async () => {
+        const list = await db.select().from(schema.accounts);
+        setAccounts(list);
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
-            async function load() {
-                const list = await db.select().from(schema.accounts);
-                setAccounts(list);
-            }
             load();
-        }, [])
+        }, [load])
     );
 
-    const sections = useMemo(() => {
-        // Find roots and group reserves inside them
+    // Compute derived data
+    const rootsWithReserves = useMemo(() => {
         const roots = accounts.filter(a => a.parentId === null).sort((a, b) => a.sortOrder - b.sortOrder);
         const allReserves = accounts.filter(a => a.parentId !== null).sort((a, b) => a.sortOrder - b.sortOrder);
 
-        const rootsWithReserves: AccountWithReserves[] = roots.map(root => ({
+        return roots.map(root => ({
             ...root,
             reserves: allReserves.filter(r => r.parentId === root.id)
         }));
+    }, [accounts]);
 
-        // Group by AccountType
+    const sections = useMemo(() => {
         const grouped = [
             { type: AccountType.CASH, data: [] as AccountWithReserves[] },
             { type: AccountType.BANK, data: [] as AccountWithReserves[] },
@@ -65,76 +71,119 @@ export const AccountManagementScreen = ({ navigation }: any) => {
             if (group) group.data.push(acc);
         });
 
-        // Only return groups that have data
         return grouped.filter(g => g.data.length > 0).map(g => ({
             title: TYPE_CONFIG[g.type].title,
             type: g.type,
             data: g.data
         }));
-    }, [accounts]);
+    }, [rootsWithReserves]);
+
+    const handleDragEnd = async ({ data }: { data: AccountWithReserves[] }) => {
+        // Update local state by reconstructing flat accounts array
+        const updatedAccounts = [...accounts];
+
+        // Assign new sortOrders based on final index
+        for (let i = 0; i < data.length; i++) {
+            const root = data[i];
+            const accIndex = updatedAccounts.findIndex(a => a.id === root.id);
+            if (accIndex !== -1) {
+                updatedAccounts[accIndex] = { ...updatedAccounts[accIndex], sortOrder: i };
+            }
+        }
+
+        setAccounts(updatedAccounts);
+
+        // Bulk update Database
+        // Note: SQLite might not support massive bulk UPDATE with CASE WHEN elegantly out-of-the-box in this ORM version
+        // Loop is fine since we typically have < 20 accounts.
+        try {
+            for (let i = 0; i < data.length; i++) {
+                await db.update(schema.accounts)
+                    .set({ sortOrder: i })
+                    .where(eq(schema.accounts.id, data[i].id));
+            }
+        } catch (error) {
+            console.error('Failed to save sort order:', error);
+        }
+    };
 
     const renderReserve = (reserve: schema.Account, isLastReserve: boolean) => (
         <View key={reserve.id} style={styles.reserveRowContainer}>
             <View style={[styles.treeLine, { borderLeftColor: theme.border }]} />
             <TouchableOpacity
                 style={styles.reserveRow}
-                onPress={() => navigation.navigate('AccountForm', { accountId: reserve.id })}
+                onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
+                disabled={isEditing}
             >
                 <View style={styles.reserveInfo}>
                     <Icon name="subdirectory-arrow-right" size={16} color={theme.textSecondary} />
                     <Text style={[styles.reserveName, { color: theme.textSecondary }]}>{reserve.name}</Text>
                 </View>
-                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                    {reserve.isActive ? 'Active' : 'Inactive'}
-                </Text>
+                {!isEditing && (
+                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                        {reserve.isActive ? 'Active' : 'Inactive'}
+                    </Text>
+                )}
             </TouchableOpacity>
         </View>
     );
 
-    const renderItem = ({ item, index, section }: { item: AccountWithReserves, index: number, section: any }) => {
-        const isFirst = index === 0;
-        const isLast = index === section.data.length - 1;
-
+    // Common item renderer for both modes
+    const renderNode = (item: AccountWithReserves, isFirst: boolean, isLast: boolean, drag?: () => void, isActiveDrag?: boolean) => {
         return (
             <View style={[
                 styles.itemContainer,
                 {
-                    backgroundColor: theme.surface,
+                    backgroundColor: isActiveDrag ? theme.border : theme.surface,
                     borderTopLeftRadius: isFirst ? 16 : 0,
                     borderTopRightRadius: isFirst ? 16 : 0,
                     borderBottomLeftRadius: isLast ? 16 : 0,
                     borderBottomRightRadius: isLast ? 16 : 0,
                 },
-                !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }
+                !isLast && !isActiveDrag && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
+                isActiveDrag && { elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 }
             ]}>
                 <TouchableOpacity
                     style={styles.rootRow}
-                    onPress={() => navigation.navigate('AccountForm', { accountId: item.id })}
+                    onPress={() => {
+                        if (!isEditing) navigation.navigate('AccountForm', { accountId: item.id });
+                    }}
+                    onLongPress={drag}
+                    disabled={!isEditing && !drag}
+                    activeOpacity={isEditing ? 0.9 : 0.6}
                 >
                     <View style={styles.rootInfo}>
+                        {isEditing && (
+                            <View style={{ marginRight: 16 }}>
+                                <Icon name="drag-handle" size={24} color={theme.textSecondary} />
+                            </View>
+                        )}
                         <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.black : colors.white }]}>
                             <Icon name={item.iconName} size={20} color={colors.primary} />
                         </View>
                         <View>
                             <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
-                            {item.excludeFromSummaries && (
+                            {isEditing && <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>}
+                            {!isEditing && item.excludeFromSummaries && (
                                 <View style={[styles.badge, { backgroundColor: colors.expense + '20' }]}>
                                     <Text style={[styles.badgeText, { color: colors.expense }]}>Closed-Box</Text>
                                 </View>
                             )}
                         </View>
                     </View>
-                    <View style={styles.rootActions}>
-                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 12 }}>
-                            {item.isActive ? 'Active' : 'Inactive'}
-                        </Text>
-                        <TouchableOpacity
-                            style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
-                            onPress={() => navigation.navigate('AccountForm', { parentId: item.id })}
-                        >
-                            <Icon name="add" size={16} color={colors.primary} />
-                        </TouchableOpacity>
-                    </View>
+                    {!isEditing && (
+                        <View style={styles.rootActions}>
+                            <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 12 }}>
+                                {item.isActive ? 'Active' : 'Inactive'}
+                            </Text>
+                            <TouchableOpacity
+                                style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
+                                onPress={() => navigation.navigate('AccountForm', { parentId: item.id })}
+                            >
+                                <Icon name="add" size={16} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </TouchableOpacity>
 
                 {/* Reserves List */}
@@ -156,31 +205,50 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                     <Text style={{ color: colors.primary, fontSize: 16 }}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Accounts</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('AccountForm')} style={styles.headerBtn}>
-                    <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>Add</Text>
+                <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.headerBtn}>
+                    <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>
+                        {isEditing ? 'Done' : 'Edit Order'}
+                    </Text>
                 </TouchableOpacity>
             </View>
 
-            <SectionList
-                sections={sections}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.listContent}
-                renderItem={renderItem}
-                renderSectionHeader={({ section: { title, type } }) => (
-                    <View style={styles.sectionHeader}>
-                        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('AccountForm', { initialType: type })}>
-                            <Icon name="add-circle" size={22} color={colors.primary} />
-                        </TouchableOpacity>
-                    </View>
-                )}
-                stickySectionHeadersEnabled={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={{ color: theme.textSecondary }}>No accounts found</Text>
-                    </View>
-                }
-            />
+            {isEditing ? (
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                    <DraggableFlatList
+                        data={rootsWithReserves}
+                        onDragEnd={handleDragEnd}
+                        keyExtractor={(item) => item.id.toString()}
+                        contentContainerStyle={styles.listContent}
+                        renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<AccountWithReserves>) => {
+                            const index = getIndex() ?? 0;
+                            return renderNode(item, index === 0, index === rootsWithReserves.length - 1, drag, isActive);
+                        }}
+                    />
+                </GestureHandlerRootView>
+            ) : (
+                <SectionList
+                    sections={sections}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({ item, index, section }) =>
+                        renderNode(item, index === 0, index === section.data.length - 1)
+                    }
+                    renderSectionHeader={({ section: { title, type } }) => (
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('AccountForm', { initialType: type })}>
+                                <Icon name="add-circle" size={22} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    stickySectionHeadersEnabled={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Text style={{ color: theme.textSecondary }}>No accounts found</Text>
+                        </View>
+                    }
+                />
+            )}
         </SafeAreaView>
     );
 };
@@ -200,12 +268,13 @@ const styles = StyleSheet.create({
     listContent: {
         paddingHorizontal: 16,
         paddingBottom: 40,
+        paddingTop: 16,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 24,
+        marginTop: 8,
         marginBottom: 8,
         paddingHorizontal: 4,
     },
@@ -238,6 +307,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     name: { fontSize: 16, fontWeight: '500' },
+    type: { fontSize: 12, marginTop: 2, textTransform: 'uppercase' },
     badge: {
         marginTop: 4,
         paddingHorizontal: 6,
@@ -267,7 +337,7 @@ const styles = StyleSheet.create({
     treeLine: {
         width: 34,
         borderLeftWidth: 1,
-        marginLeft: 34, // aligns under the center of the 36px icon (16 padding + 18 half icon)
+        marginLeft: 34,
     },
     reserveRow: {
         flex: 1,
