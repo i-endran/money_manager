@@ -91,66 +91,95 @@ export const SettingsScreen = () => {
         Alert.alert('Coming Soon', 'CSV/Excel export functionality is under development.');
     };
 
-    const SettingItem = ({ label, value, onPress }: any) => (
-        <TouchableOpacity
-            style={[styles.item, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}
-            onPress={onPress}
-        >
-            <View>
-                <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
-                {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
-            </View>
-            <Text style={{ color: theme.textSecondary }}>›</Text>
-        </TouchableOpacity>
-    );
-
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
     const currentThemeLabel = THEME_OPTIONS.find(t => t.value === themeMode)?.label || 'System';
 
+    // Reusable grouped item renderer
+    const GroupedItem = ({ label, value, onPress, isFirst, isLast }: any) => (
+        <TouchableOpacity
+            style={[
+                styles.item,
+                {
+                    backgroundColor: theme.surface,
+                    borderTopLeftRadius: isFirst ? 12 : 0,
+                    borderTopRightRadius: isFirst ? 12 : 0,
+                    borderBottomLeftRadius: isLast ? 12 : 0,
+                    borderBottomRightRadius: isLast ? 12 : 0,
+                },
+            ]}
+            onPress={onPress}
+        >
+            <View style={{ flex: 1 }}>
+                <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
+                {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
+            </View>
+            <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
+    );
+
+    // Inset separator
+    const Separator = () => (
+        <View style={{ backgroundColor: theme.surface }}>
+            <View style={[styles.separator, { backgroundColor: theme.border }]} />
+        </View>
+    );
+
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
             </View>
 
-            <ScrollView>
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.primary }]}>PREFERENCES</Text>
-                    <SettingItem
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* PREFERENCES */}
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>PREFERENCES</Text>
+                <View style={styles.cardGroup}>
+                    <GroupedItem
                         label="Currency"
                         value={`${currentCurrency?.code || currencyCode} (${currencySymbol})`}
                         onPress={() => setCurrencyPickerVisible(true)}
+                        isFirst
                     />
-                    <SettingItem
+                    <Separator />
+                    <GroupedItem
                         label="Theme"
                         value={currentThemeLabel}
                         onPress={() => setThemePickerVisible(true)}
+                        isLast
                     />
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.primary }]}>MANAGEMENT</Text>
-                    <SettingItem
+                {/* MANAGEMENT */}
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>MANAGEMENT</Text>
+                <View style={styles.cardGroup}>
+                    <GroupedItem
                         label="Accounts"
                         onPress={() => navigation.navigate('AccountManagement')}
+                        isFirst
                     />
-                    <SettingItem
+                    <Separator />
+                    <GroupedItem
                         label="Categories"
                         onPress={() => navigation.navigate('CategoryManagement')}
+                        isLast
                     />
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: colors.primary }]}>DATA</Text>
-                    <SettingItem
+                {/* DATA */}
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>DATA</Text>
+                <View style={styles.cardGroup}>
+                    <GroupedItem
                         label="Export Data"
                         value="CSV, Excel"
                         onPress={handleExport}
+                        isFirst
                     />
-                    <SettingItem
+                    <Separator />
+                    <GroupedItem
                         label="Cloud Backup"
                         value="Google Drive / iCloud"
                         onPress={() => Alert.alert('Coming Soon', 'Cloud backup is under development.')}
+                        isLast
                     />
                 </View>
 
@@ -230,22 +259,34 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
     },
     headerTitle: { fontSize: 28, fontWeight: 'bold' },
-    section: { marginTop: 24 },
+    scrollContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 40,
+    },
     sectionTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginLeft: 16,
-        marginBottom: 8,
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 4,
+        marginBottom: 6,
+        marginTop: 24,
+        textTransform: 'uppercase',
+    },
+    cardGroup: {
+        overflow: 'hidden',
     },
     item: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
     },
     itemLabel: { fontSize: 16 },
     itemValue: { fontSize: 12, marginTop: 2 },
+    separator: {
+        height: StyleSheet.hairlineWidth,
+        marginLeft: 16,
+    },
     footer: {
         marginTop: 40,
         alignItems: 'center',

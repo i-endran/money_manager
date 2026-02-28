@@ -41,27 +41,45 @@ export const AccountManagementScreen = ({ navigation }: any) => {
             <FlatList
                 data={accounts}
                 keyExtractor={item => item.id.toString()}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={[styles.item, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}
-                        onPress={() => navigation.navigate('AccountForm', { accountId: item.id })}
-                    >
-                        <View>
-                            <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
-                            <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>
-                        </View>
-                        <Text style={{ color: theme.textSecondary }}>
-                            {item.isActive ? 'Active' : 'Inactive'}
-                        </Text>
-                    </TouchableOpacity>
-                )}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item, index }) => {
+                    const isFirst = index === 0;
+                    const isLast = index === accounts.length - 1;
+                    return (
+                        <>
+                            <TouchableOpacity
+                                style={[
+                                    styles.item,
+                                    {
+                                        backgroundColor: theme.surface,
+                                        borderTopLeftRadius: isFirst ? 12 : 0,
+                                        borderTopRightRadius: isFirst ? 12 : 0,
+                                        borderBottomLeftRadius: isLast ? 12 : 0,
+                                        borderBottomRightRadius: isLast ? 12 : 0,
+                                    },
+                                ]}
+                                onPress={() => navigation.navigate('AccountForm', { accountId: item.id })}
+                            >
+                                <View>
+                                    <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
+                                    <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>
+                                </View>
+                                <Text style={{ color: theme.textSecondary }}>
+                                    {item.isActive ? 'Active' : 'Inactive'}
+                                </Text>
+                            </TouchableOpacity>
+                            {!isLast && (
+                                <View style={{ backgroundColor: theme.surface }}>
+                                    <View style={[styles.separator, { backgroundColor: theme.border }]} />
+                                </View>
+                            )}
+                        </>
+                    );
+                }}
             />
         </SafeAreaView>
     );
 };
-
-// Added Alert for simplicity in placeholder
-import { Alert } from 'react-native';
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
@@ -69,16 +87,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         padding: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
     headerTitle: { fontSize: 18, fontWeight: 'bold' },
+    listContent: {
+        paddingHorizontal: 16,
+        paddingTop: 12,
+    },
     item: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    separator: {
+        height: StyleSheet.hairlineWidth,
+        marginLeft: 16,
     },
     name: { fontSize: 16, fontWeight: '500' },
     type: { fontSize: 12, marginTop: 2, textTransform: 'uppercase' },
