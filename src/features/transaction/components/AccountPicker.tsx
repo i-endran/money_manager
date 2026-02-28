@@ -13,7 +13,7 @@ import { Account } from '../../../database/schema';
 interface AccountPickerProps {
     visible: boolean;
     onClose: () => void;
-    accounts: Account[];
+    accounts: Account[]; // Should be the full flat list of available accounts
     onSelect: (account: Account) => void;
     title: string;
 }
@@ -29,12 +29,13 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
 
     // Group accounts by type for SectionList
     const sections = useMemo(() => {
-        const typeOrder = ['bank', 'cash', 'card', 'wallet', 'custom'];
+        const typeOrder = ['bank', 'cash', 'card', 'wallet', 'deposits', 'custom'];
         const typeLabels: Record<string, string> = {
             bank: 'Bank Accounts',
             cash: 'Cash',
             card: 'Cards',
             wallet: 'Digital Wallets',
+            deposits: 'Deposits',
             custom: 'Other',
         };
 
@@ -46,12 +47,22 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
         });
 
         return typeOrder
-            .filter(t => groups[t]?.length > 0)
+            .filter(t => groups[t] && groups[t].length > 0)
             .map(t => ({
                 title: typeLabels[t] || t,
                 data: groups[t],
             }));
     }, [accounts]);
+
+    const formatAccountName = (item: Account) => {
+        if (!item.parentId) return item.name;
+        const parent = accounts.find(a => a.id === item.parentId);
+        if (parent) {
+            const pName = parent.name.length > 5 ? parent.name.substring(0, 5) + '..' : parent.name;
+            return `${pName} > ${item.name}`;
+        }
+        return item.name;
+    };
 
     return (
         <Modal visible={visible} transparent animationType="slide">
@@ -81,14 +92,28 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                     onSelect(item);
                                     onClose();
                                 }}>
-                                <Text style={[styles.itemText, { color: theme.text }]}>
-                                    {item.name}
-                                </Text>
+                                <View style={styles.itemRow}>
+                                    <Text style={[styles.itemText, { color: theme.text }]}>
+                                        {formatAccountName(item)}
+                                    </Text>
+                                    {item.excludeFromSummaries && (
+                                        <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
+                                            <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
+                                                Closed-Box
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
                                 <Text style={[styles.itemType, { color: theme.textSecondary }]}>
                                     {item.type}
                                 </Text>
                             </TouchableOpacity>
                         )}
+                        ListEmptyComponent={
+                            <View style={{ padding: 20, alignItems: 'center' }}>
+                                <Text style={{ color: theme.textSecondary }}>No available accounts</Text>
+                            </View>
+                        }
                     />
                 </View>
             </View>
@@ -138,8 +163,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
+    itemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     itemText: {
         fontSize: 16,
+        marginRight: 8,
+    },
+    closedBoxBadge: {
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
     },
     itemType: {
         fontSize: 12,

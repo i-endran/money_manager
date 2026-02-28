@@ -438,7 +438,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             <AccountPicker
                 visible={accPickerVisible}
                 onClose={() => setAccPickerVisible(false)}
-                accounts={accounts}
+                accounts={type === TransactionType.TRANSFER ? accounts : accounts.filter(a => !a.excludeFromSummaries)}
                 onSelect={setSelectedAccount}
                 title="Select Account"
             />

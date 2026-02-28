@@ -20,6 +20,10 @@ export function useMonthlyLedger() {
                 currentDate.getMonth(),
             );
 
+            // Fetch all accounts into memory to resolve names & closed-box logic easily
+            const allAccounts = await db.select().from(accounts);
+            const accountMap = new Map(allAccounts.map(a => [a.id, a]));
+
             // Check carry-forward setting
             const settings = await db.select().from(appSettings);
             const carryForward = settings.find(s => s.key === SettingsKey.CARRY_FORWARD_BALANCE)?.value === 'true';
@@ -36,19 +40,51 @@ export function useMonthlyLedger() {
                     const txn = row.transaction;
                     if (txn.type === TransactionType.INCOME) openingBalance += txn.amount;
                     if (txn.type === TransactionType.EXPENSE) openingBalance -= txn.amount;
+
+                    if (txn.type === TransactionType.TRANSFER && txn.linkedTransactionId && txn.toAccountId) {
+                        // For historical transfers, we must also apply closed-box logic.
+                        // To avoid double counting, only process the 'from' side of the pair (usually the one with lower ID, or just ensure we don't count both).
+                        // Since we aren't merging historical rows, we have BOTH debit & credit rows in priorRows.
+                        // Wait, creating a set of processed ids is better.
+                    }
+                });
+
+                // Better approach for opening balance transfers:
+                const priorIds = new Set<number>();
+                openingBalance = 0;
+                priorRows.forEach(row => {
+                    const txn = row.transaction;
+                    if (priorIds.has(txn.id)) return;
+
+                    if (txn.type === TransactionType.TRANSFER && txn.linkedTransactionId) {
+                        priorIds.add(txn.id);
+                        priorIds.add(txn.linkedTransactionId);
+
+                        const fromAcc = accountMap.get(txn.accountId);
+                        const toAcc = txn.toAccountId ? accountMap.get(txn.toAccountId) : null;
+
+                        if (fromAcc && toAcc) {
+                            if (!fromAcc.excludeFromSummaries && toAcc.excludeFromSummaries) {
+                                openingBalance -= txn.amount;
+                            } else if (fromAcc.excludeFromSummaries && !toAcc.excludeFromSummaries) {
+                                openingBalance += txn.amount;
+                            }
+                        }
+                    } else if (txn.type === TransactionType.INCOME) {
+                        openingBalance += txn.amount;
+                    } else if (txn.type === TransactionType.EXPENSE) {
+                        openingBalance -= txn.amount;
+                    }
                 });
             }
 
             const rows = await db
                 .select({
                     transaction: transactions,
-                    accountName: accounts.name,
-                    toAccountName: accounts.name,
                     categoryName: categories.name,
                     categoryIcon: categories.iconName,
                 })
                 .from(transactions)
-                .leftJoin(accounts, eq(transactions.accountId, accounts.id))
                 .leftJoin(categories, eq(transactions.categoryId, categories.id))
                 .where(
                     and(
@@ -57,7 +93,7 @@ export function useMonthlyLedger() {
                     ),
                 );
 
-            // Merge logic for transfers (simplified for M1)
+            // Merge logic for transfers
             const mergedList: any[] = [];
             const mergedIds = new Set<number>();
 
@@ -68,17 +104,35 @@ export function useMonthlyLedger() {
                 const txn = row.transaction;
                 if (mergedIds.has(txn.id)) return;
 
+                let effectiveType = txn.type;
+
                 if (txn.type === TransactionType.TRANSFER && txn.linkedTransactionId) {
                     mergedIds.add(txn.id);
                     mergedIds.add(txn.linkedTransactionId);
-                }
 
-                if (txn.type === TransactionType.INCOME) totalIncome += txn.amount;
-                if (txn.type === TransactionType.EXPENSE) totalExpense += txn.amount;
+                    const fromAcc = accountMap.get(txn.accountId);
+                    const toAcc = txn.toAccountId ? accountMap.get(txn.toAccountId) : null;
+
+                    if (fromAcc && toAcc) {
+                        if (!fromAcc.excludeFromSummaries && toAcc.excludeFromSummaries) {
+                            effectiveType = TransactionType.EXPENSE;
+                            totalExpense += txn.amount;
+                        } else if (fromAcc.excludeFromSummaries && !toAcc.excludeFromSummaries) {
+                            effectiveType = TransactionType.INCOME;
+                            totalIncome += txn.amount;
+                        }
+                    }
+                } else if (txn.type === TransactionType.INCOME) {
+                    totalIncome += txn.amount;
+                } else if (txn.type === TransactionType.EXPENSE) {
+                    totalExpense += txn.amount;
+                }
 
                 mergedList.push({
                     ...txn,
-                    accountName: row.accountName,
+                    effectiveType,
+                    accountName: accountMap.get(txn.accountId)?.name || 'Unknown',
+                    toAccountName: txn.toAccountId ? accountMap.get(txn.toAccountId)?.name : undefined,
                     categoryName: row.categoryName,
                     categoryIcon: row.categoryIcon,
                 });
@@ -104,6 +158,7 @@ export function useMonthlyLedger() {
                         isOpeningBalance: true,
                         amount: Math.abs(openingBalance),
                         type: openingBalance >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
+                        effectiveType: openingBalance >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
                         note: 'Carried forward from previous month',
                         categoryName: openingBalance >= 0 ? '📥 Opening Balance' : '📤 Opening Deficit',
                         accountName: '',

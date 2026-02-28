@@ -71,8 +71,9 @@ export function groupByDay<T extends { date: string | Date; type?: string; amoun
         });
 
         group.data.forEach(txn => {
-            if (txn.type === 'income') group.dayIncome += txn.amount ?? 0;
-            if (txn.type === 'expense') group.dayExpense += txn.amount ?? 0;
+            const t = (txn as any).effectiveType || txn.type;
+            if (t === 'income') group.dayIncome += txn.amount ?? 0;
+            if (t === 'expense') group.dayExpense += txn.amount ?? 0;
         });
     });
 
