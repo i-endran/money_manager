@@ -390,7 +390,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                                 backgroundColor:
                                     type === TransactionType.INCOME ? colors.income
                                         : type === TransactionType.EXPENSE ? colors.expense
-                                            : '#8E8E93' // Neutral grey-blue for transfer
+                                            : colors.primary // Navy blue for transfer
                             }
                         ]}
                         onPress={() => handleSave(false)}
