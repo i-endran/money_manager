@@ -26,6 +26,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     const initialType = route.params?.initialType as AccountType || AccountType.BANK;
 
     const [name, setName] = useState('');
+    const [originalName, setOriginalName] = useState('');
     const [type, setType] = useState<AccountType>(initialType);
     const [initialBalance, setInitialBalance] = useState('');
     const [isActive, setIsActive] = useState(true);
@@ -41,6 +42,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 const [acc] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountId)).limit(1);
                 if (acc) {
                     setName(acc.name);
+                    setOriginalName(acc.name);
                     setType(acc.type as AccountType);
                     setInitialBalance(acc.initialBalance.toString());
                     setIsActive(acc.isActive);
@@ -194,8 +196,10 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>
-                <Text style={[styles.title, { color: theme.text }]}>
-                    {accountId ? (isReserveMode ? 'Edit Reserve' : 'Edit Account') : (isReserveMode ? 'New Reserve' : 'New Account')}
+                <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+                    {accountId
+                        ? (originalName ? `Edit ${originalName}` : (isReserveMode ? 'Edit Reserve' : 'Edit Account'))
+                        : (isReserveMode ? 'New Reserve' : 'New Account')}
                 </Text>
                 <TouchableOpacity onPress={handleSave}>
                     <Text style={[styles.saveText, { color: colors.primary }]}>Save</Text>
