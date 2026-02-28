@@ -55,7 +55,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                         {isTransfer ? 'Transfer' : categoryText || 'Uncategorized'}
                     </Text>
                     <Text style={[styles.note, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {isTransfer ? `${transaction.accountName} → ${transaction.toAccountName || 'Account'}` : (transaction.note || transaction.accountName)}
+                        {isTransfer ? (transaction.note || 'Account Transfer') : (transaction.note || transaction.accountName)}
                     </Text>
                 </View>
             </View>
@@ -65,7 +65,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                     {formatCurrency(transaction.amount)}
                 </Text>
                 <Text style={[styles.account, { color: theme.textSecondary }]}>
-                    {transaction.accountName}
+                    {isTransfer ? `${transaction.accountName} → ${transaction.toAccountName || 'Account'}` : transaction.accountName}
                 </Text>
             </View>
         </TouchableOpacity>

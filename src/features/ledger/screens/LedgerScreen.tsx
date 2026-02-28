@@ -45,10 +45,9 @@ export const LedgerScreen: React.FC = () => {
                     styles.sectionHeader,
                     {
                         backgroundColor: weekend ? theme.weekendTint : theme.background,
-                        borderBottomColor: theme.border,
                     },
                 ]}>
-                <Text style={[styles.sectionTitle, { color: weekend ? theme.textSecondary : theme.text }]}>
+                <Text style={[styles.sectionTitle, { color: weekend ? '#C24A4A' : theme.text }]}>
                     {formatDayHeader(title)}
                 </Text>
                 <View style={styles.daySummary}>
@@ -147,10 +146,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12,
         paddingHorizontal: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderTopWidth: StyleSheet.hairlineWidth,
     },
     sectionTitle: {
         fontSize: 12,
