@@ -7,13 +7,14 @@ import {
     SectionList,
     Modal,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAppTheme } from '../../../core/theme';
 import { Account } from '../../../database/schema';
 
 interface AccountPickerProps {
     visible: boolean;
     onClose: () => void;
-    accounts: Account[]; // Should be the full flat list of available accounts
+    accounts: Account[]; // Should be the full list of available accounts
     onSelect: (account: Account) => void;
     title: string;
 }
@@ -27,7 +28,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
 }) => {
     const { theme, colors } = useAppTheme();
 
-    // Group accounts by type for SectionList
+    // Group accounts by type for SectionList, ensuring reserves follow their parents
     const sections = useMemo(() => {
         const typeOrder = ['bank', 'cash', 'card', 'wallet', 'deposits', 'custom'];
         const typeLabels: Record<string, string> = {
@@ -40,10 +41,30 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
         };
 
         const groups: Record<string, Account[]> = {};
-        accounts.forEach(acc => {
-            const key = acc.type || 'custom';
+
+        const roots = accounts.filter(a => !a.parentId);
+        const children = accounts.filter(a => !!a.parentId);
+
+        // Sort roots by id (or sortOrder if needed, but ID implies creation usually)
+        roots.forEach(root => {
+            const key = root.type || 'custom';
             if (!groups[key]) groups[key] = [];
-            groups[key].push(acc);
+            groups[key].push(root);
+
+            // Append this root's children immediately
+            const myChildren = children.filter(c => c.parentId === root.id);
+            myChildren.forEach(child => {
+                groups[key].push(child);
+            });
+        });
+
+        // Handle orphaned children if any (e.g. root was filtered out by excludeFromSummaries but child wasn't)
+        children.forEach(child => {
+            if (!roots.find(r => r.id === child.parentId)) {
+                const key = child.type || 'custom';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(child);
+            }
         });
 
         return typeOrder
@@ -53,16 +74,6 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                 data: groups[t],
             }));
     }, [accounts]);
-
-    const formatAccountName = (item: Account) => {
-        if (!item.parentId) return item.name;
-        const parent = accounts.find(a => a.id === item.parentId);
-        if (parent) {
-            const pName = parent.name.length > 5 ? parent.name.substring(0, 5) + '..' : parent.name;
-            return `${pName} > ${item.name}`;
-        }
-        return item.name;
-    };
 
     return (
         <Modal visible={visible} transparent animationType="slide">
@@ -85,30 +96,47 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                 </Text>
                             </View>
                         )}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={[styles.item, { borderBottomColor: theme.border }]}
-                                onPress={() => {
-                                    onSelect(item);
-                                    onClose();
-                                }}>
-                                <View style={styles.itemRow}>
-                                    <Text style={[styles.itemText, { color: theme.text }]}>
-                                        {formatAccountName(item)}
-                                    </Text>
-                                    {item.excludeFromSummaries && (
-                                        <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
-                                            <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
-                                                Closed-Box
-                                            </Text>
-                                        </View>
+                        renderItem={({ item }) => {
+                            const isReserve = !!item.parentId;
+                            return (
+                                <TouchableOpacity
+                                    style={[
+                                        styles.item,
+                                        { borderBottomColor: theme.border },
+                                        isReserve && { paddingLeft: 32 }
+                                    ]}
+                                    onPress={() => {
+                                        onSelect(item);
+                                        onClose();
+                                    }}>
+                                    <View style={styles.itemRow}>
+                                        {isReserve && (
+                                            <Icon
+                                                name="subdirectory-arrow-right"
+                                                size={16}
+                                                color={theme.textSecondary}
+                                                style={{ marginRight: 8 }}
+                                            />
+                                        )}
+                                        <Text style={[styles.itemText, { color: theme.text }]}>
+                                            {item.name}
+                                        </Text>
+                                        {item.excludeFromSummaries && (
+                                            <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
+                                                <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
+                                                    Closed-Box
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    {!isReserve && (
+                                        <Text style={[styles.itemType, { color: theme.textSecondary }]}>
+                                            {item.type}
+                                        </Text>
                                     )}
-                                </View>
-                                <Text style={[styles.itemType, { color: theme.textSecondary }]}>
-                                    {item.type}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
+                                </TouchableOpacity>
+                            );
+                        }}
                         ListEmptyComponent={
                             <View style={{ padding: 20, alignItems: 'center' }}>
                                 <Text style={{ color: theme.textSecondary }}>No available accounts</Text>
@@ -175,6 +203,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         paddingVertical: 2,
         borderRadius: 4,
+        marginLeft: 4,
     },
     itemType: {
         fontSize: 12,
