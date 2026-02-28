@@ -39,7 +39,8 @@ export const LedgerScreen: React.FC = () => {
     const renderSectionHeader = ({ section: { title, dayIncome, dayExpense } }: any) => {
         const weekend = isWeekend(title);
         return (
-            <View
+            <TouchableOpacity
+                onPress={() => navigation.navigate('TransactionForm', { selectedDate: title })}
                 style={[
                     styles.sectionHeader,
                     {
@@ -47,7 +48,7 @@ export const LedgerScreen: React.FC = () => {
                         borderBottomColor: theme.border,
                     },
                 ]}>
-                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                <Text style={[styles.sectionTitle, { color: weekend ? theme.textSecondary : theme.text }]}>
                     {formatDayHeader(title)}
                 </Text>
                 <View style={styles.daySummary}>
@@ -61,8 +62,13 @@ export const LedgerScreen: React.FC = () => {
                             -{formatCurrency(dayExpense)}
                         </Text>
                     )}
+                    {dayIncome === 0 && dayExpense === 0 && (
+                        <Text style={[styles.daySummaryText, { color: theme.textSecondary }]}>
+                            {formatCurrency(0)}
+                        </Text>
+                    )}
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -99,6 +105,7 @@ export const LedgerScreen: React.FC = () => {
                         />
                     )}
                     renderSectionHeader={renderSectionHeader}
+                    stickySectionHeadersEnabled={true}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>
@@ -140,9 +147,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: 10,
         paddingHorizontal: 16,
         borderBottomWidth: StyleSheet.hairlineWidth,
+        borderTopWidth: StyleSheet.hairlineWidth,
     },
     sectionTitle: {
         fontSize: 12,
@@ -154,11 +162,12 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     daySummaryText: {
-        fontSize: 11,
-        fontWeight: '600',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
     listContent: {
-        paddingBottom: 80,
+        paddingBottom: 100,
+        paddingHorizontal: 8,
     },
     fab: {
         position: 'absolute',

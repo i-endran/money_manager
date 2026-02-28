@@ -47,22 +47,21 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             onPress={() => onPress(transaction)}
             style={[styles.container, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
             <View style={styles.left}>
-                <View style={[styles.iconPlaceholder, { backgroundColor: theme.background }]}>
-                    <Text style={styles.iconText}>{emoji}</Text>
+                <View style={[styles.iconPlaceholder, { backgroundColor: isTransfer ? theme.border : theme.background }]}>
+                    <Text style={styles.iconText}>{isTransfer ? '🔄' : emoji}</Text>
                 </View>
                 <View style={styles.details}>
                     <Text style={[styles.category, { color: theme.text }]}>
-                        {categoryText || 'Uncategorized'}
+                        {isTransfer ? 'Transfer' : categoryText || 'Uncategorized'}
                     </Text>
                     <Text style={[styles.note, { color: theme.textSecondary }]} numberOfLines={1}>
-                        {transaction.note || transaction.accountName}
+                        {isTransfer ? `${transaction.accountName} → ${transaction.toAccountName || 'Account'}` : (transaction.note || transaction.accountName)}
                     </Text>
                 </View>
             </View>
 
             <View style={styles.right}>
                 <Text style={[styles.amount, { color: amountColor }]}>
-                    {isIncome ? '+' : isTransfer ? '' : '-'}
                     {formatCurrency(transaction.amount)}
                 </Text>
                 <Text style={[styles.account, { color: theme.textSecondary }]}>
@@ -88,15 +87,15 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     iconPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
     },
     iconText: {
-        fontSize: 20,
+        fontSize: 16,
     },
     details: {
         flex: 1,

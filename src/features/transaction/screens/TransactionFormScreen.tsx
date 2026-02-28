@@ -25,12 +25,13 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
     const { refresh } = useLedgerStore();
     const transactionId = route.params?.transactionId;
+    const initialDateStr = route.params?.selectedDate;
 
     const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
     const [description, setDescription] = useState('');
-    const [date, setDate] = useState(new Date());
+    const [date, setDate] = useState(initialDateStr ? new Date(initialDateStr) : new Date());
 
     const [selectedAccount, setSelectedAccount] = useState<schema.Account | null>(null);
     const [toAccount, setToAccount] = useState<schema.Account | null>(null);
@@ -111,30 +112,35 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
 
         try {
             if (type === TransactionType.TRANSFER) {
-                if (!toAccount) return;
+                if (!toAccount) {
+                    Alert.alert('Error', 'Please select a destination account for the transfer');
+                    return;
+                }
 
                 await db.transaction(async (tx) => {
-                    // 1. Create Debit entry
+                    // 1. Create Debit entry (From Account)
                     const [res1] = await tx.insert(schema.transactions).values({
                         amount: numericAmount,
                         type: TransactionType.TRANSFER,
                         accountId: selectedAccount.id,
                         toAccountId: toAccount.id,
                         categoryId: 0,
-                        note: note || `Transfer to ${toAccount.name}`,
+                        note: note,
+                        description: description,
                         date: dateStr,
                         createdAt: now,
                         updatedAt: now,
                     }).returning({ insertedId: schema.transactions.id });
 
-                    // 2. Create Credit entry
+                    // 2. Create Credit entry (To Account)
                     const [res2] = await tx.insert(schema.transactions).values({
                         amount: numericAmount,
                         type: TransactionType.TRANSFER,
                         accountId: toAccount.id,
                         toAccountId: selectedAccount.id,
                         categoryId: 0,
-                        note: note || `Transfer from ${selectedAccount.name}`,
+                        note: note,
+                        description: description,
                         date: dateStr,
                         linkedTransactionId: res1.insertedId,
                         createdAt: now,
@@ -250,9 +256,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 <Text style={[styles.title, { color: theme.text }]}>
                     {transactionId ? 'Edit Transaction' : 'New Transaction'}
                 </Text>
-                <TouchableOpacity onPress={() => handleSave(false)}>
-                    <Text style={[styles.saveText, { color: colors.primary }]}>Save</Text>
-                </TouchableOpacity>
+                <View style={{ width: 50 }} /> {/* Spacer for flex balance */}
             </View>
 
             <ScrollView style={styles.content}>
@@ -373,12 +377,29 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     />
                 </View>
 
+                {/* Primary Save Button (Dynamic Color) */}
+                <TouchableOpacity
+                    style={[
+                        styles.primaryBtn,
+                        {
+                            backgroundColor:
+                                type === TransactionType.INCOME ? colors.income
+                                    : type === TransactionType.EXPENSE ? colors.expense
+                                        : '#8E8E93' // Neutral grey-blue for transfer
+                        }
+                    ]}
+                    onPress={() => handleSave(false)}
+                >
+                    <Text style={styles.primaryBtnText}>Save</Text>
+                </TouchableOpacity>
+
+                {/* Secondary 'Add Another' Button */}
                 {!transactionId && (
                     <TouchableOpacity
-                        style={[styles.continueBtn, { backgroundColor: colors.primary }]}
+                        style={styles.secondaryBtn}
                         onPress={() => handleSave(true)}
                     >
-                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save & Add Another</Text>
+                        <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>Add Another</Text>
                     </TouchableOpacity>
                 )}
 
@@ -484,12 +505,29 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    continueBtn: {
-        marginTop: 20,
+    primaryBtn: {
+        marginTop: 10,
+        marginBottom: 10,
+        paddingVertical: 16,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    primaryBtnText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    secondaryBtn: {
         marginBottom: 40,
         paddingVertical: 16,
         alignItems: 'center',
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    secondaryBtnText: {
+        fontWeight: 'bold',
+        fontSize: 16,
     },
     deleteBtn: {
         marginTop: 20,

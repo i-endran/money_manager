@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { LedgerScreen } from '../features/ledger/screens/LedgerScreen';
 // @ts-ignore
@@ -19,7 +19,7 @@ import { useAppTheme } from '../core/theme';
 // --- Type definitions ---
 export type RootStackParamList = {
     MainTabs: undefined;
-    TransactionForm: { transactionId?: number } | undefined;
+    TransactionForm: { transactionId?: number; selectedDate?: string } | undefined;
     AccountManagement: undefined;
     CategoryManagement: undefined;
     AccountForm: { accountId?: number } | undefined;
@@ -38,10 +38,10 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 // --- Bottom Tab Navigator ---
 const TAB_ICONS: Record<string, { focused: string; unfocused: string }> = {
-    Ledger: { focused: 'book-open-variant', unfocused: 'book-open-outline' },
+    Ledger: { focused: 'book', unfocused: 'book-outline' },
     Accounts: { focused: 'wallet', unfocused: 'wallet-outline' },
-    Stats: { focused: 'chart-pie', unfocused: 'chart-arc' },
-    Settings: { focused: 'cog', unfocused: 'cog-outline' },
+    Stats: { focused: 'pie-chart', unfocused: 'pie-chart-outline' },
+    Settings: { focused: 'settings', unfocused: 'settings-outline' },
 };
 
 const MainTabs = () => {
@@ -55,7 +55,7 @@ const MainTabs = () => {
                     const icons = TAB_ICONS[route.name];
                     const iconName = focused ? icons.focused : icons.unfocused;
                     return (
-                        <MaterialCommunityIcons
+                        <Ionicons
                             name={iconName}
                             size={size}
                             color={color}
