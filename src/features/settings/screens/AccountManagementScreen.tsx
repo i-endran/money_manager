@@ -4,6 +4,7 @@ import {
     Text,
     StyleSheet,
     SectionList,
+    Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -108,8 +109,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
 
     const renderReserve = (reserve: schema.Account, isLastReserve: boolean) => (
         <View key={reserve.id} style={styles.reserveRowContainer}>
-            <View style={[styles.treeLine, { borderLeftColor: theme.border }]} />
-            <TouchableOpacity
+            <Pressable
                 style={styles.reserveRow}
                 onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
                 disabled={isEditing}
@@ -121,7 +121,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         { backgroundColor: reserve.isActive ? '#34C759' : '#AEAEB2' }
                     ]} />
                 )}
-            </TouchableOpacity>
+            </Pressable>
         </View>
     );
 
@@ -325,11 +325,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'stretch',
     },
-    treeLine: {
-        width: 34,
-        borderLeftWidth: 1,
-        marginLeft: 34,
-    },
     reserveRow: {
         flex: 1,
         flexDirection: 'row',
@@ -337,7 +332,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
         paddingRight: 16,
-        paddingLeft: 4,
+        paddingLeft: 34,
     },
     reserveName: {
         fontSize: 15,
