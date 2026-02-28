@@ -23,7 +23,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
 
 export const LedgerScreen: React.FC = () => {
-    const { theme, colors } = useAppTheme();
+    const { theme, colors, isDark } = useAppTheme();
     const { currentDate, nextMonth, prevMonth } = useLedgerStore();
     const { data, summary, loading } = useMonthlyLedger();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -41,13 +41,8 @@ export const LedgerScreen: React.FC = () => {
         return (
             <TouchableOpacity
                 onPress={() => navigation.navigate('TransactionForm', { selectedDate: new Date(title).toISOString() })}
-                style={[
-                    styles.sectionHeader,
-                    {
-                        backgroundColor: weekend ? theme.weekendTint : theme.background,
-                    },
-                ]}>
-                <Text style={[styles.sectionTitle, { color: weekend ? '#C24A4A' : theme.text }]}>
+                style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: weekend ? '#C24A4A' : theme.textSecondary }]}>
                     {formatDayHeader(title)}
                 </Text>
                 <View style={styles.daySummary}>
@@ -68,6 +63,32 @@ export const LedgerScreen: React.FC = () => {
                     )}
                 </View>
             </TouchableOpacity>
+        );
+    };
+
+    const renderItem = ({ item, index, section }: any) => {
+        const isFirst = index === 0;
+        const isLast = index === section.data.length - 1;
+
+        return (
+            <View style={[
+                styles.cardWrapper,
+                {
+                    backgroundColor: theme.surface,
+                    borderTopLeftRadius: isFirst ? 12 : 0,
+                    borderTopRightRadius: isFirst ? 12 : 0,
+                    borderBottomLeftRadius: isLast ? 12 : 0,
+                    borderBottomRightRadius: isLast ? 12 : 0,
+                },
+            ]}>
+                <TransactionItem
+                    transaction={item}
+                    onPress={handleTransactionPress}
+                />
+                {!isLast && (
+                    <View style={[styles.itemSeparator, { backgroundColor: theme.border }]} />
+                )}
+            </View>
         );
     };
 
@@ -97,12 +118,7 @@ export const LedgerScreen: React.FC = () => {
                 <SectionList
                     sections={data}
                     keyExtractor={item => item.id.toString()}
-                    renderItem={({ item }) => (
-                        <TransactionItem
-                            transaction={item}
-                            onPress={handleTransactionPress}
-                        />
-                    )}
+                    renderItem={renderItem}
                     renderSectionHeader={renderSectionHeader}
                     stickySectionHeadersEnabled={true}
                     contentContainerStyle={styles.listContent}
@@ -146,12 +162,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        paddingTop: 16,
     },
     sectionTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 13,
+        fontWeight: '600',
         textTransform: 'uppercase',
     },
     daySummary: {
@@ -159,12 +176,20 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     daySummaryText: {
-        fontSize: 10,
-        fontWeight: 'bold',
+        fontSize: 11,
+        fontWeight: '600',
     },
     listContent: {
         paddingBottom: 100,
-        paddingHorizontal: 8,
+        paddingHorizontal: 16,
+    },
+    cardWrapper: {
+        paddingHorizontal: 0,
+        overflow: 'hidden',
+    },
+    itemSeparator: {
+        height: StyleSheet.hairlineWidth,
+        marginLeft: 56,
     },
     fab: {
         position: 'absolute',

@@ -45,7 +45,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     return (
         <TouchableOpacity
             onPress={() => onPress(transaction)}
-            style={[styles.container, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+            style={[styles.container]}>
             <View style={styles.left}>
                 <View style={[styles.iconPlaceholder, { backgroundColor: isTransfer ? theme.border : theme.background }]}>
                     <Text style={styles.iconText}>{isTransfer ? '🔄' : emoji}</Text>
@@ -77,9 +77,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
+        paddingVertical: 10,
         paddingHorizontal: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
     },
     left: {
         flexDirection: 'row',
