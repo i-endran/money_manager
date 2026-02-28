@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
@@ -258,174 +260,175 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 </Text>
                 <View style={{ width: 50 }} />
             </View>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
+                    {/* Type Selector — Color-coded */}
+                    <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : '#ECEDF0' }]}>
+                        {[
+                            { type: TransactionType.INCOME, label: 'INCOME', color: colors.income },
+                            { type: TransactionType.EXPENSE, label: 'EXPENSE', color: colors.expense },
+                            { type: TransactionType.TRANSFER, label: 'TRANSFER', color: colors.transfer },
+                        ].map(({ type: t, label, color }) => (
+                            <TouchableOpacity
+                                key={t}
+                                onPress={() => handleTypeChange(t)}
+                                style={[
+                                    styles.segment,
+                                    type === t && { backgroundColor: color },
+                                ]}>
+                                <Text style={[styles.segmentText, { color: type === t ? '#FFFFFF' : theme.textSecondary }]}>
+                                    {label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
 
-            <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 120 }}>
-                {/* Type Selector — Color-coded */}
-                <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : '#ECEDF0' }]}>
-                    {[
-                        { type: TransactionType.INCOME, label: 'INCOME', color: colors.income },
-                        { type: TransactionType.EXPENSE, label: 'EXPENSE', color: colors.expense },
-                        { type: TransactionType.TRANSFER, label: 'TRANSFER', color: colors.transfer },
-                    ].map(({ type: t, label, color }) => (
+                    {/* Amount */}
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Amount</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>₹</Text>
+                            <TextInput
+                                style={[styles.amountInput, { color: theme.text }]}
+                                keyboardType="decimal-pad"
+                                value={amount}
+                                onChangeText={(text) => {
+                                    // Allow only numbers and one decimal point
+                                    let filtered = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                    // Limit to 2 decimal places
+                                    const parts = filtered.split('.');
+                                    if (parts.length === 2 && parts[1].length > 2) {
+                                        filtered = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                                    }
+                                    setAmount(filtered);
+                                }}
+                                placeholder="0.00"
+                                placeholderTextColor={theme.textSecondary}
+                                autoFocus
+                            />
+                        </View>
+                    </View>
+
+                    {/* Date Picker */}
+                    <TouchableOpacity
+                        style={[styles.pickerField, { borderBottomColor: theme.border }]}
+                        onPress={() => setDatePickerVisible(true)}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Date</Text>
+                        <Text style={[styles.pickerValue, { color: theme.text }]}>
+                            {format(date, 'dd MMM yyyy (EEEE)')}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Account Pickers */}
+                    <TouchableOpacity
+                        style={[styles.pickerField, { borderBottomColor: theme.border }]}
+                        onPress={() => setAccPickerVisible(true)}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>
+                            {type === TransactionType.TRANSFER ? 'From Account' : 'Account'}
+                        </Text>
+                        <Text style={[styles.pickerValue, { color: theme.text }]}>
+                            {selectedAccount?.name || 'Select Account'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {type === TransactionType.TRANSFER && (
                         <TouchableOpacity
-                            key={t}
-                            onPress={() => handleTypeChange(t)}
-                            style={[
-                                styles.segment,
-                                type === t && { backgroundColor: color },
-                            ]}>
-                            <Text style={[styles.segmentText, { color: type === t ? '#FFFFFF' : theme.textSecondary }]}>
-                                {label}
+                            style={[styles.pickerField, { borderBottomColor: theme.border }]}
+                            onPress={() => setToAccPickerVisible(true)}>
+                            <Text style={[styles.label, { color: theme.textSecondary }]}>To Account</Text>
+                            <Text style={[styles.pickerValue, { color: theme.text }]}>
+                                {toAccount?.name || 'Select Account'}
                             </Text>
                         </TouchableOpacity>
-                    ))}
-                </View>
+                    )}
 
-                {/* Amount */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Amount</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>₹</Text>
+                    {/* Category Picker */}
+                    {type !== TransactionType.TRANSFER && (
+                        <TouchableOpacity
+                            style={[styles.pickerField, { borderBottomColor: theme.border }]}
+                            onPress={() => setCatPickerVisible(true)}>
+                            <Text style={[styles.label, { color: theme.textSecondary }]}>Category</Text>
+                            <Text style={[styles.pickerValue, { color: theme.text }]}>
+                                {selectedCategory?.name || 'Select Category'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Note */}
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Note</Text>
                         <TextInput
-                            style={[styles.amountInput, { color: theme.text }]}
-                            keyboardType="decimal-pad"
-                            value={amount}
-                            onChangeText={(text) => {
-                                // Allow only numbers and one decimal point
-                                let filtered = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                                // Limit to 2 decimal places
-                                const parts = filtered.split('.');
-                                if (parts.length === 2 && parts[1].length > 2) {
-                                    filtered = `${parts[0]}.${parts[1].substring(0, 2)}`;
-                                }
-                                setAmount(filtered);
-                            }}
-                            placeholder="0.00"
+                            style={[styles.textInput, { color: theme.text, borderBottomColor: theme.border }]}
+                            value={note}
+                            onChangeText={setNote}
+                            placeholder="Short note"
                             placeholderTextColor={theme.textSecondary}
-                            autoFocus
                         />
                     </View>
-                </View>
 
-                {/* Date Picker */}
-                <TouchableOpacity
-                    style={[styles.pickerField, { borderBottomColor: theme.border }]}
-                    onPress={() => setDatePickerVisible(true)}>
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Date</Text>
-                    <Text style={[styles.pickerValue, { color: theme.text }]}>
-                        {format(date, 'dd MMM yyyy (EEEE)')}
-                    </Text>
-                </TouchableOpacity>
-
-                {/* Account Pickers */}
-                <TouchableOpacity
-                    style={[styles.pickerField, { borderBottomColor: theme.border }]}
-                    onPress={() => setAccPickerVisible(true)}>
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>
-                        {type === TransactionType.TRANSFER ? 'From Account' : 'Account'}
-                    </Text>
-                    <Text style={[styles.pickerValue, { color: theme.text }]}>
-                        {selectedAccount?.name || 'Select Account'}
-                    </Text>
-                </TouchableOpacity>
-
-                {type === TransactionType.TRANSFER && (
-                    <TouchableOpacity
-                        style={[styles.pickerField, { borderBottomColor: theme.border }]}
-                        onPress={() => setToAccPickerVisible(true)}>
-                        <Text style={[styles.label, { color: theme.textSecondary }]}>To Account</Text>
-                        <Text style={[styles.pickerValue, { color: theme.text }]}>
-                            {toAccount?.name || 'Select Account'}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Category Picker */}
-                {type !== TransactionType.TRANSFER && (
-                    <TouchableOpacity
-                        style={[styles.pickerField, { borderBottomColor: theme.border }]}
-                        onPress={() => setCatPickerVisible(true)}>
-                        <Text style={[styles.label, { color: theme.textSecondary }]}>Category</Text>
-                        <Text style={[styles.pickerValue, { color: theme.text }]}>
-                            {selectedCategory?.name || 'Select Category'}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Note */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Note</Text>
-                    <TextInput
-                        style={[styles.textInput, { color: theme.text, borderBottomColor: theme.border }]}
-                        value={note}
-                        onChangeText={setNote}
-                        placeholder="Short note"
-                        placeholderTextColor={theme.textSecondary}
-                    />
-                </View>
-
-                {/* Description */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>
-                    <TextInput
-                        style={[styles.textInput, { color: theme.text, borderBottomColor: theme.border }]}
-                        value={description}
-                        onChangeText={setDescription}
-                        placeholder="Optional details"
-                        placeholderTextColor={theme.textSecondary}
-                        multiline
-                    />
-                </View>
-
-                {/* Primary Save Button (Dynamic Color) */}
-                <TouchableOpacity
-                    style={[
-                        styles.primaryBtn,
-                        {
-                            backgroundColor:
-                                type === TransactionType.INCOME ? colors.income
-                                    : type === TransactionType.EXPENSE ? colors.expense
-                                        : '#8E8E93' // Neutral grey-blue for transfer
-                        }
-                    ]}
-                    onPress={() => handleSave(false)}
-                >
-                    <Text style={styles.primaryBtnText}>Save</Text>
-                </TouchableOpacity>
-
-                {/* Delete Button (Only in Edit Mode) */}
-                {transactionId && (
-                    <TouchableOpacity
-                        style={[styles.deleteBtn, { borderColor: colors.expense, marginTop: 10, marginBottom: 10 }]}
-                        onPress={handleDelete}
-                    >
-                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Transaction</Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Secondary 'Add Another' Button */}
-                {!transactionId && (
-                    <TouchableOpacity
-                        style={styles.secondaryBtn}
-                        onPress={() => handleSave(true)}
-                    >
-                        <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>Add Another</Text>
-                    </TouchableOpacity>
-                )}
-
-                {transactionId && createdAt && (
-                    <View style={[styles.timestamps, { borderTopColor: theme.border }]}>
-                        <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
-                            Created: {format(new Date(createdAt), 'dd MMM yyyy, hh:mm a')}
-                        </Text>
-                        {updatedAt && (
-                            <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
-                                Modified: {format(new Date(updatedAt), 'dd MMM yyyy, hh:mm a')}
-                            </Text>
-                        )}
+                    {/* Description */}
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Description</Text>
+                        <TextInput
+                            style={[styles.textInput, { color: theme.text, borderBottomColor: theme.border }]}
+                            value={description}
+                            onChangeText={setDescription}
+                            placeholder="Optional details"
+                            placeholderTextColor={theme.textSecondary}
+                            multiline
+                        />
                     </View>
-                )}
-            </ScrollView>
+
+                    {/* Primary Save Button (Dynamic Color) */}
+                    <TouchableOpacity
+                        style={[
+                            styles.primaryBtn,
+                            {
+                                backgroundColor:
+                                    type === TransactionType.INCOME ? colors.income
+                                        : type === TransactionType.EXPENSE ? colors.expense
+                                            : '#8E8E93' // Neutral grey-blue for transfer
+                            }
+                        ]}
+                        onPress={() => handleSave(false)}
+                    >
+                        <Text style={styles.primaryBtnText}>Save</Text>
+                    </TouchableOpacity>
+
+                    {/* Delete Button (Only in Edit Mode) */}
+                    {transactionId && (
+                        <TouchableOpacity
+                            style={[styles.deleteBtn, { borderColor: colors.expense, marginTop: 10, marginBottom: 10 }]}
+                            onPress={handleDelete}
+                        >
+                            <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Transaction</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Secondary 'Add Another' Button */}
+                    {!transactionId && (
+                        <TouchableOpacity
+                            style={styles.secondaryBtn}
+                            onPress={() => handleSave(true)}
+                        >
+                            <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>Add Another</Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {transactionId && createdAt && (
+                        <View style={[styles.timestamps, { borderTopColor: theme.border }]}>
+                            <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
+                                Created: {format(new Date(createdAt), 'dd MMM yyyy, hh:mm a')}
+                            </Text>
+                            {updatedAt && (
+                                <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
+                                    Modified: {format(new Date(updatedAt), 'dd MMM yyyy, hh:mm a')}
+                                </Text>
+                            )}
+                        </View>
+                    )}
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             <AccountPicker
                 visible={accPickerVisible}
