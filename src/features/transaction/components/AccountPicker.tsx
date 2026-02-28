@@ -48,12 +48,12 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
 
         const typeOrder = ['bank', 'cash', 'card', 'wallet', 'deposits', 'custom'];
         const typeLabels: Record<string, string> = {
-            bank: 'Bank Accounts',
-            cash: 'Cash',
-            card: 'Cards',
-            wallet: 'Digital Wallets',
-            deposits: 'Deposits',
-            custom: 'Other',
+            bank: '🏦 Bank Accounts',
+            cash: '💵 Cash',
+            card: '💳 Cards',
+            wallet: '📱 Digital Wallets',
+            deposits: '🔒 Deposits',
+            custom: '🏷️ Other',
         };
 
         const groups: Record<string, Account[]> = {};
@@ -157,9 +157,6 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                             )}
                                         </View>
                                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <Text style={[styles.itemType, { color: theme.textSecondary }]}>
-                                                {item.type}
-                                            </Text>
                                             {hasChildren && (
                                                 <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
                                             )}
@@ -282,14 +279,17 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     sectionHeader: {
-        paddingVertical: 6,
-        paddingHorizontal: 4,
-        marginTop: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        marginTop: 12,
+        marginBottom: 4,
+        borderRadius: 8,
     },
     sectionTitle: {
         fontSize: 12,
-        fontWeight: '600',
+        fontWeight: 'bold',
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     item: {
         paddingVertical: 14,
