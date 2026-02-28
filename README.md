@@ -9,6 +9,7 @@ A personal finance mobile app built with **React Native**. Track expenses, incom
 | Document | Description |
 |---|---|
 | [Architecture](./docs/architecture.md) | Full technical architecture, directory structure, data flow |
+| [Agent Context](./.agents/CONTEXT.md) | High-density reference for AI development |
 | [Task Plan](./docs/task_plan.md) | Detailed feature checklist and completion status |
 | [Test Cases](./docs/test_cases.md) | 75+ test cases organized by checkpoint |
 
