@@ -19,6 +19,14 @@ type CategoryWithChildren = schema.Category & { children: CategoryWithChildren[]
 export const CategoryManagementScreen = ({ navigation }: any) => {
     const { theme, colors } = useAppTheme();
     const [categories, setCategories] = useState<schema.Category[]>([]);
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        [CategoryType.EXPENSE]: true,
+        [CategoryType.INCOME]: true,
+    });
+
+    const toggleSection = (type: string) => {
+        setExpandedSections(prev => ({ ...prev, [type]: !prev[type] }));
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -49,11 +57,11 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
         const incomes = buildTree(null, CategoryType.INCOME);
 
         const result = [];
-        result.push({ title: 'EXPENSE CATEGORIES', type: CategoryType.EXPENSE, data: expenses });
-        result.push({ title: 'INCOME CATEGORIES', type: CategoryType.INCOME, data: incomes });
+        result.push({ title: 'EXPENSE CATEGORIES', type: CategoryType.EXPENSE, data: expandedSections[CategoryType.EXPENSE] ? expenses : [] });
+        result.push({ title: 'INCOME CATEGORIES', type: CategoryType.INCOME, data: expandedSections[CategoryType.INCOME] ? incomes : [] });
 
         return result;
-    }, [categories]);
+    }, [categories, expandedSections]);
 
     const renderNode = (item: CategoryWithChildren, isFirst: boolean, isLast: boolean) => {
         const renderChild = (child: CategoryWithChildren, isChildLast: boolean) => {
@@ -158,18 +166,32 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
                     renderNode(item as CategoryWithChildren, index === 0, index === section.data.length - 1)
                 }
                 renderSectionHeader={({ section: { title, type } }) => (
-                    <View style={styles.sectionHeader}>
-                        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('CategoryForm', { initialType: type })}>
+                    <TouchableOpacity
+                        style={styles.sectionHeader}
+                        onPress={() => toggleSection(type)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Icon
+                                name={expandedSections[type] ? 'expand-more' : 'chevron-right'}
+                                size={20}
+                                color={theme.textSecondary}
+                                style={{ marginRight: 4 }}
+                            />
+                            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
+                        </View>
+                        <TouchableOpacity onPress={(e) => { e.stopPropagation(); navigation.navigate('CategoryForm', { initialType: type }); }}>
                             <Icon name="add-circle" size={22} color={colors.primary} />
                         </TouchableOpacity>
-                    </View>
+                    </TouchableOpacity>
                 )}
                 stickySectionHeadersEnabled={false}
                 ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={{ color: theme.textSecondary }}>No categories found</Text>
-                    </View>
+                    categories.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Text style={{ color: theme.textSecondary }}>No categories found</Text>
+                        </View>
+                    ) : null
                 }
             />
         </SafeAreaView>
