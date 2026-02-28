@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -26,7 +26,7 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
         }, [])
     );
 
-    const getFlattenedCategories = () => {
+    const flatItems = useMemo(() => {
         const result: schema.Category[] = [];
         const rootCategories = categories.filter(c => c.level === 1);
 
@@ -43,9 +43,7 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
             addChildren(root.id);
         }
         return result;
-    };
-
-    const flatItems = getFlattenedCategories();
+    }, [categories]);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>

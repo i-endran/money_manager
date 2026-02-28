@@ -10,6 +10,23 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
     [SettingsKey.PIN_HASH]: '',
 };
 
+// Supported currencies
+export const CURRENCIES = [
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+];
+
+export const THEME_OPTIONS = [
+    { value: ThemeMode.SYSTEM, label: 'System Default' },
+    { value: ThemeMode.LIGHT, label: 'Light' },
+    { value: ThemeMode.DARK, label: 'Dark' },
+];
+
 // Auto-palette colors — 12 curated, visually distinct colors
 export const COLOR_PALETTE = [
     '#E57373', // red

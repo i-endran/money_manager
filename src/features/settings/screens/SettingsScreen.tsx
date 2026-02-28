@@ -19,28 +19,11 @@ import { RootStackParamList } from '../../../navigation/RootNavigator';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq } from 'drizzle-orm';
-import { SettingsKey, ThemeMode } from '../../../core/constants';
+import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
 
-// Supported currencies
-const CURRENCIES = [
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'EUR', symbol: '€', name: 'Euro' },
-    { code: 'GBP', symbol: '£', name: 'British Pound' },
-    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-];
-
-const THEME_OPTIONS = [
-    { value: ThemeMode.SYSTEM, label: 'System Default' },
-    { value: ThemeMode.LIGHT, label: 'Light' },
-    { value: ThemeMode.DARK, label: 'Dark' },
-];
-
 export const SettingsScreen = () => {
-    const { theme, colors, isDark } = useAppTheme();
+    const { theme, colors } = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
     const {
