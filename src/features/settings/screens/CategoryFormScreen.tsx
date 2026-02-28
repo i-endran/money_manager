@@ -141,7 +141,7 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>
-                    {categoryId ? 'Edit Category' : 'New Category'}
+                    {categoryId ? (name ? `Edit ${name}` : 'Edit Category') : 'New Category'}
                 </Text>
                 <TouchableOpacity onPress={handleSave}>
                     <Text style={[styles.saveText, { color: colors.primary }]}>Save</Text>
