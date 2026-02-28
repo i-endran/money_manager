@@ -9,6 +9,20 @@ interface TransactionItemProps {
     onPress: (txn: any) => void;
 }
 
+// Extract leading emoji from a string like "🍕 Food" → { emoji: "🍕", text: "Food" }
+function splitEmoji(name: string): { emoji: string; text: string } {
+    // Match emoji at the start (including compound emoji sequences)
+    const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u;
+    const match = name.match(emojiRegex);
+    if (match) {
+        return {
+            emoji: match[0],
+            text: name.slice(match[0].length).trim(),
+        };
+    }
+    return { emoji: '💰', text: name };
+}
+
 export const TransactionItem: React.FC<TransactionItemProps> = ({
     transaction,
     onPress,
@@ -24,19 +38,23 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             ? colors.transfer
             : colors.expense;
 
+    const { emoji, text: categoryText } = splitEmoji(
+        transaction.categoryName || 'Uncategorized',
+    );
+
     return (
         <TouchableOpacity
             onPress={() => onPress(transaction)}
-            style={[styles.container, { backgroundColor: theme.surface }]}>
+            style={[styles.container, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
             <View style={styles.left}>
                 <View style={[styles.iconPlaceholder, { backgroundColor: theme.background }]}>
-                    <Text style={styles.iconText}>{transaction.categoryIcon || '💰'}</Text>
+                    <Text style={styles.iconText}>{emoji}</Text>
                 </View>
                 <View style={styles.details}>
                     <Text style={[styles.category, { color: theme.text }]}>
-                        {transaction.categoryName || 'Uncategorized'}
+                        {categoryText || 'Uncategorized'}
                     </Text>
-                    <Text style={[styles.note, { color: theme.textSecondary }]}>
+                    <Text style={[styles.note, { color: theme.textSecondary }]} numberOfLines={1}>
                         {transaction.note || transaction.accountName}
                     </Text>
                 </View>
@@ -63,7 +81,6 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#eee',
     },
     left: {
         flexDirection: 'row',
@@ -104,3 +121,4 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 });
+

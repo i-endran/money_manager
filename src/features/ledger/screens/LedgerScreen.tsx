@@ -16,7 +16,7 @@ import { useMonthlyLedger } from '../hooks/useMonthlyLedger';
 import { MonthSelector } from '../components/MonthSelector';
 import { MonthlySummary } from '../components/MonthlySummary';
 import { TransactionItem } from '../components/TransactionItem';
-import { formatDateLabel, isWeekend } from '../../../core/utils';
+import { formatDayHeader, formatCurrency, isWeekend } from '../../../core/utils';
 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,7 +36,7 @@ export const LedgerScreen: React.FC = () => {
         navigation.navigate('TransactionForm');
     };
 
-    const renderSectionHeader = ({ section: { title } }: any) => {
+    const renderSectionHeader = ({ section: { title, dayIncome, dayExpense } }: any) => {
         const weekend = isWeekend(title);
         return (
             <View
@@ -48,8 +48,20 @@ export const LedgerScreen: React.FC = () => {
                     },
                 ]}>
                 <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-                    {formatDateLabel(title)}
+                    {formatDayHeader(title)}
                 </Text>
+                <View style={styles.daySummary}>
+                    {dayIncome > 0 && (
+                        <Text style={[styles.daySummaryText, { color: colors.income }]}>
+                            +{formatCurrency(dayIncome)}
+                        </Text>
+                    )}
+                    {dayExpense > 0 && (
+                        <Text style={[styles.daySummaryText, { color: colors.expense }]}>
+                            -{formatCurrency(dayExpense)}
+                        </Text>
+                    )}
+                </View>
             </View>
         );
     };
@@ -125,6 +137,9 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderBottomWidth: StyleSheet.hairlineWidth,
@@ -133,6 +148,14 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         textTransform: 'uppercase',
+    },
+    daySummary: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    daySummaryText: {
+        fontSize: 11,
+        fontWeight: '600',
     },
     listContent: {
         paddingBottom: 80,

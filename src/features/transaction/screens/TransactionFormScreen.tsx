@@ -15,7 +15,7 @@ import * as schema from '../../../database/schema';
 import { TransactionType } from '../../../core/constants';
 import { AccountPicker } from '../components/AccountPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
-import { MonthPicker } from '../components/MonthPicker';
+import { DatePicker } from '../components/DatePicker';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
@@ -39,10 +39,13 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     const [accounts, setAccounts] = useState<schema.Account[]>([]);
     const [categories, setCategories] = useState<schema.Category[]>([]);
 
+    const [createdAt, setCreatedAt] = useState<string | null>(null);
+    const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+
     const [accPickerVisible, setAccPickerVisible] = useState(false);
     const [toAccPickerVisible, setToAccPickerVisible] = useState(false);
     const [catPickerVisible, setCatPickerVisible] = useState(false);
-    const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+    const [datePickerVisible, setDatePickerVisible] = useState(false);
 
     useEffect(() => {
         async function loadData() {
@@ -69,6 +72,8 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     setDate(new Date(txn.date));
                     setSelectedAccount(accList.find(a => a.id === txn.accountId) || null);
                     setSelectedCategory(catList.find(c => c.id === txn.categoryId) || null);
+                    setCreatedAt(txn.createdAt);
+                    setUpdatedAt(txn.updatedAt);
                     if (txn.toAccountId) {
                         setToAccount(accList.find(a => a.id === txn.toAccountId) || null);
                     }
@@ -264,10 +269,10 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 {/* Date Picker */}
                 <TouchableOpacity
                     style={styles.pickerField}
-                    onPress={() => setMonthPickerVisible(true)}>
+                    onPress={() => setDatePickerVisible(true)}>
                     <Text style={[styles.label, { color: theme.textSecondary }]}>Date</Text>
                     <Text style={[styles.pickerValue, { color: theme.text }]}>
-                        {format(date, 'MMMM yyyy')}
+                        {format(date, 'dd MMM yyyy (EEEE)')}
                     </Text>
                 </TouchableOpacity>
 
@@ -331,6 +336,19 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     />
                 </View>
 
+                {transactionId && createdAt && (
+                    <View style={[styles.timestamps, { borderTopColor: theme.border }]}>
+                        <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
+                            Created: {format(new Date(createdAt), 'dd MMM yyyy, hh:mm a')}
+                        </Text>
+                        {updatedAt && (
+                            <Text style={[styles.timestampText, { color: theme.textSecondary }]}>
+                                Modified: {format(new Date(updatedAt), 'dd MMM yyyy, hh:mm a')}
+                            </Text>
+                        )}
+                    </View>
+                )}
+
                 {transactionId && (
                     <TouchableOpacity
                         style={[styles.deleteBtn, { borderColor: colors.expense }]}
@@ -363,9 +381,9 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 )}
                 onSelect={setSelectedCategory}
             />
-            <MonthPicker
-                visible={monthPickerVisible}
-                onClose={() => setMonthPickerVisible(false)}
+            <DatePicker
+                visible={datePickerVisible}
+                onClose={() => setDatePickerVisible(false)}
                 selectedDate={date}
                 onSelect={setDate}
             />
@@ -415,11 +433,20 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     deleteBtn: {
-        marginTop: 40,
+        marginTop: 20,
         marginBottom: 80,
         paddingVertical: 16,
         alignItems: 'center',
         borderWidth: 1,
         borderRadius: 8,
+    },
+    timestamps: {
+        marginTop: 24,
+        paddingTop: 16,
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    timestampText: {
+        fontSize: 12,
+        marginBottom: 4,
     },
 });
