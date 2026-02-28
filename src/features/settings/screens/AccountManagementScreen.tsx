@@ -114,10 +114,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
                 disabled={isEditing}
             >
-                <View style={styles.reserveInfo}>
-                    <Icon name="subdirectory-arrow-right" size={16} color={theme.textSecondary} />
-                    <Text style={[styles.reserveName, { color: theme.textSecondary }]}>{reserve.name}</Text>
-                </View>
+                <Text style={[styles.reserveName, { color: theme.textSecondary }]}>{reserve.name}</Text>
                 {!isEditing && (
                     <View style={[
                         styles.statusDot,
@@ -341,10 +338,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingRight: 16,
         paddingLeft: 4,
-    },
-    reserveInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
     },
     reserveName: {
         fontSize: 15,
