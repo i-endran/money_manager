@@ -40,7 +40,7 @@ export const LedgerScreen: React.FC = () => {
         const weekend = isWeekend(title);
         return (
             <TouchableOpacity
-                onPress={() => navigation.navigate('TransactionForm', { selectedDate: title })}
+                onPress={() => navigation.navigate('TransactionForm', { selectedDate: new Date(title).toISOString() })}
                 style={[
                     styles.sectionHeader,
                     {
