@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     summaryBubble: {
         marginHorizontal: 16,
         marginTop: 8,
-        marginBottom: 4,
+        marginBottom: 10,
         borderRadius: 12,
         borderWidth: StyleSheet.hairlineWidth,
         overflow: 'hidden',
