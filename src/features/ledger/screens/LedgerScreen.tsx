@@ -54,6 +54,14 @@ export const LedgerScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+            <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                <View style={{ width: 40 }} />
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Money Manager</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.headerBtn}>
+                    <Text style={{ color: colors.primary, fontSize: 20 }}>⚙️</Text>
+                </TouchableOpacity>
+            </View>
+
             <MonthSelector
                 currentDate={currentDate}
                 onPrev={prevMonth}
@@ -103,6 +111,21 @@ export const LedgerScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        height: 56,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    headerBtn: {
+        padding: 8,
     },
     center: {
         flex: 1,

@@ -91,38 +91,40 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             if (type === TransactionType.TRANSFER) {
                 if (!toAccount) return;
 
-                // 1. Create Debit entry
-                const [res1] = await db.insert(schema.transactions).values({
-                    amount: numericAmount,
-                    type: TransactionType.TRANSFER,
-                    accountId: selectedAccount.id,
-                    toAccountId: toAccount.id,
-                    categoryId: 0,
-                    note: note || `Transfer to ${toAccount.name}`,
-                    date: dateStr,
-                    createdAt: now,
-                    updatedAt: now,
-                }).returning({ insertedId: schema.transactions.id });
+                await db.transaction(async (tx) => {
+                    // 1. Create Debit entry
+                    const [res1] = await tx.insert(schema.transactions).values({
+                        amount: numericAmount,
+                        type: TransactionType.TRANSFER,
+                        accountId: selectedAccount.id,
+                        toAccountId: toAccount.id,
+                        categoryId: 0,
+                        note: note || `Transfer to ${toAccount.name}`,
+                        date: dateStr,
+                        createdAt: now,
+                        updatedAt: now,
+                    }).returning({ insertedId: schema.transactions.id });
 
-                // 2. Create Credit entry
-                const [res2] = await db.insert(schema.transactions).values({
-                    amount: numericAmount,
-                    type: TransactionType.TRANSFER,
-                    accountId: toAccount.id,
-                    toAccountId: selectedAccount.id,
-                    categoryId: 0,
-                    note: note || `Transfer from ${selectedAccount.name}`,
-                    date: dateStr,
-                    linkedTransactionId: res1.insertedId,
-                    createdAt: now,
-                    updatedAt: now,
-                }).returning({ insertedId: schema.transactions.id });
+                    // 2. Create Credit entry
+                    const [res2] = await tx.insert(schema.transactions).values({
+                        amount: numericAmount,
+                        type: TransactionType.TRANSFER,
+                        accountId: toAccount.id,
+                        toAccountId: selectedAccount.id,
+                        categoryId: 0,
+                        note: note || `Transfer from ${selectedAccount.name}`,
+                        date: dateStr,
+                        linkedTransactionId: res1.insertedId,
+                        createdAt: now,
+                        updatedAt: now,
+                    }).returning({ insertedId: schema.transactions.id });
 
-                // 3. Link back the first one
-                await db
-                    .update(schema.transactions)
-                    .set({ linkedTransactionId: res2.insertedId })
-                    .where(eq(schema.transactions.id, res1.insertedId));
+                    // 3. Link back the first one
+                    await tx
+                        .update(schema.transactions)
+                        .set({ linkedTransactionId: res2.insertedId })
+                        .where(eq(schema.transactions.id, res1.insertedId));
+                });
 
             } else {
                 if (transactionId) {
@@ -172,26 +174,28 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 style: 'destructive',
                 onPress: async () => {
                     try {
-                        const [txn] = await db
-                            .select()
-                            .from(schema.transactions)
-                            .where(eq(schema.transactions.id, transactionId))
-                            .limit(1);
+                        await db.transaction(async (tx) => {
+                            const [txn] = await tx
+                                .select()
+                                .from(schema.transactions)
+                                .where(eq(schema.transactions.id, transactionId))
+                                .limit(1);
 
-                        if (txn?.linkedTransactionId) {
-                            await db
-                                .delete(schema.transactions)
-                                .where(
-                                    or(
-                                        eq(schema.transactions.id, transactionId),
-                                        eq(schema.transactions.id, txn.linkedTransactionId),
-                                    ),
-                                );
-                        } else {
-                            await db
-                                .delete(schema.transactions)
-                                .where(eq(schema.transactions.id, transactionId));
-                        }
+                            if (txn?.linkedTransactionId) {
+                                await tx
+                                    .delete(schema.transactions)
+                                    .where(
+                                        or(
+                                            eq(schema.transactions.id, transactionId),
+                                            eq(schema.transactions.id, txn.linkedTransactionId),
+                                        ),
+                                    );
+                            } else {
+                                await tx
+                                    .delete(schema.transactions)
+                                    .where(eq(schema.transactions.id, transactionId));
+                            }
+                        });
 
                         refresh();
                         navigation.goBack();
