@@ -61,6 +61,25 @@ export async function initDatabase() {
         FOREIGN KEY (category_id) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE NO ACTION
     )`);
 
+    // Migration: Add new columns to accounts table for Milestone 2
+    try {
+        opsqlite.execute(`ALTER TABLE accounts ADD COLUMN parent_id INTEGER`);
+    } catch (e) {
+        // Column might already exist
+    }
+
+    try {
+        opsqlite.execute(`ALTER TABLE accounts ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL`);
+    } catch (e) {
+        // Column might already exist
+    }
+
+    try {
+        opsqlite.execute(`ALTER TABLE accounts ADD COLUMN exclude_from_summaries INTEGER DEFAULT 0 NOT NULL`);
+    } catch (e) {
+        // Column might already exist
+    }
+
     // Check for existing settings
     const settings = await db.select().from(schema.appSettings).limit(1);
 

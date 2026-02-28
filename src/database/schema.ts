@@ -8,6 +8,9 @@ export const accounts = sqliteTable('accounts', {
     initialBalance: real('initial_balance').default(0).notNull(),
     iconName: text('icon_name').notNull(),
     isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+    parentId: integer('parent_id'),
+    sortOrder: integer('sort_order').default(0).notNull(),
+    excludeFromSummaries: integer('exclude_from_summaries', { mode: 'boolean' }).default(false).notNull(),
     createdAt: text('created_at').notNull(),
 });
 

@@ -11,6 +11,7 @@ export enum AccountType {
   CASH = 'cash',
   CARD = 'card',
   WALLET = 'wallet',
+  DEPOSITS = 'deposits',
   CUSTOM = 'custom',
 }
 

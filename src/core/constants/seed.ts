@@ -9,7 +9,8 @@ export interface SeedAccount {
 }
 
 export const SEED_ACCOUNTS: SeedAccount[] = [
-    { name: '💵 Cash', type: AccountType.CASH, iconName: 'cash', initialBalance: 0 },
+    { name: 'Cash', type: AccountType.CASH, iconName: 'cash', initialBalance: 0 },
+    { name: 'Bank', type: AccountType.BANK, iconName: 'account-balance', initialBalance: 0 },
 ];
 
 // Pre-seeded categories with hierarchy (parentIndex references index in flattened array)
