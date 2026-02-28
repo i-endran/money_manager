@@ -74,7 +74,7 @@ export const LedgerScreen: React.FC = () => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { backgroundColor: theme.background }]}>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>PiggyBook</Text>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Pocket Log</Text>
             </View>
 
             <MonthSelector

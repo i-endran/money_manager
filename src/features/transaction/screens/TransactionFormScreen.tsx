@@ -256,7 +256,14 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>
-                    {transactionId ? 'Edit Transaction' : 'New Transaction'}
+                    {transactionId
+                        ? type === TransactionType.TRANSFER ? 'Edit Transfer'
+                            : type === TransactionType.INCOME ? 'Edit Income'
+                                : 'Edit Expense'
+                        : type === TransactionType.TRANSFER ? 'Transfer'
+                            : type === TransactionType.INCOME ? 'Add Income'
+                                : 'Add Expense'
+                    }
                 </Text>
                 <View style={{ width: 50 }} />
             </View>

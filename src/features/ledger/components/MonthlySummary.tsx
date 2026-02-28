@@ -17,7 +17,7 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
     const { theme, colors } = useAppTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.item}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>Income</Text>
                 <Text style={[styles.value, { color: colors.income }]}>
@@ -25,7 +25,7 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
                 </Text>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             <View style={styles.item}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>Expense</Text>
@@ -34,7 +34,7 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
                 </Text>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             <View style={styles.item}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>Balance</Text>
@@ -56,11 +56,7 @@ const styles = StyleSheet.create({
         padding: 16,
         margin: 16,
         borderRadius: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        borderWidth: StyleSheet.hairlineWidth,
     },
     item: {
         flex: 1,

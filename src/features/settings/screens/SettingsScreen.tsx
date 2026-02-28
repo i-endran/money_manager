@@ -155,7 +155,7 @@ export const SettingsScreen = () => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>PiggyBook v1.0.0</Text>
+                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Pocket Log v1.0.0</Text>
                 </View>
             </ScrollView>
 
