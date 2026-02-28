@@ -18,7 +18,7 @@ export const db = drizzle(opsqlite, { schema });
  */
 export async function initDatabase() {
     // Create tables if they don't exist
-    opsqlite.execute(`CREATE TABLE IF NOT EXISTS accounts (
+    await opsqlite.execute(`CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         name TEXT NOT NULL,
         type TEXT NOT NULL,
@@ -28,12 +28,12 @@ export async function initDatabase() {
         created_at TEXT NOT NULL
     )`);
 
-    opsqlite.execute(`CREATE TABLE IF NOT EXISTS app_settings (
+    await opsqlite.execute(`CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL
     )`);
 
-    opsqlite.execute(`CREATE TABLE IF NOT EXISTS categories (
+    await opsqlite.execute(`CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         name TEXT NOT NULL,
         parent_id INTEGER,
@@ -43,7 +43,7 @@ export async function initDatabase() {
         is_active INTEGER DEFAULT 1 NOT NULL
     )`);
 
-    opsqlite.execute(`CREATE TABLE IF NOT EXISTS transactions (
+    await opsqlite.execute(`CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         amount REAL NOT NULL,
         type TEXT NOT NULL,
@@ -63,19 +63,19 @@ export async function initDatabase() {
 
     // Migration: Add new columns to accounts table for Milestone 2
     try {
-        opsqlite.execute(`ALTER TABLE accounts ADD COLUMN parent_id INTEGER`);
+        await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN parent_id INTEGER`);
     } catch (e) {
         // Column might already exist
     }
 
     try {
-        opsqlite.execute(`ALTER TABLE accounts ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL`);
+        await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL`);
     } catch (e) {
         // Column might already exist
     }
 
     try {
-        opsqlite.execute(`ALTER TABLE accounts ADD COLUMN exclude_from_summaries INTEGER DEFAULT 0 NOT NULL`);
+        await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN exclude_from_summaries INTEGER DEFAULT 0 NOT NULL`);
     } catch (e) {
         // Column might already exist
     }
