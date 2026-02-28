@@ -90,10 +90,10 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
             transparent
             animationType="slide"
             onRequestClose={onClose}
-            onDismiss={() => setCurrentParentId(null)} // Reset state when closed
+            onDismiss={() => setCurrentParentId(null)}
         >
             <View style={styles.overlay}>
-                <View style={[styles.content, { backgroundColor: theme.surface }]}>
+                <View style={[styles.content, { backgroundColor: theme.background }]}>
                     <View style={styles.header}>
                         <View style={styles.headerLeft}>
                             {currentParentId !== null && (
@@ -123,18 +123,28 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                         <SectionList
                             sections={sections}
                             keyExtractor={item => item.id.toString()}
+                            contentContainerStyle={styles.listContent}
                             renderSectionHeader={({ section }) => (
-                                <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                                <View style={styles.sectionHeader}>
                                     <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
                                         {section.title}
                                     </Text>
                                 </View>
                             )}
-                            renderItem={({ item }) => {
+                            renderItem={({ item, index, section }) => {
                                 const hasChildren = accounts.some(a => a.parentId === item.id);
+                                const isFirst = index === 0;
+                                const isLast = index === section.data.length - 1;
+
                                 return (
                                     <TouchableOpacity
-                                        style={[styles.item, { borderBottomColor: theme.border }]}
+                                        style={[
+                                            styles.item,
+                                            { backgroundColor: theme.surface },
+                                            !isLast && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                                            isFirst && { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+                                            isLast && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+                                        ]}
                                         onPress={() => {
                                             if (hasChildren) {
                                                 setCurrentParentId(item.id);
@@ -174,10 +184,17 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                         <FlatList
                             data={reservesList}
                             keyExtractor={item => item.id.toString()}
+                            contentContainerStyle={styles.listContent}
                             ListHeaderComponent={
                                 parentAccount ? (
                                     <TouchableOpacity
-                                        style={[styles.selectParentItem, { borderBottomColor: theme.border }]}
+                                        style={[
+                                            styles.item,
+                                            { backgroundColor: theme.surface },
+                                            reservesList.length > 0 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                                            { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+                                            reservesList.length === 0 && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 }
+                                        ]}
                                         onPress={() => {
                                             onSelect(parentAccount);
                                             onClose();
@@ -189,36 +206,44 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                     </TouchableOpacity>
                                 ) : null
                             }
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[styles.item, { borderBottomColor: theme.border }]}
-                                    onPress={() => {
-                                        const hasChildren = accounts.some(a => a.parentId === item.id);
-                                        if (hasChildren) {
-                                            setCurrentParentId(item.id);
-                                        } else {
-                                            onSelect(item);
-                                            onClose();
-                                            setTimeout(() => setCurrentParentId(null), 300);
-                                        }
-                                    }}>
-                                    <View style={styles.itemRow}>
-                                        <Text style={[styles.itemText, { color: theme.text }]}>
-                                            {item.name}
-                                        </Text>
-                                        {item.excludeFromSummaries && (
-                                            <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
-                                                <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
-                                                    Closed-Box
-                                                </Text>
-                                            </View>
+                            renderItem={({ item, index }) => {
+                                const isLast = index === reservesList.length - 1;
+                                return (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.item,
+                                            { backgroundColor: theme.surface },
+                                            !isLast && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                                            isLast && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 }
+                                        ]}
+                                        onPress={() => {
+                                            const hasChildren = accounts.some(a => a.parentId === item.id);
+                                            if (hasChildren) {
+                                                setCurrentParentId(item.id);
+                                            } else {
+                                                onSelect(item);
+                                                onClose();
+                                                setTimeout(() => setCurrentParentId(null), 300);
+                                            }
+                                        }}>
+                                        <View style={styles.itemRow}>
+                                            <Text style={[styles.itemText, { color: theme.text }]}>
+                                                {item.name}
+                                            </Text>
+                                            {item.excludeFromSummaries && (
+                                                <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
+                                                    <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
+                                                        Closed-Box
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        {accounts.some(a => a.parentId === item.id) && (
+                                            <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
                                         )}
-                                    </View>
-                                    {accounts.some(a => a.parentId === item.id) && (
-                                        <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
-                                    )}
-                                </TouchableOpacity>
-                            )}
+                                    </TouchableOpacity>
+                                );
+                            }}
                             ListEmptyComponent={
                                 <View style={{ padding: 24, alignItems: 'center' }}>
                                     <Text style={{ color: theme.textSecondary }}>No sub-accounts</Text>
@@ -278,12 +303,14 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    listContent: {
+        paddingBottom: 24,
+    },
     sectionHeader: {
         paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingHorizontal: 8,
         marginTop: 12,
         marginBottom: 4,
-        borderRadius: 8,
     },
     sectionTitle: {
         fontSize: 12,
@@ -293,10 +320,10 @@ const styles = StyleSheet.create({
     },
     item: {
         paddingVertical: 14,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomWidth: StyleSheet.hairlineWidth,
     },
     itemRow: {
         flexDirection: 'row',
