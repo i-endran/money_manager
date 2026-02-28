@@ -29,7 +29,7 @@ const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
 type AccountWithReserves = schema.Account & { reserves: schema.Account[] };
 
 export const AccountManagementScreen = ({ navigation }: any) => {
-    const { theme, colors, isDark } = useAppTheme();
+    const { theme, colors } = useAppTheme();
     const [accounts, setAccounts] = useState<schema.Account[]>([]);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -119,9 +119,10 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                     <Text style={[styles.reserveName, { color: theme.textSecondary }]}>{reserve.name}</Text>
                 </View>
                 {!isEditing && (
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                        {reserve.isActive ? 'Active' : 'Inactive'}
-                    </Text>
+                    <View style={[
+                        styles.statusDot,
+                        { backgroundColor: reserve.isActive ? '#34C759' : '#AEAEB2' }
+                    ]} />
                 )}
             </TouchableOpacity>
         </View>
@@ -157,9 +158,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                                 <Icon name="drag-handle" size={24} color={theme.textSecondary} />
                             </View>
                         )}
-                        <View style={[styles.iconContainer, { backgroundColor: isDark ? colors.black : colors.white }]}>
-                            <Text style={{ fontSize: 18 }}>{TYPE_CONFIG[item.type as AccountType]?.emoji || '🏦'}</Text>
-                        </View>
+
                         <View>
                             <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
                             {isEditing && <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>}
@@ -172,9 +171,10 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                     </View>
                     {!isEditing && (
                         <View style={styles.rootActions}>
-                            <Text style={{ color: theme.textSecondary, fontSize: 12, marginRight: 12 }}>
-                                {item.isActive ? 'Active' : 'Inactive'}
-                            </Text>
+                            <View style={[
+                                styles.statusDot,
+                                { backgroundColor: item.isActive ? '#34C759' : '#AEAEB2', marginRight: 12 }
+                            ]} />
                             <TouchableOpacity
                                 style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
                                 onPress={() => navigation.navigate('AccountForm', { parentId: item.id })}
@@ -295,13 +295,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    iconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
+    statusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
     },
     name: { fontSize: 16, fontWeight: '500' },
     type: { fontSize: 12, marginTop: 2, textTransform: 'uppercase' },
