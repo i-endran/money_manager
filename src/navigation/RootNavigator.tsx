@@ -22,7 +22,7 @@ export type RootStackParamList = {
     TransactionForm: { transactionId?: number; selectedDate?: string } | undefined;
     AccountManagement: undefined;
     CategoryManagement: undefined;
-    AccountForm: { accountId?: number } | undefined;
+    AccountForm: { accountId?: number; parentId?: number; initialType?: string } | undefined;
     CategoryForm: { categoryId?: number } | undefined;
 };
 
