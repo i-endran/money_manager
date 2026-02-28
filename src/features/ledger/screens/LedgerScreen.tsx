@@ -44,7 +44,7 @@ export const LedgerScreen: React.FC = () => {
             <TouchableOpacity
                 onPress={() => navigation.navigate('TransactionForm', { selectedDate: new Date(title).toISOString() })}
                 style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: weekend ? '#C24A4A' : theme.textSecondary }]}>
+                <Text style={[styles.sectionTitle, { color: weekend ? '#c55858ff' : theme.textSecondary }]}>
                     {formatDayHeader(title)}
                 </Text>
                 <View style={styles.daySummary}>

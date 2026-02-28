@@ -28,10 +28,10 @@ export const Colors = {
     // Dark theme — softer black to reduce eye strain with brighter accents
     dark: {
         // Accents (Brighter for dark backgrounds)
-        primary: '#42A5F5', // Medium blue
-        income: '#81C784',  // Soft pastel green
-        expense: '#E57373', // Soft pastel red
-        transfer: '#42A5F5',
+        primary: '#2568c5ff', // Medium blue
+        income: '#73bd77ff',  // Soft pastel green
+        expense: '#c96161ff', // Soft pastel red
+        transfer: '#2568c5ff',
 
         // Surfaces
         background: '#121212', // Material Dark Grey
