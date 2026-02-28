@@ -15,6 +15,7 @@ import { eq } from 'drizzle-orm';
 import { AccountType } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import { runOnJS } from 'react-native-reanimated';
 
 // Helper to map AccountType to UI Display
 const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
@@ -211,7 +212,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
             {isEditing ? (
                 <DraggableFlatList
                     data={rootsWithReserves}
-                    onDragEnd={handleDragEnd}
+                    onDragEnd={({ data }) => runOnJS(handleDragEnd)({ data })}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.listContent}
                     renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<AccountWithReserves>) => {
