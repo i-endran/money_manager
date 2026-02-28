@@ -1,4 +1,112 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 💰 Money Manager
+
+A personal finance mobile app built with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|---|---|
+| [Architecture](./docs/architecture.md) | Full technical architecture, directory structure, data flow |
+| [Milestone 1 Task Plan](./docs/task_plan.md) | Detailed feature checklist for M1 |
+| [Test Cases](./docs/test_cases.md) | 75+ test cases organized by checkpoint |
+
+---
+
+## ✨ Features (Milestone 1)
+
+- 📅 **Month-view Ledger** with income/expense/balance summary
+- ➕ **Add / Edit / Delete** transactions (expense, income, transfer)
+- 🏦 **Multi-account** support (Bank, Cash, Card, Wallet, etc.)
+- 🗂️ **3-level Hierarchical Categories** with emoji icons
+- 🔄 **Atomic Transfers** — linked debit/credit entries with safe deletion
+- 📆 **Custom iOS Month Picker** — grid-based date selection
+- ⚙️ **Settings & Entity Management** — CRUD for accounts and categories
+- 🔒 **Biometric / PIN Lock Screen** — secured via `react-native-keychain`
+- 🌄 **Native Splash Screen** — via `react-native-bootsplash`
+- 🌑 **Dark Mode** — automatic system-adaptive theme (Material 3 + Cupertino)
+- 🪟 **Liquid Glass Modals** — `@react-native-community/blur` for frosted glass forms
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| UI | React Native 0.84 + TypeScript |
+| Navigation | React Navigation 7 (Native Stack) |
+| Database | `op-sqlite` + Drizzle ORM |
+| State | Zustand |
+| Security | `react-native-keychain`, `react-native-biometrics` |
+| Styling | Vanilla StyleSheet (theme tokens) |
+
+---
+
+## 🚀 Getting Started
+
+> Make sure you have completed the [React Native Environment Setup](https://reactnative.dev/docs/set-up-your-environment) before proceeding.
+
+### 1. Install dependencies
+
+```sh
+npm install
+```
+
+### 2. Install iOS Pods
+
+```sh
+bundle install
+bundle exec pod install
+```
+
+### 3. Start Metro
+
+```sh
+npm start
+```
+
+### 4. Run on Device / Simulator
+
+```sh
+# Android
+npm run android
+
+# iOS
+npm run ios
+```
+
+---
+
+## 🗂️ Project Structure
+
+```
+src/
+├── core/           # Theme, constants, and utilities
+├── database/       # Drizzle ORM schema, migrations, and seed
+├── features/
+│   ├── auth/       # Lock Screen (PIN + biometrics)
+│   ├── ledger/     # Main ledger view
+│   ├── transaction/# Add/edit form and pickers
+│   └── settings/   # Settings hub and entity management
+├── navigation/     # Root stack navigator
+└── stores/         # Zustand global state (auth, ledger)
+```
+
+> See [Architecture](./docs/architecture.md) for full detail.
+
+---
+
+## 🔐 Security
+
+PIN codes are stored securely in the device keychain (never in AsyncStorage or plain text). Biometric unlock (TouchID / FaceID) is triggered on app cold launch. The app automatically locks when moved to the background.
+
+---
+
+## 📄 License
+
+Private project — all rights reserved.
+
 
 # Getting Started
 
