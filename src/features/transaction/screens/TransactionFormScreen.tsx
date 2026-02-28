@@ -233,37 +233,46 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             </View>
 
             <ScrollView style={styles.content}>
-                {/* Type Selector */}
-                <View style={styles.segmentContainer}>
-                    {[TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER].map(
-                        t => (
-                            <TouchableOpacity
-                                key={t}
-                                onPress={() => setType(t)}
-                                style={[
-                                    styles.segment,
-                                    type === t && { backgroundColor: colors.primary },
-                                ]}>
-                                <Text style={[styles.segmentText, type === t && { color: 'white' }]}>
-                                    {t.toUpperCase()}
-                                </Text>
-                            </TouchableOpacity>
-                        ),
-                    )}
+                {/* Type Selector — Color-coded */}
+                <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : '#ECEDF0' }]}>
+                    {[
+                        { type: TransactionType.EXPENSE, label: 'EXPENSE', color: colors.expense },
+                        { type: TransactionType.INCOME, label: 'INCOME', color: colors.income },
+                        { type: TransactionType.TRANSFER, label: 'TRANSFER', color: colors.transfer },
+                    ].map(({ type: t, label, color }) => (
+                        <TouchableOpacity
+                            key={t}
+                            onPress={() => setType(t)}
+                            style={[
+                                styles.segment,
+                                type === t && { backgroundColor: color },
+                            ]}>
+                            <Text style={[styles.segmentText, { color: type === t ? '#FFFFFF' : theme.textSecondary }]}>
+                                {label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
 
                 {/* Amount */}
                 <View style={styles.inputGroup}>
                     <Text style={[styles.label, { color: theme.textSecondary }]}>Amount</Text>
-                    <TextInput
-                        style={[styles.amountInput, { color: theme.text }]}
-                        keyboardType="numeric"
-                        value={amount}
-                        onChangeText={setAmount}
-                        placeholder="0.00"
-                        placeholderTextColor={theme.textSecondary}
-                        autoFocus
-                    />
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>₹</Text>
+                        <TextInput
+                            style={[styles.amountInput, { color: theme.text }]}
+                            keyboardType="decimal-pad"
+                            value={amount}
+                            onChangeText={(text) => {
+                                // Allow only numbers and one decimal point
+                                const filtered = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                setAmount(filtered);
+                            }}
+                            placeholder="0.00"
+                            placeholderTextColor={theme.textSecondary}
+                            autoFocus
+                        />
+                    </View>
                 </View>
 
                 {/* Date Picker */}
@@ -405,7 +414,6 @@ const styles = StyleSheet.create({
     content: { padding: 16 },
     segmentContainer: {
         flexDirection: 'row',
-        backgroundColor: '#eee',
         borderRadius: 8,
         padding: 4,
         marginBottom: 24,
@@ -416,10 +424,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 6,
     },
-    segmentText: { fontSize: 12, fontWeight: 'bold', color: '#666' },
+    segmentText: { fontSize: 12, fontWeight: 'bold' },
     inputGroup: { marginBottom: 20 },
     label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
-    amountInput: { fontSize: 40, fontWeight: 'bold' },
+    currencySymbol: { fontSize: 32, fontWeight: '300', marginRight: 4 },
+    amountInput: { fontSize: 40, fontWeight: 'bold', flex: 1 },
     pickerField: {
         paddingVertical: 12,
         borderBottomWidth: StyleSheet.hairlineWidth,

@@ -65,11 +65,24 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                     <FlatList
                         data={visibleCategories}
                         keyExtractor={item => item.id.toString()}
+                        ListHeaderComponent={
+                            parentCategory ? (
+                                <TouchableOpacity
+                                    style={[styles.selectParentItem, { borderBottomColor: theme.border }]}
+                                    onPress={() => {
+                                        onSelect(parentCategory);
+                                        onClose();
+                                    }}>
+                                    <Text style={{ color: colors.primary, fontWeight: '600' }}>
+                                        ✓ Select "{parentCategory.name}"
+                                    </Text>
+                                </TouchableOpacity>
+                            ) : null
+                        }
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 style={styles.item}
                                 onPress={() => {
-                                    // If it has children (simplified check for M1, just check if it's level 1 or 2)
                                     const hasChildren = categories.some(c => c.parentId === item.id);
                                     if (hasChildren) {
                                         setCurrentParentId(item.id);
@@ -92,15 +105,17 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                         ListEmptyComponent={
                             <View style={styles.empty}>
                                 <Text style={{ color: theme.textSecondary }}>No sub-categories</Text>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        onSelect(parentCategory!);
-                                        onClose();
-                                    }}
-                                    style={styles.selectParentBtn}
-                                >
-                                    <Text style={{ color: colors.primary }}>Select "{parentCategory?.name}"</Text>
-                                </TouchableOpacity>
+                                {parentCategory && (
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            onSelect(parentCategory);
+                                            onClose();
+                                        }}
+                                        style={styles.selectParentBtn}
+                                    >
+                                        <Text style={{ color: colors.primary }}>Select "{parentCategory.name}"</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         }
                     />
@@ -157,5 +172,10 @@ const styles = StyleSheet.create({
     },
     selectParentBtn: {
         marginTop: 16,
-    }
+    },
+    selectParentItem: {
+        paddingVertical: 14,
+        paddingHorizontal: 4,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
 });

@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     TouchableOpacity,
-    FlatList,
+    SectionList,
     Modal,
 } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
@@ -27,6 +27,32 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
 }) => {
     const { theme, colors } = useAppTheme();
 
+    // Group accounts by type for SectionList
+    const sections = useMemo(() => {
+        const typeOrder = ['bank', 'cash', 'card', 'wallet', 'custom'];
+        const typeLabels: Record<string, string> = {
+            bank: 'Bank Accounts',
+            cash: 'Cash',
+            card: 'Cards',
+            wallet: 'Digital Wallets',
+            custom: 'Other',
+        };
+
+        const groups: Record<string, Account[]> = {};
+        accounts.forEach(acc => {
+            const key = acc.type || 'custom';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(acc);
+        });
+
+        return typeOrder
+            .filter(t => groups[t]?.length > 0)
+            .map(t => ({
+                title: typeLabels[t] || t,
+                data: groups[t],
+            }));
+    }, [accounts]);
+
     return (
         <Modal visible={visible} transparent animationType="slide">
             <View style={styles.overlay}>
@@ -38,12 +64,19 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    <FlatList
-                        data={accounts}
+                    <SectionList
+                        sections={sections}
                         keyExtractor={item => item.id.toString()}
+                        renderSectionHeader={({ section }) => (
+                            <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                                    {section.title}
+                                </Text>
+                            </View>
+                        )}
                         renderItem={({ item }) => (
                             <TouchableOpacity
-                                style={styles.item}
+                                style={[styles.item, { borderBottomColor: theme.border }]}
                                 onPress={() => {
                                     onSelect(item);
                                     onClose();
@@ -55,9 +88,6 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                     {item.type}
                                 </Text>
                             </TouchableOpacity>
-                        )}
-                        ItemSeparatorComponent={() => (
-                            <View style={[styles.separator, { backgroundColor: theme.border }]} />
                         )}
                     />
                 </View>
@@ -82,17 +112,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 8,
     },
     title: {
         fontSize: 18,
         fontWeight: 'bold',
     },
+    sectionHeader: {
+        paddingVertical: 6,
+        paddingHorizontal: 4,
+        marginTop: 8,
+    },
+    sectionTitle: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
     item: {
-        paddingVertical: 16,
+        paddingVertical: 14,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        borderBottomWidth: StyleSheet.hairlineWidth,
     },
     itemText: {
         fontSize: 16,
@@ -100,8 +141,5 @@ const styles = StyleSheet.create({
     itemType: {
         fontSize: 12,
         textTransform: 'uppercase',
-    },
-    separator: {
-        height: StyleSheet.hairlineWidth,
     },
 });
