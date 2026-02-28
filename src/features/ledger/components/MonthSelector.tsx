@@ -38,18 +38,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 12,
+        paddingVertical: 6,
         paddingHorizontal: 16,
     },
     button: {
-        padding: 8,
+        padding: 6,
     },
     arrow: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: 'bold',
     },
     label: {
-        fontSize: 18,
+        fontSize: 15,
         fontWeight: '600',
     },
 });
