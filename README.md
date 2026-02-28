@@ -1,4 +1,4 @@
-# 💰 Money Manager
+# 🐷 PiggyBook
 
 A personal finance mobile app built with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
 
