@@ -19,9 +19,10 @@ import { MonthPicker } from '../components/MonthPicker';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
+import { BlurView } from '@react-native-community/blur';
 
 export const TransactionFormScreen = ({ navigation, route }: any) => {
-    const { theme, colors } = useAppTheme();
+    const { theme, colors, isDark } = useAppTheme();
     const { refresh } = useLedgerStore();
     const transactionId = route.params?.transactionId;
 
@@ -208,7 +209,12 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}>
+            <BlurView
+                style={StyleSheet.absoluteFillObject}
+                blurType={isDark ? 'dark' : 'light'}
+                blurAmount={10}
+            />
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary }}>Cancel</Text>

@@ -30,7 +30,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                     <Text style={{ color: colors.primary }}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Accounts</Text>
-                <TouchableOpacity onPress={() => Alert.alert('Note', 'Add Account flow coming in M2')}>
+                <TouchableOpacity onPress={() => navigation.navigate('AccountForm')}>
                     <Text style={{ color: colors.primary }}>Add</Text>
                 </TouchableOpacity>
             </View>
@@ -39,7 +39,10 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 data={accounts}
                 keyExtractor={item => item.id.toString()}
                 renderItem={({ item }) => (
-                    <View style={[styles.item, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
+                    <TouchableOpacity
+                        style={[styles.item, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}
+                        onPress={() => navigation.navigate('AccountForm', { accountId: item.id })}
+                    >
                         <View>
                             <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
                             <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>
@@ -47,7 +50,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         <Text style={{ color: theme.textSecondary }}>
                             {item.isActive ? 'Active' : 'Inactive'}
                         </Text>
-                    </View>
+                    </TouchableOpacity>
                 )}
             />
         </SafeAreaView>

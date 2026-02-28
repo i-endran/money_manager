@@ -23,6 +23,25 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
         load();
     }, []);
 
+    const getFlattenedCategories = () => {
+        const result: schema.Category[] = [];
+        const rootCategories = categories.filter(c => c.level === 1);
+
+        const addChildren = (parentId: number) => {
+            const children = categories.filter(c => c.parentId === parentId);
+            for (const child of children) {
+                result.push(child);
+                addChildren(child.id);
+            }
+        };
+
+        for (const root of rootCategories) {
+            result.push(root);
+            addChildren(root.id);
+        }
+        return result;
+    };
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -30,21 +49,31 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
                     <Text style={{ color: colors.primary }}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Categories</Text>
-                <TouchableOpacity onPress={() => { }}>
-                    <Text style={{ color: colors.primary, opacity: 0.3 }}>Add</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('CategoryForm')}>
+                    <Text style={{ color: colors.primary }}>Add</Text>
                 </TouchableOpacity>
             </View>
 
             <FlatList
-                data={categories.filter(c => c.level === 1)}
+                data={getFlattenedCategories()}
                 keyExtractor={item => item.id.toString()}
                 renderItem={({ item }) => (
-                    <View style={[styles.item, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
+                    <TouchableOpacity
+                        style={[
+                            styles.item,
+                            {
+                                borderBottomColor: theme.border,
+                                backgroundColor: theme.surface,
+                                paddingLeft: 16 + (item.level - 1) * 24
+                            }
+                        ]}
+                        onPress={() => navigation.navigate('CategoryForm', { categoryId: item.id })}
+                    >
                         <Text style={[styles.name, { color: theme.text }]}>
-                            {item.iconName} {item.name}
+                            {item.level > 1 ? '↳ ' : ''}{item.iconName} {item.name}
                         </Text>
                         <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>
-                    </View>
+                    </TouchableOpacity>
                 )}
             />
         </SafeAreaView>
