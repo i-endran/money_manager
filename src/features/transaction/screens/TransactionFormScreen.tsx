@@ -83,8 +83,24 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
         loadData();
     }, [transactionId]);
 
-    const handleSave = async () => {
+    const handleTypeChange = (newType: TransactionType) => {
+        if (newType !== type) {
+            setType(newType);
+            setSelectedCategory(null);
+        }
+    };
+
+    const handleSave = async (addAnother = false) => {
         if (!amount || !selectedAccount || (!selectedCategory && type !== TransactionType.TRANSFER)) {
+            if (type !== TransactionType.TRANSFER) {
+                const availableCats = categories.filter(c =>
+                    type === TransactionType.EXPENSE ? c.type !== 'income' : c.type !== 'expense'
+                );
+                if (availableCats.length === 0) {
+                    Alert.alert('Missing Categories', `Please add a category for ${type.toUpperCase()} in Settings first.`);
+                    return;
+                }
+            }
             Alert.alert('Error', 'Please fill in all required fields');
             return;
         }
@@ -163,7 +179,14 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             }
 
             refresh();
-            navigation.goBack();
+            if (addAnother) {
+                setAmount('');
+                setNote('');
+                setDescription('');
+                Alert.alert('Saved', 'Transaction recorded successfully');
+            } else {
+                navigation.goBack();
+            }
         } catch (error) {
             console.error('Save failed:', error);
             Alert.alert('Error', 'Failed to save transaction');
@@ -227,7 +250,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 <Text style={[styles.title, { color: theme.text }]}>
                     {transactionId ? 'Edit Transaction' : 'New Transaction'}
                 </Text>
-                <TouchableOpacity onPress={handleSave}>
+                <TouchableOpacity onPress={() => handleSave(false)}>
                     <Text style={[styles.saveText, { color: colors.primary }]}>Save</Text>
                 </TouchableOpacity>
             </View>
@@ -236,13 +259,13 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 {/* Type Selector — Color-coded */}
                 <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : '#ECEDF0' }]}>
                     {[
-                        { type: TransactionType.EXPENSE, label: 'EXPENSE', color: colors.expense },
                         { type: TransactionType.INCOME, label: 'INCOME', color: colors.income },
+                        { type: TransactionType.EXPENSE, label: 'EXPENSE', color: colors.expense },
                         { type: TransactionType.TRANSFER, label: 'TRANSFER', color: colors.transfer },
                     ].map(({ type: t, label, color }) => (
                         <TouchableOpacity
                             key={t}
-                            onPress={() => setType(t)}
+                            onPress={() => handleTypeChange(t)}
                             style={[
                                 styles.segment,
                                 type === t && { backgroundColor: color },
@@ -265,7 +288,12 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                             value={amount}
                             onChangeText={(text) => {
                                 // Allow only numbers and one decimal point
-                                const filtered = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                let filtered = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                // Limit to 2 decimal places
+                                const parts = filtered.split('.');
+                                if (parts.length === 2 && parts[1].length > 2) {
+                                    filtered = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                                }
                                 setAmount(filtered);
                             }}
                             placeholder="0.00"
@@ -277,7 +305,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
 
                 {/* Date Picker */}
                 <TouchableOpacity
-                    style={styles.pickerField}
+                    style={[styles.pickerField, { borderBottomColor: theme.border }]}
                     onPress={() => setDatePickerVisible(true)}>
                     <Text style={[styles.label, { color: theme.textSecondary }]}>Date</Text>
                     <Text style={[styles.pickerValue, { color: theme.text }]}>
@@ -287,7 +315,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
 
                 {/* Account Pickers */}
                 <TouchableOpacity
-                    style={styles.pickerField}
+                    style={[styles.pickerField, { borderBottomColor: theme.border }]}
                     onPress={() => setAccPickerVisible(true)}>
                     <Text style={[styles.label, { color: theme.textSecondary }]}>
                         {type === TransactionType.TRANSFER ? 'From Account' : 'Account'}
@@ -299,7 +327,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
 
                 {type === TransactionType.TRANSFER && (
                     <TouchableOpacity
-                        style={styles.pickerField}
+                        style={[styles.pickerField, { borderBottomColor: theme.border }]}
                         onPress={() => setToAccPickerVisible(true)}>
                         <Text style={[styles.label, { color: theme.textSecondary }]}>To Account</Text>
                         <Text style={[styles.pickerValue, { color: theme.text }]}>
@@ -311,7 +339,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 {/* Category Picker */}
                 {type !== TransactionType.TRANSFER && (
                     <TouchableOpacity
-                        style={styles.pickerField}
+                        style={[styles.pickerField, { borderBottomColor: theme.border }]}
                         onPress={() => setCatPickerVisible(true)}>
                         <Text style={[styles.label, { color: theme.textSecondary }]}>Category</Text>
                         <Text style={[styles.pickerValue, { color: theme.text }]}>
@@ -344,6 +372,15 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                         multiline
                     />
                 </View>
+
+                {!transactionId && (
+                    <TouchableOpacity
+                        style={[styles.continueBtn, { backgroundColor: colors.primary }]}
+                        onPress={() => handleSave(true)}
+                    >
+                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save & Add Another</Text>
+                    </TouchableOpacity>
+                )}
 
                 {transactionId && createdAt && (
                     <View style={[styles.timestamps, { borderTopColor: theme.border }]}>
@@ -439,7 +476,6 @@ const styles = StyleSheet.create({
     pickerField: {
         paddingVertical: 12,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#eee',
         marginBottom: 20,
     },
     pickerValue: { fontSize: 16, marginTop: 4 },
@@ -447,6 +483,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         paddingVertical: 8,
         borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    continueBtn: {
+        marginTop: 20,
+        marginBottom: 40,
+        paddingVertical: 16,
+        alignItems: 'center',
+        borderRadius: 8,
     },
     deleteBtn: {
         marginTop: 20,
