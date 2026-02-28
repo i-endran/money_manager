@@ -15,12 +15,15 @@ export function useAppTheme() {
             themeMode === ThemeMode.LIGHT ? false :
                 systemScheme === 'dark';
 
-    const theme = isDark ? Colors.dark : Colors.light;
+    const activeTheme = isDark ? Colors.dark : Colors.light;
 
     return {
         isDark,
-        theme,
-        colors: Colors,
+        theme: activeTheme,
+        colors: {
+            ...Colors,
+            ...activeTheme, // Merge accents (primary, income, etc) into the colors export
+        },
     };
 }
 
