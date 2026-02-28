@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
         paddingHorizontal: 20,
-        paddingTop: 16,
+        paddingTop: 8,
     },
     sectionTitle: {
         fontSize: 13,

@@ -54,7 +54,9 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         padding: 16,
-        margin: 16,
+        marginHorizontal: 16,
+        marginTop: 16,
+        marginBottom: 4,
         borderRadius: 12,
         borderWidth: StyleSheet.hairlineWidth,
     },
