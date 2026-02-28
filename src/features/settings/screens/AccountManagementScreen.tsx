@@ -146,7 +146,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         if (!isEditing) navigation.navigate('AccountForm', { accountId: item.id });
                     }}
                     onLongPress={drag}
-                    disabled={!isEditing && !drag}
+                    disabled={isEditing && !drag}
                     activeOpacity={isEditing ? 0.9 : 0.6}
                 >
                     <View style={styles.rootInfo}>
