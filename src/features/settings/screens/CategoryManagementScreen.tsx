@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     SafeAreaView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
@@ -15,13 +16,15 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
     const { theme, colors } = useAppTheme();
     const [categories, setCategories] = useState<schema.Category[]>([]);
 
-    useEffect(() => {
-        async function load() {
-            const list = await db.select().from(schema.categories);
-            setCategories(list);
-        }
-        load();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            async function load() {
+                const list = await db.select().from(schema.categories);
+                setCategories(list);
+            }
+            load();
+        }, [])
+    );
 
     const getFlattenedCategories = () => {
         const result: schema.Category[] = [];

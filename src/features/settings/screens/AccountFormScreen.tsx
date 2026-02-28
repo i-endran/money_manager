@@ -45,20 +45,30 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
             return;
         }
 
+        // Check for duplicate account name
+        const existing = await db.select().from(schema.accounts);
+        const duplicate = existing.find(
+            a => a.name.toLowerCase() === name.trim().toLowerCase() && a.id !== accountId
+        );
+        if (duplicate) {
+            Alert.alert('Duplicate Name', `An account named "${name.trim()}" already exists. Please choose a different name.`);
+            return;
+        }
+
         const balance = parseFloat(initialBalance) || 0;
         const now = new Date().toISOString();
 
         try {
             if (accountId) {
                 await db.update(schema.accounts).set({
-                    name,
+                    name: name.trim(),
                     type,
                     initialBalance: balance,
                     isActive,
                 }).where(eq(schema.accounts.id, accountId));
             } else {
                 await db.insert(schema.accounts).values({
-                    name,
+                    name: name.trim(),
                     iconName: '🏦', // default icon
                     type,
                     initialBalance: balance,
