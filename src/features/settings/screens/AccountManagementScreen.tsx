@@ -4,7 +4,7 @@ import {
     Text,
     StyleSheet,
     SectionList,
-    TouchableOpacity as RNTouchableOpacity,
+    TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,7 +15,6 @@ import { eq } from 'drizzle-orm';
 import { AccountType } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
-import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
 
 // Helper to map AccountType to UI Display
 const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
@@ -109,7 +108,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
 
     const renderReserve = (reserve: schema.Account, isLastReserve: boolean) => (
         <View key={reserve.id} style={styles.reserveRowContainer}>
-            <RNTouchableOpacity
+            <TouchableOpacity
                 style={styles.reserveRow}
                 activeOpacity={0.6}
                 onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
@@ -122,7 +121,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         { backgroundColor: reserve.isActive ? '#34C759' : '#AEAEB2' }
                     ]} />
                 )}
-            </RNTouchableOpacity>
+            </TouchableOpacity>
         </View>
     );
 
