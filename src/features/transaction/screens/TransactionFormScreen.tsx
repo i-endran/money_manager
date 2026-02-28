@@ -59,8 +59,6 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             setAccounts(accList);
             setCategories(catList);
 
-            if (accList.length > 0) setSelectedAccount(accList[0]);
-
             if (transactionId) {
                 // Load existing transaction for edit
                 const [txn] = await db

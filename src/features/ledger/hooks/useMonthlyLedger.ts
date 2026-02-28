@@ -78,6 +78,20 @@ export function useMonthlyLedger() {
                 });
             }
 
+            const resolveAccountName = (accId?: number | null) => {
+                if (!accId) return 'Unknown';
+                const acc = accountMap.get(accId);
+                if (!acc) return 'Unknown';
+                if (!acc.parentId) return acc.name;
+
+                const parent = accountMap.get(acc.parentId);
+                if (parent) {
+                    const pName = parent.name.length > 5 ? parent.name.substring(0, 5) + '..' : parent.name;
+                    return `${pName} > ${acc.name}`;
+                }
+                return acc.name;
+            };
+
             const rows = await db
                 .select({
                     transaction: transactions,
@@ -131,8 +145,8 @@ export function useMonthlyLedger() {
                 mergedList.push({
                     ...txn,
                     effectiveType,
-                    accountName: accountMap.get(txn.accountId)?.name || 'Unknown',
-                    toAccountName: txn.toAccountId ? accountMap.get(txn.toAccountId)?.name : undefined,
+                    accountName: resolveAccountName(txn.accountId),
+                    toAccountName: txn.toAccountId ? resolveAccountName(txn.toAccountId) : undefined,
                     categoryName: row.categoryName,
                     categoryIcon: row.categoryIcon,
                 });

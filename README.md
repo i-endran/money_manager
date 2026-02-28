@@ -29,6 +29,16 @@ A personal finance mobile app built with **React Native**. Track expenses, incom
 
 ---
 
+## ✨ Features (Milestone 2)
+
+- 🎨 **Theme Profiles** — Support for Light, Dark, and System Default themes.
+- 🏦 **Nested Accounts & Reserves** — 1-level deep reserve accounts inside grouped root accounts.
+- 🎯 **Drill-down Pickers** — Hierarchical navigation for Category and Account selection.
+- 📦 **Closed-Box Accounts** — Exclude specific accounts from summary views.
+- 💱 **Dynamic Currency** — User-defined currency symbol selection reflecting globally.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
