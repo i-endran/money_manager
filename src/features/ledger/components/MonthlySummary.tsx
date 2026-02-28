@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
+import { useSettingsStore } from '../../../stores/settingsStore';
 
 interface MonthlySummaryProps {
     income: number;
@@ -15,13 +16,14 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
     balance,
 }) => {
     const { theme, colors } = useAppTheme();
+    const { currencySymbol } = useSettingsStore();
 
     return (
         <View style={styles.container}>
             <View style={styles.item}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>Income</Text>
                 <Text style={[styles.value, { color: colors.income }]}>
-                    {formatCurrency(income)}
+                    {formatCurrency(income, currencySymbol)}
                 </Text>
             </View>
 
@@ -30,7 +32,7 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
             <View style={styles.item}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>Expense</Text>
                 <Text style={[styles.value, { color: colors.expense }]}>
-                    {formatCurrency(expense)}
+                    {formatCurrency(expense, currencySymbol)}
                 </Text>
             </View>
 
@@ -43,7 +45,7 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
                         styles.value,
                         { color: balance >= 0 ? colors.income : colors.expense },
                     ]}>
-                    {formatCurrency(balance)}
+                    {formatCurrency(balance, currencySymbol)}
                 </Text>
             </View>
         </View>

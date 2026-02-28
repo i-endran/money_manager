@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
 import { TransactionType } from '../../../core/constants';
+import { useSettingsStore } from '../../../stores/settingsStore';
 
 interface TransactionItemProps {
     transaction: any;
@@ -28,6 +29,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     onPress,
 }) => {
     const { theme, colors } = useAppTheme();
+    const { currencySymbol } = useSettingsStore();
 
     const isIncome = transaction.type === TransactionType.INCOME;
     const isTransfer = transaction.type === TransactionType.TRANSFER;
@@ -61,7 +63,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                 </View>
                 <View style={styles.right}>
                     <Text style={[styles.amount, { color: theme.textSecondary }]}>
-                        {formatCurrency(transaction.amount)}
+                        {formatCurrency(transaction.amount, currencySymbol)}
                     </Text>
                 </View>
             </View>
@@ -88,7 +90,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
             <View style={styles.right}>
                 <Text style={[styles.amount, { color: amountColor }]}>
-                    {formatCurrency(transaction.amount)}
+                    {formatCurrency(transaction.amount, currencySymbol)}
                 </Text>
                 <Text style={[styles.account, { color: theme.textSecondary }]}>
                     {isTransfer ? `${transaction.accountName} → ${transaction.toAccountName || 'Account'}` : transaction.accountName}

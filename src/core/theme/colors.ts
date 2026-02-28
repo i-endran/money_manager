@@ -26,13 +26,13 @@ export const Colors = {
 
     // Dark theme — off-black to reduce eye strain
     dark: {
-        background: '#0D0D0D',
-        surface: '#1C1C1E',
-        text: '#F2F2F7',
-        textSecondary: '#98989D',
-        border: '#38383A',
-        weekendTint: '#1A1A1C',
-        card: '#2C2C2E',
+        background: '#09090B',
+        surface: '#18181B',
+        text: '#F4F4F5',
+        textSecondary: '#A1A1AA',
+        border: '#27272A',
+        weekendTint: '#111113',
+        card: '#202024',
         tabBar: '#1C1C1E',
         tabBarActive: '#5B9BD5',
         tabBarInactive: '#636366',

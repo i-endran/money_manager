@@ -19,6 +19,7 @@ import { AccountPicker } from '../components/AccountPicker';
 import { CategoryPicker } from '../components/CategoryPicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLedgerStore } from '../../../stores/ledgerStore';
+import { useSettingsStore } from '../../../stores/settingsStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { BlurView } from '@react-native-community/blur';
@@ -26,6 +27,7 @@ import { BlurView } from '@react-native-community/blur';
 export const TransactionFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
     const { refresh } = useLedgerStore();
+    const { currencySymbol } = useSettingsStore();
     const transactionId = route.params?.transactionId;
     const initialDateStr = route.params?.selectedDate;
 
@@ -294,7 +296,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: theme.textSecondary }]}>Amount</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>₹</Text>
+                            <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>{currencySymbol}</Text>
                             <TextInput
                                 style={[styles.amountInput, { color: theme.text }]}
                                 keyboardType="decimal-pad"

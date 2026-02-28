@@ -96,7 +96,7 @@ export function useMonthlyLedger() {
             if (carryForward) {
                 const obDate = start.toISOString().split('T')[0];
                 grouped.push({
-                    title: obDate,
+                    title: new Date(obDate),
                     dayIncome: Math.max(0, openingBalance),
                     dayExpense: Math.max(0, -openingBalance),
                     data: [{

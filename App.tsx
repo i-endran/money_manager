@@ -6,6 +6,7 @@ import { initDatabase } from './src/database';
 import RNBootSplash from 'react-native-bootsplash';
 import { useAuthStore } from './src/stores/authStore';
 import { LockScreen } from './src/features/auth/screens/LockScreen';
+import { useSettingsStore } from './src/stores/settingsStore';
 
 function App(): React.JSX.Element {
   const { isLocked, initialize, lockApp } = useAuthStore();
@@ -14,6 +15,7 @@ function App(): React.JSX.Element {
   useEffect(() => {
     async function setup() {
       await initDatabase();
+      await useSettingsStore.getState().loadSettings();
       await initialize();
       setIsReady(true);
       await RNBootSplash.hide({ fade: true });

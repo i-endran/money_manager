@@ -17,6 +17,7 @@ import { MonthSelector } from '../components/MonthSelector';
 import { MonthlySummary } from '../components/MonthlySummary';
 import { TransactionItem } from '../components/TransactionItem';
 import { formatDayHeader, formatCurrency, isWeekend } from '../../../core/utils';
+import { useSettingsStore } from '../../../stores/settingsStore';
 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,6 +27,7 @@ export const LedgerScreen: React.FC = () => {
     const { theme, colors, isDark } = useAppTheme();
     const { currentDate, nextMonth, prevMonth } = useLedgerStore();
     const { data, summary, loading } = useMonthlyLedger();
+    const { currencySymbol } = useSettingsStore();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
     const handleTransactionPress = (txn: any) => {
@@ -48,17 +50,17 @@ export const LedgerScreen: React.FC = () => {
                 <View style={styles.daySummary}>
                     {dayIncome > 0 && (
                         <Text style={[styles.daySummaryText, { color: colors.income }]}>
-                            +{formatCurrency(dayIncome)}
+                            +{formatCurrency(dayIncome, currencySymbol)}
                         </Text>
                     )}
                     {dayExpense > 0 && (
                         <Text style={[styles.daySummaryText, { color: colors.expense }]}>
-                            -{formatCurrency(dayExpense)}
+                            -{formatCurrency(dayExpense, currencySymbol)}
                         </Text>
                     )}
                     {dayIncome === 0 && dayExpense === 0 && (
                         <Text style={[styles.daySummaryText, { color: theme.textSecondary }]}>
-                            {formatCurrency(0)}
+                            {formatCurrency(0, currencySymbol)}
                         </Text>
                     )}
                 </View>

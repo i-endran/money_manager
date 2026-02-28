@@ -20,6 +20,7 @@ import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq } from 'drizzle-orm';
 import { SettingsKey, ThemeMode } from '../../../core/constants';
+import { useSettingsStore } from '../../../stores/settingsStore';
 
 // Supported currencies
 const CURRENCIES = [
@@ -42,51 +43,26 @@ export const SettingsScreen = () => {
     const { theme, colors, isDark } = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-    const [currencyCode, setCurrencyCode] = useState('INR');
-    const [currencySymbol, setCurrencySymbol] = useState('₹');
-    const [themeMode, setThemeMode] = useState<ThemeMode>(ThemeMode.SYSTEM);
-    const [carryForward, setCarryForward] = useState(false);
+    const {
+        currencyCode,
+        currencySymbol,
+        themeMode,
+        carryForwardBalance: carryForward,
+        updateSetting
+    } = useSettingsStore();
+
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [themePickerVisible, setThemePickerVisible] = useState(false);
 
-    useEffect(() => {
-        async function loadSettings() {
-            const settings = await db.select().from(schema.appSettings);
-            settings.forEach(s => {
-                if (s.key === SettingsKey.CURRENCY_CODE) setCurrencyCode(s.value);
-                if (s.key === SettingsKey.CURRENCY_SYMBOL) setCurrencySymbol(s.value);
-                if (s.key === SettingsKey.THEME_MODE) setThemeMode(s.value as ThemeMode);
-                if (s.key === SettingsKey.CARRY_FORWARD_BALANCE) setCarryForward(s.value === 'true');
-            });
-        }
-        loadSettings();
-    }, []);
-
-    const saveSetting = async (key: string, value: string) => {
-        try {
-            const existing = await db.select().from(schema.appSettings).where(eq(schema.appSettings.key, key));
-            if (existing.length > 0) {
-                await db.update(schema.appSettings).set({ value }).where(eq(schema.appSettings.key, key));
-            } else {
-                await db.insert(schema.appSettings).values({ key, value });
-            }
-        } catch (err) {
-            console.error('Failed to save setting:', err);
-        }
-    };
-
     const handleCurrencySelect = async (currency: typeof CURRENCIES[0]) => {
-        setCurrencyCode(currency.code);
-        setCurrencySymbol(currency.symbol);
         setCurrencyPickerVisible(false);
-        await saveSetting(SettingsKey.CURRENCY_CODE, currency.code);
-        await saveSetting(SettingsKey.CURRENCY_SYMBOL, currency.symbol);
+        await updateSetting(SettingsKey.CURRENCY_CODE, currency.code);
+        await updateSetting(SettingsKey.CURRENCY_SYMBOL, currency.symbol);
     };
 
     const handleThemeSelect = async (mode: ThemeMode) => {
-        setThemeMode(mode);
         setThemePickerVisible(false);
-        await saveSetting(SettingsKey.THEME_MODE, mode);
+        await updateSetting(SettingsKey.THEME_MODE, mode);
     };
 
     const handleExport = () => {
@@ -95,8 +71,7 @@ export const SettingsScreen = () => {
 
     const handleCarryForwardToggle = async () => {
         const newValue = !carryForward;
-        setCarryForward(newValue);
-        await saveSetting(SettingsKey.CARRY_FORWARD_BALANCE, newValue.toString());
+        await updateSetting(SettingsKey.CARRY_FORWARD_BALANCE, newValue.toString());
     };
 
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
