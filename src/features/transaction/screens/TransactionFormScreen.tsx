@@ -10,7 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
@@ -26,6 +26,7 @@ import { BlurView } from '@react-native-community/blur';
 
 export const TransactionFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const { refresh } = useLedgerStore();
     const { currencySymbol } = useSettingsStore();
     const transactionId = route.params?.transactionId;
@@ -249,13 +250,16 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}>
+        <SafeAreaView
+            edges={['left', 'right', 'bottom']}
+            style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}
+        >
             <BlurView
                 style={StyleSheet.absoluteFillObject}
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + 8 }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>

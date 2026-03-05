@@ -8,7 +8,7 @@ import {
     Alert,
     ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
@@ -19,6 +19,7 @@ import { useLedgerStore } from '../../../stores/ledgerStore';
 
 export const AccountFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const { refresh } = useLedgerStore();
 
     const accountId = route.params?.accountId;
@@ -115,29 +116,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 });
 
                 refresh();
-
-                if (!isReserveMode) {
-                    Alert.alert('Success', 'Account created. Would you like to add a reserve for this account?', [
-                        { text: 'No', style: 'cancel', onPress: () => navigation.goBack() },
-                        {
-                            text: 'Yes',
-                            onPress: async () => {
-                                // Find the inserted account
-                                const latest = await db.select().from(schema.accounts)
-                                    .where(eq(schema.accounts.name, name.trim()))
-                                    .orderBy(desc(schema.accounts.id)).limit(1);
-
-                                if (latest[0]) {
-                                    navigation.replace('AccountForm', { parentId: latest[0].id });
-                                } else {
-                                    navigation.goBack();
-                                }
-                            }
-                        }
-                    ]);
-                } else {
-                    navigation.goBack();
-                }
+                navigation.goBack();
             }
         } catch (error) {
             console.error('Failed to save account:', error);
@@ -186,13 +165,16 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}>
+        <SafeAreaView
+            edges={['left', 'right', 'bottom']}
+            style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}
+        >
             <BlurView
                 style={StyleSheet.absoluteFillObject}
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + 8 }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>

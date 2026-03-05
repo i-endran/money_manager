@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 
 export const AccountsScreen: React.FC = () => {
-    const { theme, colors } = useAppTheme();
+    const { theme } = useAppTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
                 <Text style={[styles.title, { color: theme.text }]}>Accounts</Text>
             </View>
@@ -17,14 +18,13 @@ export const AccountsScreen: React.FC = () => {
                 </Text>
                 <Text style={{ color: theme.textSecondary, marginTop: 4 }}>Coming Soon</Text>
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     },
     header: {
         paddingHorizontal: 16,

@@ -1,27 +1,28 @@
 import React from 'react';
 import {
+    Platform,
     SectionList,
     StyleSheet,
     Text,
     View,
     ActivityIndicator,
     TouchableOpacity,
-    Platform,
-    StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { useMonthlyLedger } from '../hooks/useMonthlyLedger';
 import { MonthSelector } from '../components/MonthSelector';
 import { MonthlySummary } from '../components/MonthlySummary';
 import { TransactionItem } from '../components/TransactionItem';
-import { formatDayHeader, formatCurrency, isWeekend } from '../../../core/utils';
+import { formatCurrency } from '../../../core/utils';
 import { useSettingsStore } from '../../../stores/settingsStore';
 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { format } from 'date-fns';
 
 export const LedgerScreen: React.FC = () => {
     const { theme, colors, isDark } = useAppTheme();
@@ -29,6 +30,8 @@ export const LedgerScreen: React.FC = () => {
     const { data, summary, loading } = useMonthlyLedger();
     const { currencySymbol } = useSettingsStore();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const insets = useSafeAreaInsets();
+    const tabBarHeight = useBottomTabBarHeight();
 
     const handleTransactionPress = (txn: any) => {
         navigation.navigate('TransactionForm', { transactionId: txn.id });
@@ -39,14 +42,36 @@ export const LedgerScreen: React.FC = () => {
     };
 
     const renderSectionHeader = ({ section: { title, dayIncome, dayExpense } }: any) => {
-        const weekend = isWeekend(title);
+        const sectionDate = new Date(title);
+        const weekendLabel = format(sectionDate, 'EEE').toUpperCase();
+        const isWeekendDay = weekendLabel === 'SAT' || weekendLabel === 'SUN';
+        const dayStampLabel = `${format(sectionDate, 'dd')}, ${weekendLabel}`;
+
         return (
             <TouchableOpacity
-                onPress={() => navigation.navigate('TransactionForm', { selectedDate: new Date(title).toISOString() })}
+                onPress={() => navigation.navigate('TransactionForm', { selectedDate: sectionDate.toISOString() })}
                 style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: weekend ? '#c55858ff' : theme.textSecondary }]}>
-                    {formatDayHeader(title)}
-                </Text>
+                <View style={styles.sectionLeft}>
+                    {isWeekendDay ? (
+                        <View style={styles.weekendBadge}>
+                            <Text style={styles.weekendBadgeText}>{dayStampLabel}</Text>
+                        </View>
+                    ) : (
+                        <View
+                            style={[
+                                styles.weekdayBadge,
+                                {
+                                    backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7',
+                                    borderColor: isDark ? '#3A3A3C' : '#E2E2E8',
+                                },
+                            ]}
+                        >
+                            <Text style={[styles.weekdayBadgeText, { color: isDark ? '#FFFFFF' : '#111111' }]}>
+                                {dayStampLabel}
+                            </Text>
+                        </View>
+                    )}
+                </View>
                 <View style={styles.daySummary}>
                     {dayIncome > 0 && (
                         <Text style={[styles.daySummaryText, { color: colors.income }]}>
@@ -125,7 +150,10 @@ export const LedgerScreen: React.FC = () => {
                     renderItem={renderItem}
                     renderSectionHeader={renderSectionHeader}
                     stickySectionHeadersEnabled={false}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        { paddingBottom: tabBarHeight + 92 },
+                    ]}
                     ListEmptyComponent={
                         <View style={styles.center}>
                             <Text style={{ color: theme.textSecondary }}>No transactions found</Text>
@@ -136,7 +164,13 @@ export const LedgerScreen: React.FC = () => {
 
             {/* FAB for Add */}
             <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary }]}
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: colors.primary,
+                        bottom: Platform.OS === 'ios' ? tabBarHeight + 22 : insets.bottom + 20,
+                    },
+                ]}
                 onPress={handleAddPress}>
                 <Text style={styles.fabText}>+</Text>
             </TouchableOpacity>
@@ -179,13 +213,35 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingTop: 8,
     },
-    sectionTitle: {
-        fontSize: 13,
+    sectionLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    weekendBadge: {
+        backgroundColor: '#C62828',
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    weekendBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 0.2,
+    },
+    weekdayBadge: {
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderWidth: StyleSheet.hairlineWidth,
+    },
+    weekdayBadgeText: {
+        fontSize: 10,
         fontWeight: '600',
-        textTransform: 'uppercase',
+        letterSpacing: 0.2,
     },
     daySummary: {
         flexDirection: 'row',
@@ -193,10 +249,9 @@ const styles = StyleSheet.create({
     },
     daySummaryText: {
         fontSize: 11,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     listContent: {
-        paddingBottom: 100,
         paddingHorizontal: 16,
     },
     cardWrapper: {
@@ -209,7 +264,6 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: 16,
         right: 20,
         width: 56,
         height: 56,

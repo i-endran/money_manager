@@ -108,7 +108,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
         })();
     };
 
-    const renderReserve = (reserve: schema.Account, isLastReserve: boolean) => (
+    const renderReserve = (reserve: schema.Account, _isLastReserve: boolean) => (
         <View key={reserve.id} style={styles.reserveRowContainer}>
             <TouchableOpacity
                 style={styles.reserveRow}
@@ -116,7 +116,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
                 disabled={isEditing}
             >
-                <Text style={[styles.reserveName, { color: theme.textSecondary }]}>{reserve.name}</Text>
+                <Text style={[styles.reserveName, { color: theme.textSecondary }]}>↳ {reserve.name}</Text>
                 {!isEditing && (
                     <View style={[
                         styles.statusDot,
@@ -159,13 +159,15 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         )}
 
                         <View>
-                            <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
+                            <View style={styles.nameRow}>
+                                <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
+                                {!isEditing && item.excludeFromSummaries && (
+                                    <View style={[styles.badge, { backgroundColor: colors.expense }]}>
+                                        <Text style={styles.badgeText}>Closed-Box</Text>
+                                    </View>
+                                )}
+                            </View>
                             {isEditing && <Text style={[styles.type, { color: theme.textSecondary }]}>{item.type}</Text>}
-                            {!isEditing && item.excludeFromSummaries && (
-                                <View style={[styles.badge, { backgroundColor: colors.expense + '20' }]}>
-                                    <Text style={[styles.badgeText, { color: colors.expense }]}>Closed-Box</Text>
-                                </View>
-                            )}
                         </View>
                     </View>
                     {!isEditing && (
@@ -300,15 +302,18 @@ const styles = StyleSheet.create({
         borderRadius: 5,
     },
     name: { fontSize: 16, fontWeight: '500' },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     type: { fontSize: 12, marginTop: 2, textTransform: 'uppercase' },
     badge: {
-        marginTop: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
     },
-    badgeText: { fontSize: 10, fontWeight: '600' },
+    badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.2, color: '#FFFFFF' },
     rootActions: {
         flexDirection: 'row',
         alignItems: 'center',

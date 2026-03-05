@@ -6,6 +6,20 @@ import { useLedgerStore } from '../../../stores/ledgerStore';
 import { getMonthRange, groupByDay } from '../../../core/utils';
 import { TransactionType, SettingsKey } from '../../../core/constants';
 
+function parseStoredBoolean(value?: string): boolean {
+    if (!value) return false;
+    const trimmed = value.trim();
+    if (trimmed === 'true') return true;
+    if (trimmed === 'false') return false;
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        return parsed === true || parsed === 'true';
+    } catch {
+        return false;
+    }
+}
+
 export function useMonthlyLedger() {
     const { currentDate, refreshTick } = useLedgerStore();
     const [data, setData] = useState<any[]>([]);
@@ -26,7 +40,9 @@ export function useMonthlyLedger() {
 
             // Check carry-forward setting
             const settings = await db.select().from(appSettings);
-            const carryForward = settings.find(s => s.key === SettingsKey.CARRY_FORWARD_BALANCE)?.value === 'true';
+            const carryForward = parseStoredBoolean(
+                settings.find(s => s.key === SettingsKey.CARRY_FORWARD_BALANCE)?.value,
+            );
 
             let openingBalance = 0;
             if (carryForward) {

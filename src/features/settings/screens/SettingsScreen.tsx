@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -6,36 +6,42 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
-    Platform,
-    StatusBar,
     Modal,
     FlatList,
+    Share,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../core/theme';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
-import { db } from '../../../database';
-import * as schema from '../../../database/schema';
-import { eq } from 'drizzle-orm';
 import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
+import { useLedgerStore } from '../../../stores/ledgerStore';
+import { createExportPayload, ExportFormat, createImportTemplatePayload, importDataFromWorkbookBuffer } from '../../../core/utils';
+import DocumentPicker from 'react-native-document-picker';
 
 export const SettingsScreen = () => {
     const { theme, colors } = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const { refresh } = useLedgerStore();
 
     const {
         currencyCode,
         currencySymbol,
         themeMode,
         carryForwardBalance: carryForward,
-        updateSetting
+        updateSetting,
+        loadSettings,
     } = useSettingsStore();
 
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [themePickerVisible, setThemePickerVisible] = useState(false);
+    const [exportPickerVisible, setExportPickerVisible] = useState(false);
+    const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
+    const [busyAction, setBusyAction] = useState<'import' | 'template' | 'cloud' | null>(null);
+    const [isBusy, setIsBusy] = useState(false);
 
     const handleCurrencySelect = async (currency: typeof CURRENCIES[0]) => {
         setCurrencyPickerVisible(false);
@@ -49,19 +55,145 @@ export const SettingsScreen = () => {
     };
 
     const handleExport = () => {
-        Alert.alert('Coming Soon', 'CSV/Excel export functionality is under development.');
+        setExportPickerVisible(true);
+    };
+
+    const shareDataUri = async (title: string, filename: string, dataUri: string) => {
+        await Share.share({
+            title,
+            message: `Pocket Log: ${filename}`,
+            url: dataUri,
+        });
+    };
+
+    const handleExportFormat = async (format: ExportFormat) => {
+        setExportingFormat(format);
+        try {
+            const payload = await createExportPayload(format);
+            await shareDataUri('Export Data', payload.filename, payload.dataUri);
+            setExportPickerVisible(false);
+        } catch (error) {
+            console.error(`Failed to export ${format}:`, error);
+            Alert.alert('Export Failed', 'Could not generate export file. Please try again.');
+        } finally {
+            setExportingFormat(null);
+        }
+    };
+
+    const handleTemplateDownload = () => {
+        Alert.alert('Download Import Template', 'Choose template format', [
+            {
+                text: 'CSV',
+                onPress: async () => {
+                    setBusyAction('template');
+                    setIsBusy(true);
+                    try {
+                        const payload = createImportTemplatePayload('csv');
+                        await shareDataUri('Import Template', payload.filename, payload.dataUri);
+                    } catch (error) {
+                        console.error('Template CSV generation failed:', error);
+                        Alert.alert('Template Failed', 'Could not create CSV template.');
+                    } finally {
+                        setIsBusy(false);
+                        setBusyAction(null);
+                    }
+                },
+            },
+            {
+                text: 'XLSX',
+                onPress: async () => {
+                    setBusyAction('template');
+                    setIsBusy(true);
+                    try {
+                        const payload = createImportTemplatePayload('xlsx');
+                        await shareDataUri('Import Template', payload.filename, payload.dataUri);
+                    } catch (error) {
+                        console.error('Template XLSX generation failed:', error);
+                        Alert.alert('Template Failed', 'Could not create XLSX template.');
+                    } finally {
+                        setIsBusy(false);
+                        setBusyAction(null);
+                    }
+                },
+            },
+            { text: 'Cancel', style: 'cancel' },
+        ]);
+    };
+
+    const performImport = async () => {
+        setBusyAction('import');
+        setIsBusy(true);
+        try {
+            const picked = await DocumentPicker.pickSingle({
+                type: [DocumentPicker.types.allFiles],
+                copyTo: 'cachesDirectory',
+            });
+            const fileUri = picked.fileCopyUri || picked.uri;
+            if (!fileUri) {
+                Alert.alert('Import Failed', 'Could not read selected file.');
+                return;
+            }
+
+            const response = await fetch(fileUri);
+            const buffer = await response.arrayBuffer();
+            const result = await importDataFromWorkbookBuffer(buffer);
+            await loadSettings();
+            refresh();
+
+            Alert.alert(
+                'Import Completed',
+                `Mode: ${result.mode}\nAccounts: ${result.accounts}\nCategories: ${result.categories}\nTransactions: ${result.transactions}\nSettings: ${result.settings}\nSkipped: ${result.skipped}`,
+            );
+        } catch (error: any) {
+            if (DocumentPicker.isCancel(error)) return;
+            console.error('Import failed:', error);
+            Alert.alert('Import Failed', 'Could not import file. Use Pocket Log CSV/XLSX format.');
+        } finally {
+            setIsBusy(false);
+            setBusyAction(null);
+        }
+    };
+
+    const handleCloudBackup = () => {
+        Alert.alert('Cloud Backup', 'Choose an action', [
+            {
+                text: 'Backup to Cloud',
+                onPress: async () => {
+                    setBusyAction('cloud');
+                    setIsBusy(true);
+                    try {
+                        const payload = await createExportPayload('xlsx');
+                        await shareDataUri('Cloud Backup', payload.filename, payload.dataUri);
+                    } catch (error) {
+                        console.error('Cloud backup failed:', error);
+                        Alert.alert('Backup Failed', 'Could not prepare backup file.');
+                    } finally {
+                        setIsBusy(false);
+                        setBusyAction(null);
+                    }
+                },
+            },
+            {
+                text: 'Restore from Cloud',
+                onPress: () => {
+                    performImport();
+                },
+            },
+            { text: 'Cancel', style: 'cancel' },
+        ]);
     };
 
     const handleCarryForwardToggle = async () => {
         const newValue = !carryForward;
         await updateSetting(SettingsKey.CARRY_FORWARD_BALANCE, newValue.toString());
+        refresh();
     };
 
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
     const currentThemeLabel = THEME_OPTIONS.find(t => t.value === themeMode)?.label || 'System';
 
     // Reusable grouped item renderer
-    const GroupedItem = ({ label, value, onPress, isFirst, isLast }: any) => (
+    const GroupedItem = ({ label, value, onPress, isFirst, isLast, loading }: any) => (
         <TouchableOpacity
             style={[
                 styles.item,
@@ -74,12 +206,17 @@ export const SettingsScreen = () => {
                 },
             ]}
             onPress={onPress}
+            disabled={loading}
         >
             <View style={{ flex: 1 }}>
                 <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
                 {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
             </View>
-            <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
+            {loading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+                <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
+            )}
         </TouchableOpacity>
     );
 
@@ -161,9 +298,24 @@ export const SettingsScreen = () => {
                     />
                     <Separator />
                     <GroupedItem
+                        label="Import Data"
+                        value="CSV, XLSX"
+                        onPress={performImport}
+                        loading={isBusy && busyAction === 'import'}
+                    />
+                    <Separator />
+                    <GroupedItem
+                        label="Download Import Template"
+                        value="CSV, XLSX"
+                        onPress={handleTemplateDownload}
+                        loading={isBusy && busyAction === 'template'}
+                    />
+                    <Separator />
+                    <GroupedItem
                         label="Cloud Backup"
-                        value="Google Drive / iCloud"
-                        onPress={() => Alert.alert('Coming Soon', 'Cloud backup is under development.')}
+                        value="Backup + Restore"
+                        onPress={handleCloudBackup}
+                        loading={isBusy && busyAction === 'cloud'}
                         isLast
                     />
                 </View>
@@ -227,6 +379,51 @@ export const SettingsScreen = () => {
                                 </Text>
                                 {themeMode === opt.value && (
                                     <Text style={{ color: colors.primary, fontWeight: 'bold' }}>✓</Text>
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Export Picker Modal */}
+            <Modal visible={exportPickerVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: 260 }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: theme.text }]}>Export Data</Text>
+                            <TouchableOpacity
+                                disabled={!!exportingFormat}
+                                onPress={() => setExportPickerVisible(false)}
+                            >
+                                <Text style={{ color: colors.primary, opacity: exportingFormat ? 0.5 : 1 }}>
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {[
+                            { value: 'csv' as ExportFormat, label: 'CSV (.csv)', subtitle: 'Transactions only' },
+                            { value: 'xlsx' as ExportFormat, label: 'Excel (.xlsx)', subtitle: 'Transactions, accounts, categories, settings' },
+                        ].map(option => (
+                            <TouchableOpacity
+                                key={option.value}
+                                style={[styles.modalItem, { borderBottomColor: theme.border }]}
+                                onPress={() => handleExportFormat(option.value)}
+                                disabled={!!exportingFormat}
+                            >
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.modalItemText, { color: theme.text }]}>
+                                        {option.label}
+                                    </Text>
+                                    <Text style={[styles.modalItemSubText, { color: theme.textSecondary }]}>
+                                        {option.subtitle}
+                                    </Text>
+                                </View>
+                                {exportingFormat === option.value ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -313,5 +510,9 @@ const styles = StyleSheet.create({
     },
     modalItemText: {
         fontSize: 16,
+    },
+    modalItemSubText: {
+        fontSize: 12,
+        marginTop: 2,
     },
 });

@@ -126,11 +126,10 @@ const styles = StyleSheet.create({
     },
     amount: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '500',
     },
     account: {
         fontSize: 10,
         marginTop: 2,
     },
 });
-
