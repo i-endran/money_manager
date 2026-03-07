@@ -34,7 +34,8 @@ function flattenGroupRows(group: AccountGroup): Array<{ item: AccountBalanceItem
 export const AccountsScreen: React.FC = () => {
     const { theme, colors } = useAppTheme();
     const { currencySymbol } = useSettingsStore();
-    const { refreshTick, setCurrentDate } = useLedgerStore();
+    const refreshTick    = useLedgerStore(state => state.refreshTick);
+    const setCurrentDate = useLedgerStore(state => state.setCurrentDate);
     const { loading, summary, load } = useAccountsSummary();
     const navigation = useNavigation<NavType>();
     const cardBreakdownById = useMemo(

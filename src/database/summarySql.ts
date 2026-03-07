@@ -599,7 +599,40 @@ function buildLedgerWhereClause(filters: LedgerFilters) {
     };
 }
 
-function buildLedgerSummaryBaseSql(whereClause: string) {
+function buildLedgerSummaryBaseSql(whereClause: string, filters: LedgerFilters) {
+    const isAccountFiltered = typeof filters.accountId === 'number';
+
+    // When filtering to a specific account we use direction-based income/expense:
+    //   receiver leg (id > linked_id) = income, sender leg (id < linked_id) = expense.
+    // In the global view we use the opt-out/open classification instead.
+    const incomeTransferClause = isAccountFiltered
+        ? `-- Received leg: this account is the destination (lower-ID is the from-leg).
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id > t.linked_transaction_id
+                        THEN t.amount`
+        : `-- Transfer from opt-out → open counts as income (only once per pair).
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id < t.linked_transaction_id
+                        AND t.from_closed = 1
+                        AND t.to_closed = 0
+                        THEN t.amount`;
+
+    const expenseTransferClause = isAccountFiltered
+        ? `-- Sent leg: this account is the source (lower-ID is the from-leg).
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id < t.linked_transaction_id
+                        THEN t.amount`
+        : `-- Transfer from open → opt-out counts as expense (only once per pair).
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id < t.linked_transaction_id
+                        AND t.from_closed = 0
+                        AND t.to_closed = 1
+                        THEN t.amount`;
+
     return `
         WITH filtered_txns AS (
             SELECT
@@ -631,24 +664,12 @@ function buildLedgerSummaryBaseSql(whereClause: string) {
                 t.*,
                 CASE
                     WHEN t.type = '${TransactionType.INCOME}' THEN t.amount
-                    -- Transfer from closed-box → open counts as income (only once per pair).
-                    WHEN t.type = '${TransactionType.TRANSFER}'
-                        AND t.linked_transaction_id IS NOT NULL
-                        AND t.id < t.linked_transaction_id
-                        AND t.from_closed = 1
-                        AND t.to_closed = 0
-                        THEN t.amount
+                    ${incomeTransferClause}
                     ELSE 0
                 END AS income_amount,
                 CASE
                     WHEN t.type = '${TransactionType.EXPENSE}' THEN t.amount
-                    -- Transfer from open → closed-box counts as expense (only once per pair).
-                    WHEN t.type = '${TransactionType.TRANSFER}'
-                        AND t.linked_transaction_id IS NOT NULL
-                        AND t.id < t.linked_transaction_id
-                        AND t.from_closed = 0
-                        AND t.to_closed = 1
-                        THEN t.amount
+                    ${expenseTransferClause}
                     ELSE 0
                 END AS expense_amount
             FROM classified t
@@ -658,6 +679,29 @@ function buildLedgerSummaryBaseSql(whereClause: string) {
 
 export function buildLedgerTransactionsQuery(filters: LedgerFilters) {
     const { whereClause, params } = buildLedgerWhereClause(filters);
+    const isAccountFiltered = typeof filters.accountId === 'number';
+
+    // When filtering to a specific account, classify transfers by direction:
+    //   receiver leg (id > linked_id) = income, sender leg (id < linked_id) = expense.
+    // In the global view use opt-out/open classification.
+    const transferEffectiveTypeClause = isAccountFiltered
+        ? `WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id > t.linked_transaction_id
+                        THEN '${TransactionType.INCOME}'
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id < t.linked_transaction_id
+                        THEN '${TransactionType.EXPENSE}'`
+        : `WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND (COALESCE(from_acc.exclude_from_summaries, 0) = 1 OR from_acc.type = '${AccountType.DEBT}')
+                        AND NOT (COALESCE(to_acc.exclude_from_summaries, 0) = 1 OR to_acc.type = '${AccountType.DEBT}')
+                        THEN '${TransactionType.INCOME}'
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND NOT (COALESCE(from_acc.exclude_from_summaries, 0) = 1 OR from_acc.type = '${AccountType.DEBT}')
+                        AND (COALESCE(to_acc.exclude_from_summaries, 0) = 1 OR to_acc.type = '${AccountType.DEBT}')
+                        THEN '${TransactionType.EXPENSE}'`;
+
     return {
         sql: `
             SELECT
@@ -678,14 +722,7 @@ export function buildLedgerTransactionsQuery(filters: LedgerFilters) {
                 CASE
                     WHEN t.type = '${TransactionType.INCOME}' THEN '${TransactionType.INCOME}'
                     WHEN t.type = '${TransactionType.EXPENSE}' THEN '${TransactionType.EXPENSE}'
-                    WHEN t.type = '${TransactionType.TRANSFER}'
-                        AND (COALESCE(from_acc.exclude_from_summaries, 0) = 1 OR from_acc.type = '${AccountType.DEBT}')
-                        AND NOT (COALESCE(to_acc.exclude_from_summaries, 0) = 1 OR to_acc.type = '${AccountType.DEBT}')
-                        THEN '${TransactionType.INCOME}'
-                    WHEN t.type = '${TransactionType.TRANSFER}'
-                        AND NOT (COALESCE(from_acc.exclude_from_summaries, 0) = 1 OR from_acc.type = '${AccountType.DEBT}')
-                        AND (COALESCE(to_acc.exclude_from_summaries, 0) = 1 OR to_acc.type = '${AccountType.DEBT}')
-                        THEN '${TransactionType.EXPENSE}'
+                    ${transferEffectiveTypeClause}
                     ELSE '${TransactionType.TRANSFER}'
                 END AS effectiveType
             FROM transactions t
@@ -703,7 +740,7 @@ export function buildLedgerDailySummaryQuery(filters: LedgerFilters) {
     const { whereClause, params } = buildLedgerWhereClause(filters);
     return {
         sql: `
-            ${buildLedgerSummaryBaseSql(whereClause)}
+            ${buildLedgerSummaryBaseSql(whereClause, filters)}
             SELECT
                 strftime('%Y-%m-%d', e.date, 'localtime') AS dayKey,
                 COALESCE(SUM(e.income_amount), 0) AS dayIncome,
@@ -720,7 +757,7 @@ export function buildLedgerMonthlySummaryQuery(filters: LedgerFilters) {
     const { whereClause, params } = buildLedgerWhereClause(filters);
     return {
         sql: `
-            ${buildLedgerSummaryBaseSql(whereClause)}
+            ${buildLedgerSummaryBaseSql(whereClause, filters)}
             SELECT
                 COALESCE(SUM(e.income_amount), 0) AS incomeTotal,
                 COALESCE(SUM(e.expense_amount), 0) AS expenseTotal
