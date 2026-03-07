@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -33,11 +33,12 @@ function flattenGroupRows(group: AccountGroup): Array<{ item: AccountBalanceItem
 
 export const AccountsScreen: React.FC = () => {
     const { theme, colors } = useAppTheme();
-    const { currencySymbol } = useSettingsStore();
+    const currencySymbol = useSettingsStore(state => state.currencySymbol);
     const refreshTick    = useLedgerStore(state => state.refreshTick);
     const setCurrentDate = useLedgerStore(state => state.setCurrentDate);
     const { loading, summary, load } = useAccountsSummary();
     const navigation = useNavigation<NavType>();
+    const isFocused = useIsFocused();
     const cardBreakdownById = useMemo(
         () => new Map(summary.cardBreakdowns.map(item => [item.id, item])),
         [summary.cardBreakdowns],
@@ -59,15 +60,10 @@ export const AccountsScreen: React.FC = () => {
         [navigation, setCurrentDate],
     );
 
-    useFocusEffect(
-        useCallback(() => {
-            load();
-        }, [load]),
-    );
-
     useEffect(() => {
+        if (!isFocused) return;
         load();
-    }, [load, refreshTick]);
+    }, [load, refreshTick, isFocused]);
 
     return (
         <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>

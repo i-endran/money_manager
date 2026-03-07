@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { AccountType } from '../../../core/constants';
 import { isLoanLikeType } from '../../../core/utils';
 import {
@@ -102,9 +102,13 @@ function createEmptySummary(): SummaryState {
 export function useAccountsSummary() {
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<SummaryState>(createEmptySummary());
+    const hasLoadedOnce = useRef(false);
 
     const load = useCallback(async () => {
-        setLoading(true);
+        // Only show loading spinner on initial load; keep stale data visible during refetch
+        if (!hasLoadedOnce.current) {
+            setLoading(true);
+        }
         try {
             const now = new Date();
             const [accountRows, summaryRow, cardRows] = await Promise.all([
@@ -207,6 +211,7 @@ export function useAccountsSummary() {
                 typeBalances: Array.from(typeBalanceMap.values()),
                 cardBreakdowns,
             });
+            hasLoadedOnce.current = true;
         } catch (error) {
             console.error('Failed to load accounts summary:', error);
             setSummary(createEmptySummary());
