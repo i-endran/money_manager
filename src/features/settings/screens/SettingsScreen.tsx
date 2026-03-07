@@ -37,10 +37,54 @@ import DocumentPicker from 'react-native-document-picker';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import { PinSetupModal } from '../components/PinSetupModal';
 
+interface GroupedItemProps {
+    label: string;
+    value?: string;
+    onPress: () => void;
+    isFirst?: boolean;
+    isLast?: boolean;
+    loading?: boolean;
+    theme: any;
+    colors: any;
+}
+
+const GroupedItem = ({ label, value, onPress, isFirst, isLast, loading, theme, colors }: GroupedItemProps) => (
+    <TouchableOpacity
+        style={[
+            styles.item,
+            {
+                backgroundColor: theme.surface,
+                borderTopLeftRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                borderTopRightRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                borderBottomLeftRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                borderBottomRightRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+            },
+        ]}
+        onPress={onPress}
+        disabled={loading}
+    >
+        <View style={styles.itemContent}>
+            <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
+            {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
+        </View>
+        {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+        ) : (
+            <Text style={[styles.chevronText, { color: theme.textSecondary }]}>›</Text>
+        )}
+    </TouchableOpacity>
+);
+
+const Separator = ({ theme }: { theme: any }) => (
+    <View style={{ backgroundColor: theme.surface }}>
+        <View style={[styles.separator, { backgroundColor: theme.border }]} />
+    </View>
+);
+
 export const SettingsScreen = () => {
     const { theme, colors } = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { refresh } = useLedgerStore();
+    const refresh = useLedgerStore(state => state.refresh);
 
     const {
         currencyCode,
@@ -251,41 +295,6 @@ export const SettingsScreen = () => {
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
     const currentThemeLabel = THEME_OPTIONS.find(t => t.value === themeMode)?.label || 'System';
 
-    // Reusable grouped item renderer
-    const GroupedItem = ({ label, value, onPress, isFirst, isLast, loading }: any) => (
-        <TouchableOpacity
-            style={[
-                styles.item,
-                {
-                    backgroundColor: theme.surface,
-                    borderTopLeftRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
-                    borderTopRightRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
-                    borderBottomLeftRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
-                    borderBottomRightRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
-                },
-            ]}
-            onPress={onPress}
-            disabled={loading}
-        >
-            <View style={styles.itemContent}>
-                <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
-                {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
-            </View>
-            {loading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-                <Text style={[styles.chevronText, { color: theme.textSecondary }]}>›</Text>
-            )}
-        </TouchableOpacity>
-    );
-
-    // Inset separator
-    const Separator = () => (
-        <View style={{ backgroundColor: theme.surface }}>
-            <View style={[styles.separator, { backgroundColor: theme.border }]} />
-        </View>
-    );
-
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
@@ -301,14 +310,18 @@ export const SettingsScreen = () => {
                         value={`${currentCurrency?.code || currencyCode} (${currencySymbol})`}
                         onPress={() => setCurrencyPickerVisible(true)}
                         isFirst
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Theme"
                         value={currentThemeLabel}
                         onPress={() => setThemePickerVisible(true)}
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <TouchableOpacity
                         style={[
                             styles.item,
@@ -360,7 +373,7 @@ export const SettingsScreen = () => {
 
                     {authEnabled && (
                         <>
-                            <Separator />
+                            <Separator theme={theme} />
                             <TouchableOpacity
                                 style={[
                                     styles.item,
@@ -387,11 +400,13 @@ export const SettingsScreen = () => {
                                     />
                                 )}
                             </TouchableOpacity>
-                            <Separator />
+                            <Separator theme={theme} />
                             <GroupedItem
                                 label="Change PIN"
                                 onPress={() => setPinStep('change_verify')}
                                 isLast
+                                theme={theme}
+                                colors={colors}
                             />
                         </>
                     )}
@@ -404,12 +419,16 @@ export const SettingsScreen = () => {
                         label="Accounts"
                         onPress={() => navigation.navigate('AccountManagement')}
                         isFirst
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Categories"
                         onPress={() => navigation.navigate('CategoryManagement')}
                         isLast
+                        theme={theme}
+                        colors={colors}
                     />
                 </View>
 
@@ -421,21 +440,27 @@ export const SettingsScreen = () => {
                         value="CSV, Excel"
                         onPress={handleExport}
                         isFirst
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Import Data"
                         value="CSV, XLSX"
                         onPress={performImport}
                         loading={isBusy && busyAction === 'import'}
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Cloud Backup"
                         value="Backup + Restore"
                         onPress={handleCloudBackup}
                         loading={isBusy && busyAction === 'cloud'}
                         isLast
+                        theme={theme}
+                        colors={colors}
                     />
                 </View>
 
