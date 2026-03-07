@@ -9,6 +9,7 @@ import {
     Modal,
     FlatList,
     Share,
+    Platform,
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,7 +30,7 @@ import { RootStackParamList } from '../../../navigation/RootNavigator';
 import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useLedgerStore } from '../../../stores/ledgerStore';
-import { createExportPayload, ExportFormat, createImportTemplatePayload, importDataFromWorkbookBuffer } from '../../../core/utils';
+import { createExportPayload, ExportFormat, createImportTemplatePayload, importDataFromFilePath } from '../../../core/utils';
 import DocumentPicker from 'react-native-document-picker';
 
 export const SettingsScreen = () => {
@@ -68,19 +69,16 @@ export const SettingsScreen = () => {
         setExportPickerVisible(true);
     };
 
-    const shareDataUri = async (title: string, filename: string, dataUri: string) => {
-        await Share.share({
-            title,
-            message: `Pocket Log: ${filename}`,
-            url: dataUri,
-        });
+    const shareFile = async (title: string, filePath: string) => {
+        const url = Platform.OS === 'ios' ? `file://${filePath}` : filePath;
+        await Share.share({ title, url });
     };
 
     const handleExportFormat = async (format: ExportFormat) => {
         setExportingFormat(format);
         try {
             const payload = await createExportPayload(format);
-            await shareDataUri('Export Data', payload.filename, payload.dataUri);
+            await shareFile('Export Data', payload.filePath);
             setExportPickerVisible(false);
         } catch (error) {
             console.error(`Failed to export ${format}:`, error);
@@ -90,47 +88,22 @@ export const SettingsScreen = () => {
         }
     };
 
-    const handleTemplateDownload = () => {
-        Alert.alert('Download Import Template', 'Choose template format', [
-            {
-                text: 'CSV',
-                onPress: async () => {
-                    setBusyAction('template');
-                    setIsBusy(true);
-                    try {
-                        const payload = createImportTemplatePayload('csv');
-                        await shareDataUri('Import Template', payload.filename, payload.dataUri);
-                    } catch (error) {
-                        console.error('Template CSV generation failed:', error);
-                        Alert.alert('Template Failed', 'Could not create CSV template.');
-                    } finally {
-                        setIsBusy(false);
-                        setBusyAction(null);
-                    }
-                },
-            },
-            {
-                text: 'XLSX',
-                onPress: async () => {
-                    setBusyAction('template');
-                    setIsBusy(true);
-                    try {
-                        const payload = createImportTemplatePayload('xlsx');
-                        await shareDataUri('Import Template', payload.filename, payload.dataUri);
-                    } catch (error) {
-                        console.error('Template XLSX generation failed:', error);
-                        Alert.alert('Template Failed', 'Could not create XLSX template.');
-                    } finally {
-                        setIsBusy(false);
-                        setBusyAction(null);
-                    }
-                },
-            },
-            { text: 'Cancel', style: 'cancel' },
-        ]);
+    const downloadTemplate = async (format: 'csv' | 'xlsx') => {
+        setBusyAction('template');
+        setIsBusy(true);
+        try {
+            const payload = await createImportTemplatePayload(format);
+            await shareFile('Import Template', payload.filePath);
+        } catch (error) {
+            console.error('Template generation failed:', error);
+            Alert.alert('Template Failed', `Could not create ${format.toUpperCase()} template.`);
+        } finally {
+            setIsBusy(false);
+            setBusyAction(null);
+        }
     };
 
-    const performImport = async () => {
+    const pickAndImportFile = async () => {
         setBusyAction('import');
         setIsBusy(true);
         try {
@@ -144,9 +117,7 @@ export const SettingsScreen = () => {
                 return;
             }
 
-            const response = await fetch(fileUri);
-            const buffer = await response.arrayBuffer();
-            const result = await importDataFromWorkbookBuffer(buffer);
+            const result = await importDataFromFilePath(fileUri);
             await loadSettings();
             refresh();
 
@@ -164,6 +135,26 @@ export const SettingsScreen = () => {
         }
     };
 
+    const performImport = () => {
+        Alert.alert('Import Data', 'What would you like to do?', [
+            {
+                text: 'Import File',
+                onPress: pickAndImportFile,
+            },
+            {
+                text: 'Download Template',
+                onPress: () => {
+                    Alert.alert('Download Template', 'Choose format', [
+                        { text: 'CSV', onPress: () => downloadTemplate('csv') },
+                        { text: 'XLSX', onPress: () => downloadTemplate('xlsx') },
+                        { text: 'Cancel', style: 'cancel' },
+                    ]);
+                },
+            },
+            { text: 'Cancel', style: 'cancel' },
+        ]);
+    };
+
     const handleCloudBackup = () => {
         Alert.alert('Cloud Backup', 'Choose an action', [
             {
@@ -173,7 +164,7 @@ export const SettingsScreen = () => {
                     setIsBusy(true);
                     try {
                         const payload = await createExportPayload('xlsx');
-                        await shareDataUri('Cloud Backup', payload.filename, payload.dataUri);
+                        await shareFile('Cloud Backup', payload.filePath);
                     } catch (error) {
                         console.error('Cloud backup failed:', error);
                         Alert.alert('Backup Failed', 'Could not prepare backup file.');
@@ -185,9 +176,7 @@ export const SettingsScreen = () => {
             },
             {
                 text: 'Restore from Cloud',
-                onPress: () => {
-                    performImport();
-                },
+                onPress: pickAndImportFile,
             },
             { text: 'Cancel', style: 'cancel' },
         ]);
@@ -312,13 +301,6 @@ export const SettingsScreen = () => {
                         value="CSV, XLSX"
                         onPress={performImport}
                         loading={isBusy && busyAction === 'import'}
-                    />
-                    <Separator />
-                    <GroupedItem
-                        label="Download Import Template"
-                        value="CSV, XLSX"
-                        onPress={handleTemplateDownload}
-                        loading={isBusy && busyAction === 'template'}
                     />
                     <Separator />
                     <GroupedItem

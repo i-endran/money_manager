@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
 import { db } from '../../database';
 import { accounts, appSettings, categories, transactions } from '../../database/schema';
 
@@ -8,7 +9,7 @@ export type ExportFormat = 'csv' | 'xlsx';
 export interface ExportPayload {
     filename: string;
     mimeType: string;
-    dataUri: string;
+    filePath: string;
 }
 
 function normalizeStoredValue(value: string): string {
@@ -84,11 +85,14 @@ export async function createExportPayload(exportFormat: ExportFormat): Promise<E
         const sheet = createSheet(transactionsSheetRows, transactionsHeaders);
         XLSX.utils.book_append_sheet(workbook, sheet, 'Transactions');
         const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'csv' });
+        const filename = `pocket-log-transactions-${timestamp}.csv`;
+        const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+        await RNFS.writeFile(filePath, base64, 'base64');
 
         return {
-            filename: `pocket-log-transactions-${timestamp}.csv`,
+            filename,
             mimeType: 'text/csv',
-            dataUri: `data:text/csv;base64,${base64}`,
+            filePath,
         };
     }
 
@@ -146,10 +150,13 @@ export async function createExportPayload(exportFormat: ExportFormat): Promise<E
     XLSX.utils.book_append_sheet(workbook, createSheet(settingsSheetRows, ['Key', 'Value']), 'Settings');
 
     const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
+    const filename = `pocket-log-export-${timestamp}.xlsx`;
+    const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+    await RNFS.writeFile(filePath, base64, 'base64');
 
     return {
-        filename: `pocket-log-export-${timestamp}.xlsx`,
+        filename,
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        dataUri: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`,
+        filePath,
     };
 }

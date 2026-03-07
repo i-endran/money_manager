@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
 import { eq } from 'drizzle-orm';
 import { db } from '../../database';
 import { accounts, appSettings, categories, transactions } from '../../database/schema';
@@ -180,7 +181,7 @@ async function importTransactionsRows(
     return { inserted, skipped };
 }
 
-export function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): ExportPayload {
+export async function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): Promise<ExportPayload> {
     const now = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
 
     const transactionsTemplate = [{
@@ -211,11 +212,10 @@ export function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): ExportP
             'Updated At',
         ]), 'Transactions');
         const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'csv' });
-        return {
-            filename: 'pocket-log-import-template.csv',
-            mimeType: 'text/csv',
-            dataUri: `data:text/csv;base64,${base64}`,
-        };
+        const filename = 'pocket-log-import-template.csv';
+        const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+        await RNFS.writeFile(filePath, base64, 'base64');
+        return { filename, mimeType: 'text/csv', filePath };
     }
 
     const accountsTemplate = [{
@@ -277,15 +277,29 @@ export function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): ExportP
     XLSX.utils.book_append_sheet(workbook, createSheet(settingsTemplate, ['Key', 'Value']), 'Settings');
 
     const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
+    const filename = 'pocket-log-import-template.xlsx';
+    const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
+    await RNFS.writeFile(filePath, base64, 'base64');
     return {
-        filename: 'pocket-log-import-template.xlsx',
+        filename,
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        dataUri: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`,
+        filePath,
     };
+}
+
+export async function importDataFromFilePath(filePath: string): Promise<ImportResult> {
+    const normalizedPath = filePath.startsWith('file://') ? filePath.slice(7) : filePath;
+    const base64 = await RNFS.readFile(normalizedPath, 'base64');
+    const workbook = XLSX.read(base64, { type: 'base64' });
+    return importWorkbook(workbook);
 }
 
 export async function importDataFromWorkbookBuffer(buffer: ArrayBuffer): Promise<ImportResult> {
     const workbook = XLSX.read(buffer, { type: 'array' });
+    return importWorkbook(workbook);
+}
+
+async function importWorkbook(workbook: XLSX.WorkBook): Promise<ImportResult> {
     const now = new Date().toISOString();
 
     const transactionRowsRaw = getSheetRows(workbook, 'Transactions');
