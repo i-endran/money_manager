@@ -57,3 +57,12 @@
 - [x] **Dark theme fix**: Sub-item left-border colour changed from `theme.border` to `theme.primary` for visibility in dark mode.
 - [x] **Settings pickers**: Theme and currency pickers show selected item highlight + checkmark; currency picker auto-scrolls to selection.
 - [x] **Theme picker bottom sheet**: Modal content uses edge-to-edge row backgrounds (no horizontal padding frame) for consistent selection highlight.
+
+## Export / Import & Auth Settings (Post-Release)
+- [x] **Export fix**: `exportData.ts` writes XLSX/CSV base64 to `RNFS.TemporaryDirectoryPath`; `Share.share({ url: 'file://...' })` replaces broken data-URI sharing.
+- [x] **Import fix**: `importData.ts` uses `RNFS.readFile(path, 'base64')` + `XLSX.read(..., { type: 'base64' })` for reliable file reading.
+- [x] **Download Template**: Moved inside Import Data flow (Alert dialog) instead of a standalone settings row.
+- [x] **react-native-fs**: Installed + `bundle exec pod install` (CocoaPods requires `bundle exec` with project Gemfile on macOS system Ruby).
+- [x] **Auth Settings UI**: Added SECURITY section to SettingsScreen — App Lock toggle (PIN setup/remove), Biometrics toggle (Face ID / Touch ID, hardware-gated), Change PIN row.
+- [x] **PinSetupModal**: Full-screen PIN entry component supporting `setup` mode (enter + confirm) and `verify` mode (enter + validate); key-based remount for seamless multi-step Change PIN flow.
+- [x] **Biometrics prompt**: Fixed title from "Unlock Money Manager" → "Unlock Pocket Log".

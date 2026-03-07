@@ -127,8 +127,11 @@ src/features/
 │   │   └── DatePicker.tsx              # @react-native-community/datetimepicker
 │   └── screens/TransactionFormScreen.tsx  # Dynamic form (Expense/Income/Transfer)
 └── settings/
+    ├── components/
+    │   └── PinSetupModal.tsx             # Full-screen PIN entry (setup: enter+confirm / verify: enter+validate)
     └── screens/
         ├── SettingsScreen.tsx           # Preferences, currency/theme pickers with selection highlight;
+        │                                #   SECURITY section (App Lock, Biometrics, Change PIN);
         │                                #   export (CSV/XLSX), import (CSV/XLSX), cloud backup
         ├── AccountManagementScreen.tsx  # CRUD for accounts; collapsible type sections, left-border reserves
         ├── AccountFormScreen.tsx        # Add/Edit account form
@@ -167,6 +170,12 @@ The app uses a hybrid navigation structure:
 ## `src/stores/` – Global State
 
 - **`authStore`**: Manages app locking, session state, and biometrics.
+  - PIN stored in `react-native-keychain` (service: `'app_pin'`).
+  - Biometrics enabled flag stored in `AsyncStorage`.
+  - `initialize()`: if PIN found in keychain → `isLocked: true`; otherwise `isLocked: false` (auth is off by default).
+  - `lockApp()`: only locks if a PIN is set — no PIN means the app never locks.
+  - `unlockWithBiometrics()`: uses Keychain `ACCESS_CONTROL.BIOMETRY_CURRENT_SET` to trigger Face ID / Touch ID before returning the stored PIN.
+  - Auth is **off by default** — users opt-in via Settings → Security → App Lock.
 - **`ledgerStore`**: Tracks the currently viewed month and triggers refreshes.
 
 ---
