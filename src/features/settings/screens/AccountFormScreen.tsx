@@ -59,7 +59,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                     setOriginalName(acc.name);
                     setType(acc.type as AccountType);
                     setInitialBalance(acc.initialBalance.toString());
-                    setSettlementDay(String(acc.settlementDay || 28));
+                    setSettlementDay(String(acc.settlementDay || 10));
                     setIsActive(acc.isActive);
                     setExcludeFromSummaries(
                         isMandatoryClosedBoxType(acc.type) ? true : acc.excludeFromSummaries,
@@ -79,7 +79,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                     setExcludeFromSummaries(
                         isMandatoryClosedBoxType(p.type) ? true : p.excludeFromSummaries,
                     );
-                    setSettlementDay(String(p.settlementDay || 28));
+                    setSettlementDay(String(p.settlementDay || 10));
                 }
             }
         }
@@ -102,7 +102,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
             setExcludeFromSummaries(false);
         }
         if (selectedType === AccountType.CARD && !settlementDay) {
-            setSettlementDay('28');
+            setSettlementDay('10');
         }
     };
 
@@ -123,11 +123,11 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
         }
 
         const balance = parseFloat(initialBalance) || 0;
-        const normalizedSettlementDay = Math.max(1, Math.min(31, parseInt(settlementDay, 10) || 28));
+        const normalizedSettlementDay = Math.max(1, Math.min(28, parseInt(settlementDay, 10) || 10));
         const finalExcludeFromSummaries = isMandatoryClosedBoxType(type) ? true : excludeFromSummaries;
         const finalSettlementDay = isReserveMode
             ? (parentCache?.settlementDay || normalizedSettlementDay)
-            : (isCardAccountType ? normalizedSettlementDay : 28);
+            : (isCardAccountType ? normalizedSettlementDay : 10);
         const normalizedInitialBalance = normalizeInitialBalanceByType(type, balance);
         const now = new Date().toISOString();
 
@@ -298,12 +298,12 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
 
                 {!isReserveMode && isCardAccountType && (
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: theme.textSecondary }]}>Settlement Day (1-31)</Text>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Settlement Day (1–28)</Text>
                         <TextInput
                             style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
                             value={settlementDay}
                             onChangeText={text => setSettlementDay(text.replace(/[^0-9]/g, '').slice(0, 2))}
-                            placeholder="28"
+                            placeholder="10"
                             placeholderTextColor={theme.textSecondary}
                             keyboardType="number-pad"
                         />

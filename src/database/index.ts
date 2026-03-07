@@ -25,7 +25,7 @@ export async function initDatabase() {
         initial_balance REAL DEFAULT 0 NOT NULL,
         icon_name TEXT NOT NULL,
         is_active INTEGER DEFAULT 1 NOT NULL,
-        settlement_day INTEGER DEFAULT 28 NOT NULL,
+        settlement_day INTEGER DEFAULT 10 NOT NULL,
         created_at TEXT NOT NULL
     )`);
 
@@ -82,7 +82,7 @@ export async function initDatabase() {
     }
 
     try {
-        await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN settlement_day INTEGER DEFAULT 28 NOT NULL`);
+        await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN settlement_day INTEGER DEFAULT 10 NOT NULL`);
     } catch {
         // Column might already exist
     }

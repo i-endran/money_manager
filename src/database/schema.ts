@@ -11,7 +11,7 @@ export const accounts = sqliteTable('accounts', {
     parentId: integer('parent_id'),
     sortOrder: integer('sort_order').default(0).notNull(),
     excludeFromSummaries: integer('exclude_from_summaries', { mode: 'boolean' }).default(false).notNull(),
-    settlementDay: integer('settlement_day').default(28).notNull(),
+    settlementDay: integer('settlement_day').default(10).notNull(),
     createdAt: text('created_at').notNull(),
 });
 
