@@ -23,7 +23,7 @@ Pocket Log is a **React Native** mobile application for iOS and Android. The app
 ## Directory Structure
 
 ```
-d:/Projects/money_manager/
+src/
 ├── App.tsx                    # Root component (auth gate + navigation)
 ├── android/                   # Android native project
 ├── ios/                       # iOS native project
@@ -46,6 +46,7 @@ The core layer provides the shared design system and cross-feature utilities.
 ```
 src/core/
 ├── constants/
+│   ├── appConfig.ts           # APP_NAME, APP_NAME_SLUG, APP_VERSION, APP_BUNDLE_ID
 │   ├── enums.ts               # Enum definitions (SettingsKey, TransactionType, etc.)
 │   ├── defaults.ts            # App-level constants (MAX_CATEGORY_DEPTH, CURRENCIES, etc.)
 │   ├── seed.ts                # Seed data definitions
@@ -61,7 +62,8 @@ src/core/
     ├── date/                  # getMonthRange(), groupByDay(), etc.
     ├── exportData.ts          # createExportPayload() — writes CSV/XLSX to RNFS temp dir
     ├── importData.ts          # importDataFromFilePath(), createImportTemplatePayload()
-    ├── accountRules.ts        # isDebtType(), normalizeInitialBalanceByType()
+    ├── accountRules.ts        # isClosedBoxLikeAccount(), isMandatoryClosedBoxType(),
+    │                          #   isDebtType(), normalizeInitialBalanceByType()
     └── index.ts               # Barrel export
 ```
 
@@ -91,7 +93,7 @@ src/database/
 
 | Table | Purpose | Key Columns |
 |---|---|---|
-| `accounts` | User bank/cash accounts | `name`, `type`, `isActive`, `parentId`, `excludeFromSummaries`, `sortOrder` |
+| `accounts` | User bank/cash accounts | `name`, `type`, `isActive`, `parentId`, `excludeFromSummaries`, `settlementDay`, `sortOrder` |
 | `categories` | 3-level hierarchy | `name`, `iconName`, `parentId` |
 | `transactions` | Ledger entries | `amount`, `type`, `date`, `linkedTransactionId` |
 | `appSettings` | Key-value store | `key`, `value` |
@@ -99,8 +101,11 @@ src/database/
 ### Feature: Opt-Out Accounts & Nested Reserves
 Accounts support 1-level deep nesting (Reserves) and custom grouping. Accounts marked `excludeFromSummaries` (**Opt Out**) are excluded from the monthly income/expense totals. Direct income/expense transactions can still be recorded on opt-out accounts. Special ledger logic ensures transfers *to* an opt-out account count as expenses in the global view, while transfers *from* an opt-out account count as income. In an account-filtered ledger view, transfers are shown from that account's own perspective (credits = income, debits = expense).
 
+### Feature: Account Settlement Day
+Card-type accounts have a `settlementDay` field (1–28, default **10**). The value is clamped to `Math.min(28, ...)` on save. The field is only shown in the account form when the account type is `CARD`. The account balance SQL uses `settlementDay` to compute the current billing-cycle balance vs the previous billing-cycle balance for card accounts.
+
 ### Feature: Carry Forward Balance
-The `appSettings` table stores a `carryForwardBalance` toggle. When enabled, the ledger hook queries all transactions prior to the current month to calculate an opening balance, which is then injected as a virtual row in the ledger.
+When enabled, the ledger hook queries all transactions prior to the current month to calculate an opening balance, which is then injected as a virtual row in the ledger.
 
 ---
 

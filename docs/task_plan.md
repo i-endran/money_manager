@@ -66,3 +66,17 @@
 - [x] **Auth Settings UI**: Added SECURITY section to SettingsScreen — App Lock toggle (PIN setup/remove), Biometrics toggle (Face ID / Touch ID, hardware-gated), Change PIN row.
 - [x] **PinSetupModal**: Full-screen PIN entry component supporting `setup` mode (enter + confirm) and `verify` mode (enter + validate); key-based remount for seamless multi-step Change PIN flow.
 - [x] **Biometrics prompt**: Fixed title from "Unlock Money Manager" → "Unlock Pocket Log".
+
+## Bug Fixes & Config Polish
+- [x] **App name centralised**: `src/core/constants/appConfig.ts` exports `APP_NAME`, `APP_NAME_SLUG`, `APP_VERSION`, `APP_BUNDLE_ID`; all hardcoded strings replaced.
+- [x] **Bundle ID**: Changed to `com.qubitPixel.pocketLog` in iOS (`project.pbxproj`) and Android (`build.gradle`).
+- [x] **Settings blank screen fix**: `SettingsScreen` used `useLedgerStore()` without selector, causing re-renders from unrelated state; fixed to `useLedgerStore(state => state.refresh)`. `GroupedItem`/`Separator` moved to module scope to prevent remount.
+- [x] **Settlement day**: Range clamped to 1–28 (was 1–31), default changed to **10** (was 28), label and placeholder updated. Card accounts only.
+- [x] **Section header alignment**: Account & Category management screen section headers (Cash, Bank, Expense, etc.) now align with the row content below them — padding removed from left side, chevron icon reduced from 20px to 14px.
+- [x] **Transfer edit bug**: Editing a transfer was creating a new pair instead of updating. Fixed by storing `linkedTxnId` in state and branching to UPDATE both legs when editing.
+
+## Opt-Out Account Revamp
+- [x] **Direct transactions allowed**: Removed restriction that prevented income/expense on opt-out accounts. Account picker no longer filters them out for non-transfer types.
+- [x] **Filtered ledger bug fixed**: `buildLedgerWhereClause` now uses `t.account_id = ?` (no de-dup OR) when `accountId` filter is active. Transfer TO an opt-out account now correctly shows as **income** in that account's filtered view.
+- [x] **Label rename**: "Closed-Box" → "Opt Out" across AccountFormScreen, AccountManagementScreen, AccountPicker, alert, description text.
+- [x] **Docs updated**: architecture.md, copilot-instructions.md, test_cases.md updated with new terminology.
