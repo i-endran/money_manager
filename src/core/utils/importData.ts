@@ -4,7 +4,7 @@ import RNFS from 'react-native-fs';
 import { eq } from 'drizzle-orm';
 import { db } from '../../database';
 import { accounts, appSettings, categories, transactions } from '../../database/schema';
-import { DEFAULT_SETTINGS, TransactionType } from '../constants';
+import { DEFAULT_SETTINGS, TransactionType, APP_NAME_SLUG } from '../constants';
 import type { ExportPayload } from './exportData';
 import { isDebtType, normalizeInitialBalanceByType } from './accountRules';
 
@@ -212,7 +212,7 @@ export async function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): P
             'Updated At',
         ]), 'Transactions');
         const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'csv' });
-        const filename = 'pocket-log-import-template.csv';
+        const filename = `${APP_NAME_SLUG}-import-template.csv`;
         const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
         await RNFS.writeFile(filePath, base64, 'base64');
         return { filename, mimeType: 'text/csv', filePath };
@@ -277,7 +277,7 @@ export async function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): P
     XLSX.utils.book_append_sheet(workbook, createSheet(settingsTemplate, ['Key', 'Value']), 'Settings');
 
     const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-    const filename = 'pocket-log-import-template.xlsx';
+    const filename = `${APP_NAME_SLUG}-import-template.xlsx`;
     const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
     await RNFS.writeFile(filePath, base64, 'base64');
     return {

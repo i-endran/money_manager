@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
+import { APP_NAME, APP_VERSION } from '../../../core/constants';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { useMonthlyLedger } from '../hooks/useMonthlyLedger';
 import { MonthSelector } from '../components/MonthSelector';
@@ -136,7 +137,7 @@ export const LedgerScreen: React.FC = () => {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { backgroundColor: theme.background }]}>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Pocket Log</Text>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>{APP_NAME}</Text>
             </View>
 
             {hasAccountFilter && (

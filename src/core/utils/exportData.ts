@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import { db } from '../../database';
 import { accounts, appSettings, categories, transactions } from '../../database/schema';
+import { APP_NAME_SLUG } from '../constants';
 
 export type ExportFormat = 'csv' | 'xlsx';
 
@@ -85,7 +86,7 @@ export async function createExportPayload(exportFormat: ExportFormat): Promise<E
         const sheet = createSheet(transactionsSheetRows, transactionsHeaders);
         XLSX.utils.book_append_sheet(workbook, sheet, 'Transactions');
         const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'csv' });
-        const filename = `pocket-log-transactions-${timestamp}.csv`;
+        const filename = `${APP_NAME_SLUG}-transactions-${timestamp}.csv`;
         const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
         await RNFS.writeFile(filePath, base64, 'base64');
 
@@ -150,7 +151,7 @@ export async function createExportPayload(exportFormat: ExportFormat): Promise<E
     XLSX.utils.book_append_sheet(workbook, createSheet(settingsSheetRows, ['Key', 'Value']), 'Settings');
 
     const base64 = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-    const filename = `pocket-log-export-${timestamp}.xlsx`;
+    const filename = `${APP_NAME_SLUG}-export-${timestamp}.xlsx`;
     const filePath = `${RNFS.TemporaryDirectoryPath}/${filename}`;
     await RNFS.writeFile(filePath, base64, 'base64');
 

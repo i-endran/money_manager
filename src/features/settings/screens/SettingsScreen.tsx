@@ -28,7 +28,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
-import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS } from '../../../core/constants';
+import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS, APP_NAME, APP_VERSION } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { useAuthStore } from '../../../stores/authStore';
@@ -157,7 +157,7 @@ export const SettingsScreen = () => {
         } catch (error: any) {
             if (DocumentPicker.isCancel(error)) return;
             console.error('Import failed:', error);
-            Alert.alert('Import Failed', 'Could not import file. Use Pocket Log CSV/XLSX format.');
+            Alert.alert('Import Failed', `Could not import file. Use ${APP_NAME} CSV/XLSX format.`);
         } finally {
             setIsBusy(false);
             setBusyAction(null);
@@ -440,7 +440,7 @@ export const SettingsScreen = () => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={[styles.footerText, { color: theme.textSecondary }]}>Pocket Log v1.0.0</Text>
+                    <Text style={[styles.footerText, { color: theme.textSecondary }]}>{APP_NAME} v{APP_VERSION}</Text>
                 </View>
             </ScrollView>
 
