@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
             const result = await Keychain.getGenericPassword({
                 service: 'app_pin',
-                authenticationPrompt: { title: 'Unlock Money Manager' },
+                authenticationPrompt: { title: 'Unlock Pocket Log' },
                 accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_CURRENT_SET,
             });
             if (result) {

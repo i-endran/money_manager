@@ -1988,6 +1988,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNFS (2.20.0):
+    - React-Core
   - RNGestureHandler (2.30.0):
     - hermes-engine
     - RCTRequired
@@ -2330,6 +2332,7 @@ DEPENDENCIES:
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
+  - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNKeychain (from `../node_modules/react-native-keychain`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
@@ -2500,6 +2503,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-bootsplash"
   RNDateTimePicker:
     :path: "../node_modules/@react-native-community/datetimepicker"
+  RNFS:
+    :path: "../node_modules/react-native-fs"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNKeychain:
@@ -2596,6 +2601,7 @@ SPEC CHECKSUMS:
   ReactNativeDependencies: 1a6a9bba3f7b0a937368cbd57abe86422c0b2ecd
   RNBootSplash: 19916b8d2c42fa87fb445a1c5d9e067beb613b92
   RNDateTimePicker: 5e0666de98f1edfac67ee7dde6be8a5415e487a0
+  RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNGestureHandler: 6d378fd1aa991c7ab62a4215ee6cc417895a6954
   RNKeychain: 91be81cd32b30c7d4c2569dcad29b472d9b93982
   RNReanimated: 0cb8806c6ef2b0f6404e1d0f3ce8ac8177984cf5

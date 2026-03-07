@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
     Modal,
     FlatList,
     Share,
+    Switch,
     Platform,
     ActivityIndicator,
 } from 'react-native';
@@ -30,8 +31,11 @@ import { RootStackParamList } from '../../../navigation/RootNavigator';
 import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useLedgerStore } from '../../../stores/ledgerStore';
+import { useAuthStore } from '../../../stores/authStore';
 import { createExportPayload, ExportFormat, createImportTemplatePayload, importDataFromFilePath } from '../../../core/utils';
 import DocumentPicker from 'react-native-document-picker';
+import ReactNativeBiometrics from 'react-native-biometrics';
+import { PinSetupModal } from '../components/PinSetupModal';
 
 export const SettingsScreen = () => {
     const { theme, colors } = useAppTheme();
@@ -47,12 +51,37 @@ export const SettingsScreen = () => {
         loadSettings,
     } = useSettingsStore();
 
+    const {
+        appPin,
+        biometricsEnabled,
+        setPin,
+        removePin,
+        setBiometricsEnabled,
+    } = useAuthStore();
+
+    const authEnabled = !!appPin;
+
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [themePickerVisible, setThemePickerVisible] = useState(false);
     const [exportPickerVisible, setExportPickerVisible] = useState(false);
     const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
     const [busyAction, setBusyAction] = useState<'import' | 'template' | 'cloud' | null>(null);
     const [isBusy, setIsBusy] = useState(false);
+
+    type PinStep = 'enable' | 'disable' | 'change_verify' | 'change_setup';
+    const [pinStep, setPinStep] = useState<PinStep | null>(null);
+    const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+    const [biometricsLabel, setBiometricsLabel] = useState('Biometrics');
+
+    useEffect(() => {
+        const rnBiometrics = new ReactNativeBiometrics();
+        rnBiometrics.isSensorAvailable().then(({ available, biometryType }) => {
+            setBiometricsAvailable(available);
+            if (biometryType === 'FaceID') setBiometricsLabel('Face ID');
+            else if (biometryType === 'TouchID') setBiometricsLabel('Touch ID');
+            else if (available) setBiometricsLabel('Biometrics');
+        });
+    }, []);
 
     const handleCurrencySelect = async (currency: typeof CURRENCIES[0]) => {
         setCurrencyPickerVisible(false);
@@ -188,6 +217,37 @@ export const SettingsScreen = () => {
         refresh();
     };
 
+    const handlePinSuccess = async (pin: string) => {
+        if (pinStep === 'enable') {
+            await setPin(pin);
+            setPinStep(null);
+        } else if (pinStep === 'disable') {
+            await removePin();
+            setPinStep(null);
+        } else if (pinStep === 'change_verify') {
+            // Seamlessly advance to setup step — key prop on modal causes internal reset
+            setPinStep('change_setup');
+        } else if (pinStep === 'change_setup') {
+            await setPin(pin);
+            setPinStep(null);
+        }
+    };
+
+    const getPinModalProps = () => {
+        switch (pinStep) {
+            case 'enable':
+                return { mode: 'setup' as const, title: 'Set PIN' };
+            case 'disable':
+                return { mode: 'verify' as const, title: 'Enter PIN to disable' };
+            case 'change_verify':
+                return { mode: 'verify' as const, title: 'Enter current PIN' };
+            case 'change_setup':
+                return { mode: 'setup' as const, title: 'Set new PIN' };
+            default:
+                return { mode: 'setup' as const, title: '' };
+        }
+    };
+
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
     const currentThemeLabel = THEME_OPTIONS.find(t => t.value === themeMode)?.label || 'System';
 
@@ -268,6 +328,73 @@ export const SettingsScreen = () => {
                             <Text style={styles.toggleText}>{carryForward ? 'ON' : 'OFF'}</Text>
                         </View>
                     </TouchableOpacity>
+                </View>
+
+                {/* SECURITY */}
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>SECURITY</Text>
+                <View style={styles.cardGroup}>
+                    <TouchableOpacity
+                        style={[
+                            styles.item,
+                            {
+                                backgroundColor: theme.surface,
+                                borderTopLeftRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderTopRightRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderBottomLeftRadius: authEnabled ? 0 : LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderBottomRightRadius: authEnabled ? 0 : LedgerSummaryCardMetricsPreset.cardRadius,
+                            },
+                        ]}
+                        onPress={() => authEnabled ? setPinStep('disable') : setPinStep('enable')}
+                    >
+                        <View style={styles.itemContent}>
+                            <Text style={[styles.itemLabel, { color: theme.text }]}>App Lock</Text>
+                            <Text style={[styles.itemSubtext, { color: theme.textSecondary }]}>Require PIN to open app</Text>
+                        </View>
+                        <Switch
+                            value={authEnabled}
+                            onValueChange={v => v ? setPinStep('enable') : setPinStep('disable')}
+                            trackColor={{ false: theme.border, true: colors.primary }}
+                            thumbColor="white"
+                        />
+                    </TouchableOpacity>
+
+                    {authEnabled && (
+                        <>
+                            <Separator />
+                            <TouchableOpacity
+                                style={[
+                                    styles.item,
+                                    {
+                                        backgroundColor: theme.surface,
+                                        opacity: biometricsAvailable ? 1 : 0.5,
+                                    },
+                                ]}
+                                disabled={!biometricsAvailable}
+                                onPress={() => biometricsAvailable && setBiometricsEnabled(!biometricsEnabled)}
+                            >
+                                <View style={styles.itemContent}>
+                                    <Text style={[styles.itemLabel, { color: theme.text }]}>{biometricsLabel}</Text>
+                                    <Text style={[styles.itemSubtext, { color: theme.textSecondary }]}>
+                                        {biometricsAvailable ? 'Unlock without PIN' : 'Not available on this device'}
+                                    </Text>
+                                </View>
+                                {biometricsAvailable && (
+                                    <Switch
+                                        value={biometricsEnabled}
+                                        onValueChange={v => setBiometricsEnabled(v)}
+                                        trackColor={{ false: theme.border, true: colors.primary }}
+                                        thumbColor="white"
+                                    />
+                                )}
+                            </TouchableOpacity>
+                            <Separator />
+                            <GroupedItem
+                                label="Change PIN"
+                                onPress={() => setPinStep('change_verify')}
+                                isLast
+                            />
+                        </>
+                    )}
                 </View>
 
                 {/* MANAGEMENT */}
@@ -435,6 +562,25 @@ export const SettingsScreen = () => {
                     </View>
                 </View>
             </Modal>
+
+            {pinStep !== null && (() => {
+                const { mode, title } = getPinModalProps();
+                return (
+                    <PinSetupModal
+                        key={pinStep}
+                        visible
+                        mode={mode}
+                        title={title}
+                        validatePin={
+                            (pinStep === 'disable' || pinStep === 'change_verify')
+                                ? p => p === appPin
+                                : undefined
+                        }
+                        onSuccess={handlePinSuccess}
+                        onCancel={() => setPinStep(null)}
+                    />
+                );
+            })()}
         </SafeAreaView>
     );
 };

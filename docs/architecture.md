@@ -15,6 +15,8 @@ Pocket Log is a **React Native** mobile application for iOS and Android. The app
 | **Security** | `react-native-keychain` + `react-native-biometrics` |
 | **Visual Effects** | `@react-native-community/blur` (Frosted Glass) |
 | **Branding** | `react-native-bootsplash` (Splash) + `react-native-make` (Icons) |
+| **File System** | `react-native-fs` (export/import file I/O) |
+| **Data Transfer** | `xlsx` (CSV/XLSX generation & parsing) + `react-native-document-picker` (file selection) |
 
 ---
 
@@ -26,6 +28,7 @@ d:/Projects/money_manager/
 ├── android/                   # Android native project
 ├── ios/                       # iOS native project
 ├── assets/                    # Static assets (brand logos, splash)
+├── Gemfile                    # Bundler config — pins cocoapods version
 └── src/
     ├── core/                  # Shared utilities and design system
     ├── database/              # ORM schema, migrations, seed
@@ -56,6 +59,9 @@ src/core/
 └── utils/
     ├── currency.ts            # Currency formatting
     ├── date/                  # getMonthRange(), groupByDay(), etc.
+    ├── exportData.ts          # createExportPayload() — writes CSV/XLSX to RNFS temp dir
+    ├── importData.ts          # importDataFromFilePath(), createImportTemplatePayload()
+    ├── accountRules.ts        # isDebtType(), normalizeInitialBalanceByType()
     └── index.ts               # Barrel export
 ```
 
@@ -122,11 +128,31 @@ src/features/
 │   └── screens/TransactionFormScreen.tsx  # Dynamic form (Expense/Income/Transfer)
 └── settings/
     └── screens/
-        ├── SettingsScreen.tsx           # Preferences, currency/theme pickers with selection highlight
+        ├── SettingsScreen.tsx           # Preferences, currency/theme pickers with selection highlight;
+        │                                #   export (CSV/XLSX), import (CSV/XLSX), cloud backup
         ├── AccountManagementScreen.tsx  # CRUD for accounts; collapsible type sections, left-border reserves
         ├── AccountFormScreen.tsx        # Add/Edit account form
         └── CategoryManagementScreen.tsx # CRUD for categories; collapsible sections, left-border sub-categories
 ```
+
+---
+
+## Export / Import
+
+### Export
+- **`createExportPayload(format: 'csv' | 'xlsx')`** queries all four tables, builds an XLSX workbook, writes it to `RNFS.TemporaryDirectoryPath`, and returns `{ filename, filePath }`.
+- **CSV** export contains only the Transactions sheet; **XLSX** export contains Transactions, Accounts, Categories, and Settings sheets.
+- The caller shares the file via `Share.share({ url: 'file://...' })` (iOS native share sheet — Save to Files, AirDrop, email, etc.).
+
+### Import
+- **`importDataFromFilePath(filePath)`** reads the file with `RNFS.readFile(path, 'base64')` and passes it to `XLSX.read`. This is reliable for `file://` URIs from `react-native-document-picker`.
+- If the workbook contains only a Transactions sheet → **append mode**: transactions are added to existing accounts/categories by name lookup.
+- If Accounts, Categories, or Settings sheets are present → **replace mode**: all existing data is deleted and fully replaced within a single DB transaction.
+- **`createImportTemplatePayload(format)`** generates a blank template workbook (sample row per sheet) and writes it to the temp dir for sharing.
+- Template download is accessible via the **Import Data** settings row → Alert: "Import File / Download Template / Cancel".
+
+### CocoaPods
+Use `bundle exec pod install` (not bare `pod install`) — the project pins cocoapods via `Gemfile` installed into `vendor/bundle`.
 
 ---
 
