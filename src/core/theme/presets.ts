@@ -58,3 +58,11 @@ export const FormDensityPreset = {
     sectionSpacing: Spacing.xxl,
     controlRadius: Layout.radius.sm,
 } as const;
+
+/** Shared title style for all modal/pushed form screens (AccountForm, AccountManagement, TransactionForm, CategoryManagement). */
+export const FormHeaderPreset = {
+    title: {
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.semibold,
+    },
+} as const;

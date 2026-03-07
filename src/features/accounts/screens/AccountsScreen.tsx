@@ -71,7 +71,6 @@ export const AccountsScreen: React.FC = () => {
     return (
         <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
-                <View style={styles.headerSpacer} />
                 <Text style={[styles.title, { color: theme.text }]}>Accounts</Text>
                 <View style={styles.headerActions}>
                     <TouchableOpacity
@@ -194,6 +193,11 @@ export const AccountsScreen: React.FC = () => {
                                                         onPress={() => openFilteredLedger(row.item)}
                                                         style={[
                                                              styles.cardRow,
+                                                             row.isReserve && {
+                                                                 paddingLeft: Spacing.xxxl,
+                                                                 borderLeftWidth: 2,
+                                                                 borderLeftColor: theme.primary,
+                                                             },
                                                              !isLast && {
                                                                 borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
                                                                  borderBottomColor: theme.border,
@@ -206,7 +210,7 @@ export const AccountsScreen: React.FC = () => {
                                                                     { color: row.isReserve ? theme.textSecondary : theme.text },
                                                                     row.isReserve && styles.reserveName,
                                                                 ]}>
-                                                                {row.isReserve ? `↳ ${row.item.name}` : row.item.name}
+                                                                {row.item.name}
                                                             </Text>
                                                             {row.item.isClosedBoxLike && !group.isClosedBoxType && (
                                                                 <View style={[styles.badge, { backgroundColor: colors.expense }]}>
@@ -281,6 +285,11 @@ export const AccountsScreen: React.FC = () => {
                                                     onPress={() => openFilteredLedger(row.item)}
                                                     style={[
                                                          styles.row,
+                                                         row.isReserve && {
+                                                             paddingLeft: Spacing.xxxl,
+                                                             borderLeftWidth: 2,
+                                                             borderLeftColor: theme.primary,
+                                                         },
                                                          !isLast && {
                                                             borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
                                                             borderBottomColor: theme.border,
@@ -293,7 +302,7 @@ export const AccountsScreen: React.FC = () => {
                                                                 { color: row.isReserve ? theme.textSecondary : theme.text },
                                                                 row.isReserve && styles.reserveName,
                                                             ]}>
-                                                            {row.isReserve ? `↳ ${row.item.name}` : row.item.name}
+                                                            {row.item.name}
                                                         </Text>
                                                         {row.item.isClosedBoxLike && !group.isClosedBoxType && (
                                                             <View style={[styles.badge, { backgroundColor: colors.expense }]}>
@@ -332,13 +341,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.xl,
         paddingVertical: Spacing.lg,
     },
-    headerSpacer: {
-        width: 72,
-    },
     headerActions: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
-        width: 72,
     },
     iconButton: {
         width: Spacing.xxxxl,
@@ -347,7 +352,7 @@ const styles = StyleSheet.create({
         marginLeft: Spacing.md,
     },
     title: {
-        fontSize: Typography.sizes.lg,
+        fontSize: Typography.sizes.xl,
         fontWeight: Typography.weights.bold,
     },
     content: {
@@ -443,7 +448,6 @@ const styles = StyleSheet.create({
         fontWeight: LedgerTextHierarchyPreset.amount.fontWeight,
     },
     reserveName: {
-        paddingLeft: Spacing.xl + Spacing.xxs,
         fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
         fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
     },

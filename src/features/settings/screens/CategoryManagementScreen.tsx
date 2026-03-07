@@ -15,6 +15,7 @@ import {
     Layout,
     Spacing,
     Typography,
+    FormHeaderPreset,
     useAppTheme
 } from '../../../core/theme';
 import { db } from '../../../database';
@@ -65,8 +66,8 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
         const incomes = buildTree(null, CategoryType.INCOME);
 
         const result = [];
-        result.push({ title: 'EXPENSE CATEGORIES', type: CategoryType.EXPENSE, data: expandedSections[CategoryType.EXPENSE] ? expenses : [] });
-        result.push({ title: 'INCOME CATEGORIES', type: CategoryType.INCOME, data: expandedSections[CategoryType.INCOME] ? incomes : [] });
+        result.push({ title: 'Expense Categories', type: CategoryType.EXPENSE, data: expandedSections[CategoryType.EXPENSE] ? expenses : [] });
+        result.push({ title: 'Income Categories', type: CategoryType.INCOME, data: expandedSections[CategoryType.INCOME] ? incomes : [] });
 
         return result;
     }, [categories, expandedSections]);
@@ -74,37 +75,35 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
     const renderNode = (item: CategoryWithChildren, isFirst: boolean, isLast: boolean) => {
         const renderChild = (child: CategoryWithChildren, _isChildLast: boolean) => {
             return (
-                <View key={child.id} style={styles.childRowContainer}>
+                <View
+                    key={child.id}
+                    style={[
+                        styles.childRowContainer,
+                        { borderLeftWidth: 2, borderLeftColor: theme.primary },
+                    ]}
+                >
                     <TouchableOpacity
-                        style={[
-                            styles.childRow,
-                            {
-                                paddingLeft:
-                                    LedgerRowDensityPreset.paddingHorizontal +
-                                    (child.level - 1) * Spacing.xxl
-                            }
-                        ]}
+                        style={styles.childRow}
                         activeOpacity={0.6}
                         onPress={() => navigation.navigate('CategoryForm', { categoryId: child.id })}
                     >
                         <Text style={[styles.childName, { color: theme.textSecondary }]}>
-                            {child.level > 1 ? '↳ ' : ''}{child.iconName ? `${child.iconName} ` : ''}{child.name}
+                            {child.iconName ? `${child.iconName} ` : ''}{child.name}
                         </Text>
                         <View style={styles.rootActions}>
                             <View style={[
                                 styles.statusDot,
-                                child.level < 3 && styles.statusDotWithAction,
-                                {
-                                    backgroundColor: child.isActive ? theme.statusActive : theme.statusInactive,
-                                }
+                                { backgroundColor: child.isActive ? theme.statusActive : theme.statusInactive },
                             ]} />
-                            {child.level < 3 && (
+                            {child.level < 3 ? (
                                 <TouchableOpacity
-                                    style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
+                                    style={styles.addBtn}
                                     onPress={() => navigation.navigate('CategoryForm', { initialType: child.type, parentId: child.id })}
                                 >
                                     <Icon name="add" size={16} color={colors.primary} />
                                 </TouchableOpacity>
+                            ) : (
+                                <View style={styles.addBtn} />
                             )}
                         </View>
                     </TouchableOpacity>
@@ -147,13 +146,12 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
                     <View style={styles.rootActions}>
                         <View style={[
                             styles.statusDot,
-                            styles.statusDotWithAction,
                             {
                                 backgroundColor: item.isActive ? theme.statusActive : theme.statusInactive,
                             }
                         ]} />
                         <TouchableOpacity
-                            style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
+                            style={styles.addBtn}
                             onPress={() => navigation.navigate('CategoryForm', { initialType: item.type, parentId: item.id })}
                         >
                             <Icon name="add" size={16} color={colors.primary} />
@@ -234,9 +232,10 @@ const styles = StyleSheet.create({
     },
     headerBtn: { padding: Spacing.xs, minWidth: 60, alignItems: 'center' },
     headerButtonText: {
-        ...LedgerTextHierarchyPreset.primary,
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
     },
-    headerTitle: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold },
+    headerTitle: { ...FormHeaderPreset.title },
     listContent: {
         paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
         paddingBottom: Spacing.xxxxxl,
@@ -254,8 +253,8 @@ const styles = StyleSheet.create({
     sectionHeaderContent: { flexDirection: 'row', alignItems: 'center' },
     sectionChevronIcon: { marginRight: Spacing.xs },
     sectionTitle: {
-        ...LedgerTextHierarchyPreset.meta,
-        textTransform: 'uppercase',
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
     },
     itemContainer: {
         overflow: 'hidden',
@@ -287,23 +286,19 @@ const styles = StyleSheet.create({
     },
     name: { ...LedgerTextHierarchyPreset.primary },
     statusDot: {
-        width: Typography.sizes.xs,
-        height: Typography.sizes.xs,
-        borderRadius: Layout.radius.full,
-    },
-    statusDotWithAction: {
-        marginRight: Spacing.lg,
+        width: Spacing.md,
+        height: Spacing.md,
+        borderRadius: Spacing.md / 2,
     },
     rootActions: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: Spacing.md,
     },
-    addReserveBtn: {
-        width: Typography.sizes.xl,
-        height: Typography.sizes.xl,
-        borderRadius: Layout.radius.sm,
-        justifyContent: 'center',
+    addBtn: {
+        width: Spacing.xxl,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     childrenContainer: {
         paddingBottom: LedgerRowDensityPreset.paddingVertical,
@@ -317,11 +312,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingLeft: Spacing.xl,
         paddingRight: LedgerRowDensityPreset.paddingHorizontal,
     },
     childName: {
         ...LedgerTextHierarchyPreset.secondary,
-        marginLeft: Spacing.sm,
     },
     emptyContainer: {
         padding: Spacing.xxxxxl,

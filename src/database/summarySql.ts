@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm';
 import { AccountType, TransactionType } from '../core/constants';
 
 type SqlRow = Record<string, unknown>;
@@ -30,6 +29,21 @@ const toStringValue = (value: unknown): string => {
     if (value === null || value === undefined) return '';
     return String(value);
 };
+
+const toNullableString = (value: unknown): string | null => {
+    if (value === null || value === undefined || value === '') return null;
+    return String(value);
+};
+
+type SqlParams = Array<string | number | boolean | null>;
+
+async function executeRawRows<T = SqlRow>(query: string, params: SqlParams = []): Promise<T[]> {
+    const { db } = await import('./index');
+    // Use execute() which returns QueryResult with .rows as Record<string, Scalar>[]
+    // executeRawAsync returns raw arrays without column names — unsuitable here.
+    const result = await db.$client.execute(query, params);
+    return (result.rows ?? []) as T[];
+}
 
 export type AccountBalance = {
     id: number;
@@ -285,8 +299,7 @@ export function parseAccountBalances(rows: unknown[]): AccountBalancesSummary {
 }
 
 export async function fetchAccountBalanceRows(): Promise<AccountBalance[]> {
-    const { db } = await import('./index');
-    const rows = await db.all<AccountBalanceSqlRow>(sql.raw(ACCOUNT_BALANCES_SQL));
+    const rows = await executeRawRows<AccountBalanceSqlRow>(ACCOUNT_BALANCES_SQL);
     return rows.map(row => ({
         id: toNumber(row.id),
         name: toStringValue(row.name),
@@ -302,44 +315,9 @@ export async function fetchAccountBalanceRows(): Promise<AccountBalance[]> {
     }));
 }
 
-const transactionDeltaSql = sql<number>`
-    CASE
-        WHEN t.type = ${TransactionType.INCOME} THEN t.amount
-        WHEN t.type = ${TransactionType.EXPENSE} THEN -t.amount
-        WHEN t.type = ${TransactionType.TRANSFER} THEN
-            CASE
-                WHEN t.linked_transaction_id IS NOT NULL AND t.id < t.linked_transaction_id THEN -t.amount
-                WHEN t.linked_transaction_id IS NOT NULL THEN t.amount
-                ELSE -t.amount
-            END
-        ELSE 0
-    END
-`;
-
-export async function fetchCardBreakdownDeltas(
-    cutoffs: CardCutoff[],
-): Promise<CardBreakdownDeltaRow[]> {
-    if (cutoffs.length === 0) return [];
-
-    const { db } = await import('./index');
-    const values = cutoffs.map(cutoff => sql`(${cutoff.accountId}, ${cutoff.cutoff})`);
-
-    return db.all<CardBreakdownDeltaRow>(sql`
-        WITH card_cutoffs(account_id, cutoff) AS (VALUES ${sql.join(values, sql`, `)})
-        SELECT
-            c.account_id AS accountId,
-            COALESCE(
-                SUM(CASE WHEN t.date <= c.cutoff THEN ${transactionDeltaSql} ELSE 0 END),
-                0
-            ) AS billedDelta,
-            COALESCE(
-                SUM(CASE WHEN t.date > c.cutoff THEN ${transactionDeltaSql} ELSE 0 END),
-                0
-            ) AS currentDelta
-        FROM card_cutoffs c
-        LEFT JOIN transactions t ON t.account_id = c.account_id
-        GROUP BY c.account_id
-    `);
+export async function fetchAccountSummaryRow(): Promise<AccountSummary> {
+    const rows = await executeRawRows<SqlRow>(ACCOUNT_SUMMARY_SQL);
+    return parseAccountSummary(rows);
 }
 
 export function parseAccountSummary(rows: unknown[]): AccountSummary {
@@ -378,12 +356,12 @@ export type CardBreakdown = {
 export const cardBreakdownSql = `
     WITH params AS (
         SELECT
-            -- Pass :now as an ISO string (UTC) to keep date math aligned with stored transaction dates.
-            datetime(:now) AS now_dt,
-            date(:now, 'start of month') AS month_start,
-            date(:now, 'start of month', '+1 month', '-1 day') AS month_end,
-            date(:now, 'start of month', '-1 day') AS prev_month_end,
-            date(:now, 'start of month', '-1 month') AS prev_month_start
+            -- Pass now as an ISO string (UTC) to keep date math aligned with stored transaction dates.
+            datetime(?) AS now_dt,
+            date(?, 'start of month') AS month_start,
+            date(?, 'start of month', '+1 month', '-1 day') AS month_end,
+            date(?, 'start of month', '-1 day') AS prev_month_end,
+            date(?, 'start of month', '-1 month') AS prev_month_start
     ),
     card_accounts AS (
         SELECT
@@ -521,6 +499,18 @@ export function parseCardBreakdowns(rows: unknown[]): CardBreakdown[] {
     });
 }
 
+export async function fetchCardBreakdowns(now: Date | string): Promise<CardBreakdown[]> {
+    const nowIso = typeof now === 'string' ? now : now.toISOString();
+    const rows = await executeRawRows<SqlRow>(cardBreakdownSql, [
+        nowIso,
+        nowIso,
+        nowIso,
+        nowIso,
+        nowIso,
+    ]);
+    return parseCardBreakdowns(rows);
+}
+
 export type LedgerDailySummary = {
     summaryDate: string;
     income: number;
@@ -534,104 +524,260 @@ export type LedgerMonthlySummary = {
     balance: number;
 };
 
-const ledgerSummaryBaseSql = `
-    WITH filtered_txns AS (
-        SELECT
-            t.*,
-            from_acc.exclude_from_summaries AS from_exclude,
-            from_acc.type AS from_type,
-            to_acc.exclude_from_summaries AS to_exclude,
-            to_acc.type AS to_type
-        FROM transactions t
-        LEFT JOIN accounts from_acc ON from_acc.id = t.account_id
-        LEFT JOIN accounts to_acc ON to_acc.id = t.to_account_id
-        WHERE t.date >= ?
-          AND t.date <= ?
-    ),
-    classified AS (
-        SELECT
-            t.*,
-            CASE
-                WHEN (t.from_exclude = 1 OR t.from_type = '${AccountType.DEBT}') THEN 1
-                ELSE 0
-            END AS from_closed,
-            CASE
-                WHEN (t.to_exclude = 1 OR t.to_type = '${AccountType.DEBT}') THEN 1
-                ELSE 0
-            END AS to_closed
-        FROM filtered_txns t
-    ),
-    effective AS (
-        SELECT
-            t.*,
-            CASE
-                WHEN t.type = '${TransactionType.INCOME}' THEN t.amount
-                -- Transfer from closed-box → open counts as income (only once per pair).
-                WHEN t.type = '${TransactionType.TRANSFER}'
-                    AND t.linked_transaction_id IS NOT NULL
-                    AND t.id < t.linked_transaction_id
-                    AND t.from_closed = 1
-                    AND t.to_closed = 0
-                    THEN t.amount
-                ELSE 0
-            END AS income_amount,
-            CASE
-                WHEN t.type = '${TransactionType.EXPENSE}' THEN t.amount
-                -- Transfer from open → closed-box counts as expense (only once per pair).
-                WHEN t.type = '${TransactionType.TRANSFER}'
-                    AND t.linked_transaction_id IS NOT NULL
-                    AND t.id < t.linked_transaction_id
-                    AND t.from_closed = 0
-                    AND t.to_closed = 1
-                    THEN t.amount
-                ELSE 0
-            END AS expense_amount
-        FROM classified t
-    )
-`;
+export type LedgerFilters = {
+    startDate?: string;
+    endDate?: string;
+    endDateExclusive?: string;
+    accountId?: number;
+};
 
-export const ledgerDailySummarySql = `
-    ${ledgerSummaryBaseSql}
-    SELECT
-        -- Group by local day so UI day headers match device expectations.
-        date(e.date, 'localtime') AS summary_date,
-        SUM(e.income_amount) AS income,
-        SUM(e.expense_amount) AS expense,
-        SUM(e.income_amount) - SUM(e.expense_amount) AS balance
-    FROM effective e
-    GROUP BY date(e.date, 'localtime')
-    ORDER BY summary_date DESC;
-`;
+export type LedgerTransactionRow = {
+    id: number;
+    amount: number;
+    type: TransactionType;
+    accountId: number;
+    toAccountId: number | null;
+    categoryId: number | null;
+    note: string;
+    description: string | null;
+    date: string;
+    linkedTransactionId: number | null;
+    createdAt: string;
+    updatedAt: string;
+    categoryName: string | null;
+    categoryIcon: string | null;
+    effectiveType: TransactionType;
+};
 
-export function parseLedgerDailySummary(rows: unknown[]): LedgerDailySummary[] {
-    return rows.map(row => {
-        const record = row as SqlRow;
-        const income = toNumber(record.income);
-        const expense = toNumber(record.expense);
-        return {
-            summaryDate: toStringValue(record.summary_date),
-            income,
-            expense,
-            balance: toNumber(record.balance, income - expense),
-        };
-    });
+export type LedgerDailySummaryRow = {
+    dayKey: string;
+    dayIncome: number;
+    dayExpense: number;
+};
+
+export type LedgerSummaryTotalsRow = {
+    incomeTotal: number;
+    expenseTotal: number;
+};
+
+function buildLedgerWhereClause(filters: LedgerFilters) {
+    const conditions = ['(t.linked_transaction_id IS NULL OR t.id < t.linked_transaction_id)'];
+    const params: SqlParams = [];
+
+    if (filters.startDate) {
+        conditions.push('t.date >= ?');
+        params.push(filters.startDate);
+    }
+
+    if (filters.endDate) {
+        conditions.push('t.date <= ?');
+        params.push(filters.endDate);
+    }
+
+    if (filters.endDateExclusive) {
+        conditions.push('t.date < ?');
+        params.push(filters.endDateExclusive);
+    }
+
+    if (typeof filters.accountId === 'number') {
+        conditions.push(
+            `(t.account_id = ? OR (t.type = '${TransactionType.TRANSFER}' AND t.to_account_id = ?))`,
+        );
+        params.push(filters.accountId, filters.accountId);
+    }
+
+    return {
+        whereClause: `WHERE ${conditions.join(' AND ')}`,
+        params,
+    };
 }
 
-export const ledgerMonthlySummarySql = `
-    ${ledgerSummaryBaseSql}
-    SELECT
-        COALESCE(SUM(e.income_amount), 0) AS income,
-        COALESCE(SUM(e.expense_amount), 0) AS expense,
-        COALESCE(SUM(e.income_amount), 0) - COALESCE(SUM(e.expense_amount), 0) AS balance
-    FROM effective e;
-`;
+function buildLedgerSummaryBaseSql(whereClause: string) {
+    return `
+        WITH filtered_txns AS (
+            SELECT
+                t.*,
+                from_acc.exclude_from_summaries AS from_exclude,
+                from_acc.type AS from_type,
+                to_acc.exclude_from_summaries AS to_exclude,
+                to_acc.type AS to_type
+            FROM transactions t
+            LEFT JOIN accounts from_acc ON from_acc.id = t.account_id
+            LEFT JOIN accounts to_acc ON to_acc.id = t.to_account_id
+            ${whereClause}
+        ),
+        classified AS (
+            SELECT
+                t.*,
+                CASE
+                    WHEN (COALESCE(t.from_exclude, 0) = 1 OR t.from_type = '${AccountType.DEBT}') THEN 1
+                    ELSE 0
+                END AS from_closed,
+                CASE
+                    WHEN (COALESCE(t.to_exclude, 0) = 1 OR t.to_type = '${AccountType.DEBT}') THEN 1
+                    ELSE 0
+                END AS to_closed
+            FROM filtered_txns t
+        ),
+        effective AS (
+            SELECT
+                t.*,
+                CASE
+                    WHEN t.type = '${TransactionType.INCOME}' THEN t.amount
+                    -- Transfer from closed-box → open counts as income (only once per pair).
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id < t.linked_transaction_id
+                        AND t.from_closed = 1
+                        AND t.to_closed = 0
+                        THEN t.amount
+                    ELSE 0
+                END AS income_amount,
+                CASE
+                    WHEN t.type = '${TransactionType.EXPENSE}' THEN t.amount
+                    -- Transfer from open → closed-box counts as expense (only once per pair).
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND t.linked_transaction_id IS NOT NULL
+                        AND t.id < t.linked_transaction_id
+                        AND t.from_closed = 0
+                        AND t.to_closed = 1
+                        THEN t.amount
+                    ELSE 0
+                END AS expense_amount
+            FROM classified t
+        )
+    `;
+}
 
-export const LEDGER_SUMMARY_SQL = ledgerMonthlySummarySql;
+export function buildLedgerTransactionsQuery(filters: LedgerFilters) {
+    const { whereClause, params } = buildLedgerWhereClause(filters);
+    return {
+        sql: `
+            SELECT
+                t.id AS id,
+                t.amount AS amount,
+                t.type AS type,
+                t.account_id AS accountId,
+                t.to_account_id AS toAccountId,
+                t.category_id AS categoryId,
+                t.note AS note,
+                t.description AS description,
+                t.date AS date,
+                t.linked_transaction_id AS linkedTransactionId,
+                t.created_at AS createdAt,
+                t.updated_at AS updatedAt,
+                c.name AS categoryName,
+                c.icon_name AS categoryIcon,
+                CASE
+                    WHEN t.type = '${TransactionType.INCOME}' THEN '${TransactionType.INCOME}'
+                    WHEN t.type = '${TransactionType.EXPENSE}' THEN '${TransactionType.EXPENSE}'
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND (COALESCE(from_acc.exclude_from_summaries, 0) = 1 OR from_acc.type = '${AccountType.DEBT}')
+                        AND NOT (COALESCE(to_acc.exclude_from_summaries, 0) = 1 OR to_acc.type = '${AccountType.DEBT}')
+                        THEN '${TransactionType.INCOME}'
+                    WHEN t.type = '${TransactionType.TRANSFER}'
+                        AND NOT (COALESCE(from_acc.exclude_from_summaries, 0) = 1 OR from_acc.type = '${AccountType.DEBT}')
+                        AND (COALESCE(to_acc.exclude_from_summaries, 0) = 1 OR to_acc.type = '${AccountType.DEBT}')
+                        THEN '${TransactionType.EXPENSE}'
+                    ELSE '${TransactionType.TRANSFER}'
+                END AS effectiveType
+            FROM transactions t
+            LEFT JOIN categories c ON c.id = t.category_id
+            LEFT JOIN accounts from_acc ON from_acc.id = t.account_id
+            LEFT JOIN accounts to_acc ON to_acc.id = t.to_account_id
+            ${whereClause}
+            ORDER BY t.date DESC, t.created_at DESC
+        `,
+        params,
+    };
+}
+
+export function buildLedgerDailySummaryQuery(filters: LedgerFilters) {
+    const { whereClause, params } = buildLedgerWhereClause(filters);
+    return {
+        sql: `
+            ${buildLedgerSummaryBaseSql(whereClause)}
+            SELECT
+                strftime('%Y-%m-%d', e.date, 'localtime') AS dayKey,
+                COALESCE(SUM(e.income_amount), 0) AS dayIncome,
+                COALESCE(SUM(e.expense_amount), 0) AS dayExpense
+            FROM effective e
+            GROUP BY dayKey
+            ORDER BY dayKey DESC
+        `,
+        params,
+    };
+}
+
+export function buildLedgerMonthlySummaryQuery(filters: LedgerFilters) {
+    const { whereClause, params } = buildLedgerWhereClause(filters);
+    return {
+        sql: `
+            ${buildLedgerSummaryBaseSql(whereClause)}
+            SELECT
+                COALESCE(SUM(e.income_amount), 0) AS incomeTotal,
+                COALESCE(SUM(e.expense_amount), 0) AS expenseTotal
+            FROM effective e
+        `,
+        params,
+    };
+}
+
+export async function fetchLedgerTransactions(filters: LedgerFilters): Promise<LedgerTransactionRow[]> {
+    const { sql, params } = buildLedgerTransactionsQuery(filters);
+    const rows = await executeRawRows<SqlRow>(sql, params);
+    return rows.map(row => ({
+        id: toNumber(row.id),
+        amount: toNumber(row.amount),
+        type: toStringValue(row.type) as TransactionType,
+        accountId: toNumber(row.accountId),
+        toAccountId: toNullableNumber(row.toAccountId),
+        categoryId: toNullableNumber(row.categoryId),
+        note: toStringValue(row.note),
+        description: toNullableString(row.description),
+        date: toStringValue(row.date),
+        linkedTransactionId: toNullableNumber(row.linkedTransactionId),
+        createdAt: toStringValue(row.createdAt),
+        updatedAt: toStringValue(row.updatedAt),
+        categoryName: toNullableString(row.categoryName),
+        categoryIcon: toNullableString(row.categoryIcon),
+        effectiveType: toStringValue(row.effectiveType) as TransactionType,
+    }));
+}
+
+export async function fetchLedgerDailySummaries(filters: LedgerFilters): Promise<LedgerDailySummaryRow[]> {
+    const { sql, params } = buildLedgerDailySummaryQuery(filters);
+    const rows = await executeRawRows<SqlRow>(sql, params);
+    return rows.map(row => ({
+        dayKey: toStringValue(row.dayKey),
+        dayIncome: toNumber(row.dayIncome),
+        dayExpense: toNumber(row.dayExpense),
+    }));
+}
+
+export async function fetchLedgerSummaryTotals(filters: LedgerFilters): Promise<LedgerSummaryTotalsRow> {
+    const { sql, params } = buildLedgerMonthlySummaryQuery(filters);
+    const rows = await executeRawRows<SqlRow>(sql, params);
+    const record = (rows[0] ?? {}) as SqlRow;
+    return {
+        incomeTotal: toNumber(record.incomeTotal),
+        expenseTotal: toNumber(record.expenseTotal),
+    };
+}
+
+export async function fetchLedgerMonthlySummary(filters: LedgerFilters): Promise<LedgerMonthlySummary> {
+    const totals = await fetchLedgerSummaryTotals(filters);
+    return {
+        income: totals.incomeTotal,
+        expense: totals.expenseTotal,
+        balance: totals.incomeTotal - totals.expenseTotal,
+    };
+}
 
 export function parseLedgerMonthlySummary(rows: unknown[]): LedgerMonthlySummary {
     const record = (rows[0] ?? {}) as SqlRow;
-    const income = toNumber(record.income);
-    const expense = toNumber(record.expense);
+    const income = toNumber(record.incomeTotal ?? record.income);
+    const expense = toNumber(record.expenseTotal ?? record.expense);
     return {
         income,
         expense,

@@ -12,6 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
     Colors,
     FormDensityPreset,
+    FormHeaderPreset,
     LedgerTextHierarchyPreset,
     Spacing,
     Typography,
@@ -223,7 +224,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
             />
             <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + Spacing.md }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={{ color: colors.primary }}>Cancel</Text>
+                    <Text style={{ color: colors.primary, fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium }}>Cancel</Text>
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                     {accountId
@@ -362,8 +363,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
-    title: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
-    saveText: { ...LedgerTextHierarchyPreset.amount },
+    title: { ...FormHeaderPreset.title },
+    saveText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold },
     content: { padding: FormDensityPreset.rowPaddingHorizontal },
     parentBadge: {
         paddingVertical: FormDensityPreset.rowPaddingVertical,

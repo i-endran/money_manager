@@ -44,12 +44,15 @@ The core layer provides the shared design system and cross-feature utilities.
 src/core/
 ├── constants/
 │   ├── enums.ts               # Enum definitions (SettingsKey, TransactionType, etc.)
-│   ├── enums.ts               # App-level constants
+│   ├── defaults.ts            # App-level constants (MAX_CATEGORY_DEPTH, CURRENCIES, etc.)
 │   ├── seed.ts                # Seed data definitions
 │   └── index.ts               # Barrel export
 ├── theme/
-│   ├── colors.ts              # Navy Blue accent theme defined
-│   └── index.ts               # useAppTheme() hook
+│   ├── colors.ts              # Light/Dark color tokens (Navy Blue / Medium Blue accent)
+│   ├── presets.ts             # Shared style presets (LedgerRowDensityPreset,
+│   │                          #   LedgerTextHierarchyPreset, LedgerSummaryCardMetricsPreset,
+│   │                          #   FormHeaderPreset)
+│   └── index.ts               # useAppTheme() hook + barrel export
 └── utils/
     ├── currency.ts            # Currency formatting
     ├── date/                  # getMonthRange(), groupByDay(), etc.
@@ -57,8 +60,14 @@ src/core/
 ```
 
 ### Key Patterns
-- **iOS Aesthetic**: The app uses an off-white background (`#F5F5F7`), navy blue primary accents (`#1B3A5C`), and squircle-rounded cards (iOS Settings-style) for lists.
+- **iOS Aesthetic**: Off-white background (`#F5F5F7`), navy blue primary accents (`#1B3A5C` light / `#2568c5` dark), squircle-rounded cards (iOS Settings-style) for lists.
 - **Theme Hook**: `useAppTheme()` provides reactive access to the user's selected theme (Light/Dark/System).
+- **Style Presets**: Shared tokens in `presets.ts` enforce visual consistency across screens:
+  - `LedgerRowDensityPreset` — row `paddingVertical`/`paddingHorizontal` and separator thickness
+  - `LedgerTextHierarchyPreset` — primary, secondary, amount, and meta text styles
+  - `LedgerSummaryCardMetricsPreset` — summary card padding
+  - `FormHeaderPreset` — management/form screen title font
+- **Sub-item Left-Border**: Reserve accounts and sub-categories are visually indented using `borderLeftWidth: 2, borderLeftColor: theme.primary` (visible in both Light and Dark themes).
 
 ---
 
@@ -102,6 +111,9 @@ src/features/
 │   │   └── TransactionItem.tsx         # Ledger row renderer
 │   ├── hooks/useMonthlyLedger.ts       # Data fetching & carry-forward logic
 │   └── screens/LedgerScreen.tsx        # Unified Bubble (Selector + Summary) + List
+├── accounts/
+│   ├── hooks/useAccountsSummary.ts     # SQL-driven account summary aggregation
+│   └── screens/AccountsScreen.tsx      # Accounts summary with reserves (left-border indent)
 ├── transaction/
 │   ├── components/
 │   │   ├── AccountPicker.tsx           # Grouped account selection
@@ -110,9 +122,10 @@ src/features/
 │   └── screens/TransactionFormScreen.tsx  # Dynamic form (Expense/Income/Transfer)
 └── settings/
     └── screens/
-        ├── SettingsScreen.tsx           # Preferences & Grouped squircle lists
-        ├── AccountManagementScreen.tsx  # CRUD for accounts
-        ├── CategoryManagementScreen.tsx # CRUD for categories
+        ├── SettingsScreen.tsx           # Preferences, currency/theme pickers with selection highlight
+        ├── AccountManagementScreen.tsx  # CRUD for accounts; collapsible type sections, left-border reserves
+        ├── AccountFormScreen.tsx        # Add/Edit account form
+        └── CategoryManagementScreen.tsx # CRUD for categories; collapsible sections, left-border sub-categories
 ```
 
 ---

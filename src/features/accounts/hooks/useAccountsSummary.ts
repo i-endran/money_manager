@@ -1,18 +1,16 @@
 import { useCallback, useState } from 'react';
 import { AccountType } from '../../../core/constants';
-import {
-    isLoanLikeType,
-    liabilityAmountFromBalance,
-} from '../../../core/utils';
+import { isLoanLikeType } from '../../../core/utils';
 import {
     fetchAccountBalanceRows,
-    fetchCardBreakdownDeltas,
+    fetchAccountSummaryRow,
+    fetchCardBreakdowns,
 } from '../../../database/summarySql';
 
 export type AccountBalanceItem = {
     id: number;
     name: string;
-    type: string;
+    type: AccountType;
     parentId: number | null;
     sortOrder: number;
     initialBalance: number;
@@ -27,7 +25,7 @@ export type AccountWithReserves = AccountBalanceItem & {
 };
 
 export type AccountGroup = {
-    type: string;
+    type: AccountType;
     label: string;
     accounts: AccountWithReserves[];
     total: number;
@@ -36,7 +34,7 @@ export type AccountGroup = {
 };
 
 export type AccountTypeBalanceItem = {
-    type: string;
+    type: AccountType;
     balance: number;
     count: number;
     isLoanLike: boolean;
@@ -101,34 +99,6 @@ function createEmptySummary(): SummaryState {
     };
 }
 
-function getLatestSettlementCutoff(now: Date, settlementDay: number): Date {
-    const boundedDay = Math.max(1, Math.min(31, settlementDay || 28));
-    const thisMonthLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const thisMonthCutoff = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        Math.min(boundedDay, thisMonthLastDay),
-        23,
-        59,
-        59,
-        999,
-    );
-
-    if (now >= thisMonthCutoff) return thisMonthCutoff;
-
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthLastDay = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
-    return new Date(
-        prevMonth.getFullYear(),
-        prevMonth.getMonth(),
-        Math.min(boundedDay, prevMonthLastDay),
-        23,
-        59,
-        59,
-        999,
-    );
-}
-
 export function useAccountsSummary() {
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<SummaryState>(createEmptySummary());
@@ -136,13 +106,17 @@ export function useAccountsSummary() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-
-            const accountRows = await fetchAccountBalanceRows();
+            const now = new Date();
+            const [accountRows, summaryRow, cardRows] = await Promise.all([
+                fetchAccountBalanceRows(),
+                fetchAccountSummaryRow(),
+                fetchCardBreakdowns(now),
+            ]);
 
             const accountBalances: AccountBalanceItem[] = accountRows.map(account => ({
                 id: account.id,
                 name: account.name,
-                type: account.type,
+                type: account.type as AccountType,
                 parentId: account.parentId,
                 sortOrder: account.sortOrder,
                 initialBalance: account.initialBalance,
@@ -152,72 +126,30 @@ export function useAccountsSummary() {
                 settlementDay: account.settlementDay || 28,
             }));
 
-            const totals = accountBalances.reduce(
-                (acc, item) => {
-                    if (item.isLoanLike) {
-                        acc.liabilities += liabilityAmountFromBalance(item.balance);
-                    } else {
-                        acc.assets += item.balance;
-                        if (!item.isClosedBoxLike) {
-                            acc.standingBalance += item.balance;
-                        }
-                    }
-
-                    if (item.type === AccountType.CARD) {
-                        acc.cardDebt += liabilityAmountFromBalance(item.balance);
-                        acc.cardAccounts.push(item);
-                    } else if (item.type === AccountType.DEBT) {
-                        acc.debtDebt += liabilityAmountFromBalance(item.balance);
-                    }
-
-                    const existing = acc.typeBalanceMap.get(item.type);
-                    if (existing) {
-                        existing.balance += item.balance;
-                        existing.count += 1;
-                    } else {
-                        acc.typeBalanceMap.set(item.type, {
-                            type: item.type,
-                            balance: item.balance,
-                            count: 1,
-                            isLoanLike: item.isLoanLike,
-                        });
-                    }
-
-                    return acc;
-                },
-                {
-                    assets: 0,
-                    liabilities: 0,
-                    standingBalance: 0,
-                    cardDebt: 0,
-                    debtDebt: 0,
-                    cardAccounts: [] as AccountBalanceItem[],
-                    typeBalanceMap: new Map<string, AccountTypeBalanceItem>(),
-                },
-            );
-
-            const totalBalance = totals.standingBalance - totals.liabilities;
-            const now = new Date();
-            const cardCutoffs = totals.cardAccounts.map(item => ({
-                accountId: item.id,
-                cutoff: getLatestSettlementCutoff(now, item.settlementDay).toISOString(),
-            }));
-            const cardDeltaRows = await fetchCardBreakdownDeltas(cardCutoffs);
-            const cardDeltaMap = new Map(cardDeltaRows.map(row => [row.accountId, row]));
-            const cardBreakdowns: CardBreakdownItem[] = totals.cardAccounts.map(item => {
-                const deltas = cardDeltaMap.get(item.id);
-                const billGenerated = item.initialBalance + (deltas?.billedDelta ?? 0);
-                const current = deltas?.currentDelta ?? 0;
-
-                return {
-                    id: item.id,
-                    name: item.name,
-                    billGenerated,
-                    current,
-                    total: billGenerated + current,
-                    settlementDay: item.settlementDay,
-                };
+            const typeBalanceMap = new Map<string, AccountTypeBalanceItem>();
+            accountBalances.forEach(item => {
+                const existing = typeBalanceMap.get(item.type);
+                if (existing) {
+                    existing.balance += item.balance;
+                    existing.count += 1;
+                } else {
+                    typeBalanceMap.set(item.type, {
+                        type: item.type,
+                        balance: item.balance,
+                        count: 1,
+                        isLoanLike: item.isLoanLike,
+                    });
+                }
             });
+
+            const cardBreakdowns: CardBreakdownItem[] = cardRows.map(row => ({
+                id: row.accountId,
+                name: row.name,
+                billGenerated: row.billGenerated,
+                current: row.current,
+                total: row.total,
+                settlementDay: row.settlementDay,
+            }));
 
             const roots = accountBalances.filter(item => item.parentId === null);
             const reservesByParent = new Map<number, AccountBalanceItem[]>();
@@ -230,7 +162,7 @@ export function useAccountsSummary() {
                     reservesByParent.set(parentId, reserves);
                 });
 
-            const groups: AccountGroup[] = GROUP_ORDER.map(type => {
+            const groups = GROUP_ORDER.map(type => {
                 const rootAccounts = roots.filter(item => item.type === type);
                 if (rootAccounts.length === 0) return null;
 
@@ -263,16 +195,16 @@ export function useAccountsSummary() {
             }).filter((group): group is AccountGroup => Boolean(group));
 
             setSummary({
-                assets: totals.assets,
-                liabilities: totals.liabilities,
-                totalBalance,
-                standingBalance: totals.standingBalance,
-                overallDebt: totals.cardDebt + totals.debtDebt,
-                cardDebt: totals.cardDebt,
-                debtDebt: totals.debtDebt,
+                assets: summaryRow.assets,
+                liabilities: summaryRow.liabilities,
+                totalBalance: summaryRow.totalBalance,
+                standingBalance: summaryRow.standingBalance,
+                overallDebt: summaryRow.cardDebt + summaryRow.debtDebt,
+                cardDebt: summaryRow.cardDebt,
+                debtDebt: summaryRow.debtDebt,
                 accounts: accountBalances,
                 groups,
-                typeBalances: Array.from(totals.typeBalanceMap.values()),
+                typeBalances: Array.from(typeBalanceMap.values()),
                 cardBreakdowns,
             });
         } catch (error) {

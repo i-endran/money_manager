@@ -348,15 +348,28 @@ export const SettingsScreen = () => {
                         <FlatList
                             data={CURRENCIES}
                             keyExtractor={item => item.code}
+                            initialScrollIndex={Math.max(0, CURRENCIES.findIndex(c => c.code === currencyCode))}
+                            getItemLayout={(_, index) => ({
+                                length: (Spacing.lg + Spacing.xxs) * 2 + Typography.sizes.md,
+                                offset: ((Spacing.lg + Spacing.xxs) * 2 + Typography.sizes.md) * index,
+                                index,
+                            })}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
-                                    style={[styles.modalItem, { borderBottomColor: theme.border }]}
+                                    style={[
+                                        styles.modalItem,
+                                        { borderBottomColor: theme.border },
+                                        item.code === currencyCode && { backgroundColor: colors.primary + '15' },
+                                    ]}
                                     onPress={() => handleCurrencySelect(item)}
                                 >
                                     <Text style={[styles.modalItemText, { color: theme.text }]}>
                                         {item.symbol} {item.name}
                                     </Text>
-                                    <Text style={{ color: theme.textSecondary }}>{item.code}</Text>
+                                    {item.code === currencyCode
+                                        ? <Text style={[styles.selectedText, { color: colors.primary }]}>✓</Text>
+                                        : <Text style={{ color: theme.textSecondary }}>{item.code}</Text>
+                                    }
                                 </TouchableOpacity>
                             )}
                         />
@@ -521,7 +534,9 @@ const styles = StyleSheet.create({
         maxHeight: '50%',
         borderTopLeftRadius: Layout.radius.lg + Spacing.xs,
         borderTopRightRadius: Layout.radius.lg + Spacing.xs,
-        padding: Spacing.xl,
+        paddingTop: Spacing.xl,
+        paddingBottom: Spacing.xl,
+        overflow: 'hidden',
     },
     themeModalContent: {
         maxHeight: 240,
@@ -534,6 +549,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
     },
     modalTitle: {
         fontSize: Typography.sizes.lg,
@@ -544,7 +560,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: Spacing.lg + Spacing.xxs,
-        paddingHorizontal: Spacing.xs,
+        paddingHorizontal: Spacing.xl,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     modalItemText: {

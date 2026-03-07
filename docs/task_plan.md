@@ -46,3 +46,14 @@
 - [x] **UI Overhaul**: iOS Settings-style squircle lists throughout.
 - [x] **Features**: Carry Forward Balance toggle & opening balance row.
 - [x] **UX Polish**: Unified header bubble, centered titles, tightened spacing.
+
+## Accounts & UI Normalisation (Post-Release Polish)
+- [x] **Accounts Summary SQL**: Migrated aggregation to raw SQL helpers (`summarySql.ts`) with test coverage.
+- [x] **Style Preset System**: Added `FormHeaderPreset`, `LedgerRowDensityPreset`, `LedgerTextHierarchyPreset` to `presets.ts` for cross-screen consistency.
+- [x] **Accounts Summary page**: Title left-aligned at `xl(28px)`; reserve rows use left-border accent (`theme.primary`).
+- [x] **Manage Accounts**: Collapsible type sections with chevron; independent `+` circle per section; reserves indented with left-border; row padding/font matched to Accounts Summary.
+- [x] **Manage Categories**: Normal-case section titles; sub-categories use left-border indent (no `↳` arrow); fixed-width spacer for dot alignment.
+- [x] **Typography normalisation**: `FormHeaderPreset` applied to all management/form screen titles; form button sizes (`md`/`semibold`) consistent across AccountForm, TransactionForm.
+- [x] **Dark theme fix**: Sub-item left-border colour changed from `theme.border` to `theme.primary` for visibility in dark mode.
+- [x] **Settings pickers**: Theme and currency pickers show selected item highlight + checkmark; currency picker auto-scrolls to selection.
+- [x] **Theme picker bottom sheet**: Modal content uses edge-to-edge row backgrounds (no horizontal padding frame) for consistent selection highlight.

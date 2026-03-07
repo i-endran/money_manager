@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
+import { Colors, Layout, Spacing, Typography, FormHeaderPreset, LedgerRowDensityPreset, LedgerTextHierarchyPreset, useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq } from 'drizzle-orm';
@@ -18,14 +18,14 @@ import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flat
 import { runOnJS } from 'react-native-reanimated';
 
 // Helper to map AccountType to UI Display
-const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
-    [AccountType.CASH]: { title: '💵 CASH', emoji: '💵' },
-    [AccountType.BANK]: { title: '🏦 BANK', emoji: '🏦' },
-    [AccountType.CARD]: { title: '💳 CARDS', emoji: '💳' },
-    [AccountType.DEBT]: { title: '🧾 DEBT', emoji: '🧾' },
-    [AccountType.WALLET]: { title: '👛 WALLETS', emoji: '👛' },
-    [AccountType.DEPOSITS]: { title: '🏦 DEPOSITS', emoji: '🏦' },
-    [AccountType.CUSTOM]: { title: '📁 CUSTOM', emoji: '📁' },
+const TYPE_CONFIG: Record<string, { title: string }> = {
+    [AccountType.CASH]: { title: 'Cash' },
+    [AccountType.BANK]: { title: 'Bank' },
+    [AccountType.CARD]: { title: 'Cards' },
+    [AccountType.DEBT]: { title: 'Debt' },
+    [AccountType.WALLET]: { title: 'Wallets' },
+    [AccountType.DEPOSITS]: { title: 'Deposits' },
+    [AccountType.CUSTOM]: { title: 'Custom' },
 };
 
 type AccountWithReserves = schema.Account & { reserves: schema.Account[] };
@@ -34,6 +34,19 @@ export const AccountManagementScreen = ({ navigation }: any) => {
     const { theme, colors } = useAppTheme();
     const [accounts, setAccounts] = useState<schema.Account[]>([]);
     const [isEditing, setIsEditing] = useState(false);
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        [AccountType.CASH]: true,
+        [AccountType.BANK]: true,
+        [AccountType.CARD]: true,
+        [AccountType.DEBT]: true,
+        [AccountType.WALLET]: true,
+        [AccountType.DEPOSITS]: true,
+        [AccountType.CUSTOM]: true,
+    });
+
+    const toggleSection = (type: string) => {
+        setExpandedSections(prev => ({ ...prev, [type]: !prev[type] }));
+    };
 
     const load = useCallback(async () => {
         const list = await db.select().from(schema.accounts);
@@ -76,9 +89,9 @@ export const AccountManagementScreen = ({ navigation }: any) => {
         return grouped.filter(g => g.data.length > 0).map(g => ({
             title: TYPE_CONFIG[g.type].title,
             type: g.type,
-            data: g.data
+            data: expandedSections[g.type] ? g.data : [],
         }));
-    }, [rootsWithReserves]);
+    }, [rootsWithReserves, expandedSections]);
 
     const handleDragEnd = ({ data }: { data: AccountWithReserves[] }) => {
         // Update local state by reconstructing flat accounts array
@@ -110,19 +123,22 @@ export const AccountManagementScreen = ({ navigation }: any) => {
     };
 
     const renderReserve = (reserve: schema.Account, _isLastReserve: boolean) => (
-        <View key={reserve.id} style={styles.reserveRowContainer}>
+        <View key={reserve.id} style={[styles.reserveRowContainer, { borderLeftWidth: 2, borderLeftColor: theme.primary }]}>
             <TouchableOpacity
                 style={styles.reserveRow}
                 activeOpacity={0.6}
                 onPress={() => !isEditing && navigation.navigate('AccountForm', { accountId: reserve.id })}
                 disabled={isEditing}
             >
-                <Text style={[styles.reserveName, { color: theme.textSecondary }]}>↳ {reserve.name}</Text>
+                <Text style={[styles.reserveName, { color: theme.textSecondary }]}>{reserve.name}</Text>
                 {!isEditing && (
-                    <View style={[
-                        styles.statusDot,
-                        { backgroundColor: reserve.isActive ? theme.statusActive : theme.statusInactive }
-                    ]} />
+                    <View style={styles.rootActions}>
+                        <View style={[
+                            styles.statusDot,
+                            { backgroundColor: reserve.isActive ? theme.statusActive : theme.statusInactive }
+                        ]} />
+                        <View style={styles.addReserveBtn} />
+                    </View>
                 )}
             </TouchableOpacity>
         </View>
@@ -175,13 +191,13 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         <View style={styles.rootActions}>
                             <View style={[
                                 styles.statusDot,
-                                { backgroundColor: item.isActive ? theme.statusActive : theme.statusInactive, marginRight: Spacing.lg }
+                                { backgroundColor: item.isActive ? theme.statusActive : theme.statusInactive }
                             ]} />
                             <TouchableOpacity
-                                style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
+                                style={styles.addReserveBtn}
                                 onPress={() => navigation.navigate('AccountForm', { parentId: item.id })}
                             >
-                                <Icon name="add" size={16} color={colors.primary} />
+                                <Text style={[styles.sectionPlusBtn, { color: colors.primary }]}>+</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -232,13 +248,24 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                     renderItem={({ item, index, section }) =>
                         renderNode(item, index === 0, index === section.data.length - 1)
                     }
-                    renderSectionHeader={({ section: { title, type } }) => (
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('AccountForm', { initialType: type })}>
+                    renderSectionHeader={({ section: { title, type }, section }) => (
+                        <TouchableOpacity
+                            activeOpacity={0.6}
+                            style={styles.sectionHeader}
+                            onPress={() => toggleSection(type)}>
+                            <View style={styles.sectionHeaderContent}>
+                                <Icon
+                                    name={expandedSections[type] ? 'expand-more' : 'chevron-right'}
+                                    size={20}
+                                    color={theme.textSecondary}
+                                    style={styles.sectionChevronIcon}
+                                />
+                                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
+                            </View>
+                            <TouchableOpacity onPress={(e) => { e.stopPropagation(); navigation.navigate('AccountForm', { initialType: type }); }}>
                                 <Icon name="add-circle" size={22} color={colors.primary} />
                             </TouchableOpacity>
-                        </View>
+                        </TouchableOpacity>
                     )}
                     stickySectionHeadersEnabled={false}
                     ListEmptyComponent={
@@ -263,30 +290,35 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     headerBtn: { padding: Spacing.xs, minWidth: 60, alignItems: 'center' },
-    headerButtonText: { fontSize: Typography.sizes.md },
+    headerButtonText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium },
     headerActionText: {
         fontSize: Typography.sizes.md,
         fontWeight: Typography.weights.semibold,
     },
-    headerTitle: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
+    headerTitle: { ...FormHeaderPreset.title },
     listContent: {
         paddingHorizontal: Spacing.xl,
         paddingBottom: Spacing.xxxxxl,
-        paddingTop: Spacing.xl,
+        paddingTop: LedgerRowDensityPreset.paddingVertical,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: Spacing.md,
-        marginBottom: Spacing.md,
-        paddingHorizontal: Spacing.xs,
+        marginTop: Spacing.lg,
+        marginBottom: Spacing.xs,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
+        paddingVertical: Spacing.xs,
     },
     sectionTitle: {
-        fontSize: Typography.sizes.sm2,
-        fontWeight: Typography.weights.semibold,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
+    },
+    sectionHeaderContent: { flexDirection: 'row', alignItems: 'center' },
+    sectionChevronIcon: { marginRight: Spacing.xs },
+    sectionPlusBtn: {
+        fontSize: Typography.sizes.lg,
+        lineHeight: Typography.sizes.lg,
     },
     itemContainer: {
         overflow: 'hidden',
@@ -295,8 +327,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: Spacing.lg,
-        paddingHorizontal: Spacing.xl,
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
     rootInfo: {
         flexDirection: 'row',
@@ -304,11 +336,11 @@ const styles = StyleSheet.create({
     },
     dragHandleContainer: { marginRight: Spacing.xl },
     statusDot: {
-        width: Spacing.md + Spacing.xxs,
-        height: Spacing.md + Spacing.xxs,
-        borderRadius: (Spacing.md + Spacing.xxs) / 2,
+        width: Spacing.md,
+        height: Spacing.md,
+        borderRadius: Spacing.md / 2,
     },
-    name: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium },
+    name: { fontSize: LedgerTextHierarchyPreset.primary.fontSize, fontWeight: LedgerTextHierarchyPreset.primary.fontWeight },
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -329,12 +361,10 @@ const styles = StyleSheet.create({
     rootActions: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: Spacing.md,
     },
     addReserveBtn: {
-        width: Typography.sizes.xl,
-        height: Typography.sizes.xl,
-        borderRadius: Layout.radius.sm + Spacing.sm,
-        justifyContent: 'center',
+        width: Spacing.xxl,
         alignItems: 'center',
     },
     reservesContainer: {
@@ -349,13 +379,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: Spacing.md + Spacing.xxs,
-        paddingRight: Spacing.xl,
-        paddingLeft: Spacing.xxxl + Spacing.md + Spacing.xxs,
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingRight: LedgerRowDensityPreset.paddingHorizontal,
+        paddingLeft: Spacing.xl,
     },
     reserveName: {
-        fontSize: Typography.sizes.sm2 + Spacing.xxs,
-        marginLeft: Spacing.md,
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
     },
     emptyContainer: {
         padding: Spacing.xxxxxl,

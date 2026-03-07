@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
     Colors,
     FormDensityPreset,
+    FormHeaderPreset,
     LedgerTextHierarchyPreset,
     Spacing,
     Typography,
@@ -517,12 +518,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelText: {
-        ...FormTextRoles.value,
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
     },
     headerSpacer: {
         width: Spacing.xxxxl + Spacing.md,
     },
-    title: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
+    title: { ...FormHeaderPreset.title },
     keyboardContainer: {
         flex: 1,
     },
