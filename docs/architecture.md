@@ -77,6 +77,56 @@ src/core/
   - `FormHeaderPreset` — management/form screen title font
 - **Sub-item Left-Border**: Reserve accounts and sub-categories are visually indented using `borderLeftWidth: 2, borderLeftColor: theme.primary` (visible in both Light and Dark themes).
 
+### Known UI race conditions and store subscription pitfalls
+
+A recurring class of bugs has been observed which can cause blank screens, flickers, or incorrect ledger summaries during navigation — especially on iOS where tab transitions briefly render both screens during shift animations. The following guidelines explain the problem and recommended patterns to avoid it.
+
+- Over-subscribing to Zustand stores
+  - Problem: Using `useStore()` without a selector subscribes the component to all store changes and causes re-renders on unrelated updates.
+  - Recommendation: Use selectors to subscribe only to fields the component needs, e.g. `const currencySymbol = useSettingsStore(state => state.currencySymbol)`.
+
+- Hidden re-renders when unfocused
+  - Problem: Calling data loaders in effects that run while the screen is not focused (e.g., `useEffect([load, refreshTick])`) can set loading states on hidden screens. If the user navigates back during an animation, the screen appears blank or stuck on a loading message.
+  - Recommendation: Guard data fetching with `useIsFocused()` and a single `useEffect`:
+
+```ts
+const isFocused = useIsFocused();
+useEffect(() => {
+  if (!isFocused) return;
+  load();
+}, [isFocused, load, refreshTick]);
+```
+
+- Double-loading race conditions
+  - Problem: Using both `useFocusEffect` and a separate `useEffect` to call the same `load()` function can trigger concurrent fetches that race and leave inconsistent state.
+  - Recommendation: Prefer the single guarded `useEffect` pattern above. If `useFocusEffect` is required, ensure other effects do not also call the same loader.
+
+- Loading spinner flash during refetch
+  - Problem: Setting `loading=true` for every refetch causes the screen to briefly show a loading placeholder (or completely blank) while new data is being fetched.
+  - Recommendation: Only show the loading UI on the first load. For subsequent refetches, keep the stale data visible until the new results arrive. Example pattern inside a data hook:
+
+```ts
+const hasLoadedOnce = useRef(false);
+const load = useCallback(async () => {
+  if (!hasLoadedOnce.current) setLoading(true);
+  try {
+    await fetchData();
+    hasLoadedOnce.current = true;
+  } finally {
+    setLoading(false);
+  }
+}, []);
+```
+
+- Tab animation artifacts
+  - Note: iOS tab navigator `shift` animation may render both the origin and destination tabs during the animation. Avoid state updates that replace content with placeholders while an animation is in progress.
+
+- Testing and Code Review Checklist
+  - Add a checklist item for UI race conditions in code reviews: "Does this screen fetch data only when focused? Are Zustand selectors used for store subscriptions? Is initial loading vs refetch handled to avoid flashes?"
+  - Add an automated E2E test that simulates rapid navigation between Ledger and Accounts while a background refreshTick fires.
+
+---
+
 ---
 
 ## `src/database/` – Database Layer
