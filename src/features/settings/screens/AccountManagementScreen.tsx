@@ -256,7 +256,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                             <View style={styles.sectionHeaderContent}>
                                 <Icon
                                     name={expandedSections[type] ? 'expand-more' : 'chevron-right'}
-                                    size={20}
+                                    size={14}
                                     color={theme.textSecondary}
                                     style={styles.sectionChevronIcon}
                                 />
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: Spacing.lg,
         marginBottom: Spacing.xs,
-        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
+        paddingRight: LedgerRowDensityPreset.paddingHorizontal,
         paddingVertical: Spacing.xs,
     },
     sectionTitle: {
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
         fontWeight: Typography.weights.medium,
     },
     sectionHeaderContent: { flexDirection: 'row', alignItems: 'center' },
-    sectionChevronIcon: { marginRight: Spacing.xs },
+    sectionChevronIcon: { marginRight: Spacing.xxs },
     sectionPlusBtn: {
         fontSize: Typography.sizes.lg,
         lineHeight: Typography.sizes.lg,
