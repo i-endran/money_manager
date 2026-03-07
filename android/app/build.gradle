@@ -81,7 +81,7 @@ android {
 
     namespace "com.moneymanager.app"
     defaultConfig {
-        applicationId "com.moneymanager.app"
+        applicationId "com.qubitPixel.pocketLog"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

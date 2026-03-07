@@ -281,7 +281,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.moneymanager.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.qubitPixel.pocketLog;
 				PRODUCT_NAME = MoneyManager;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -310,7 +310,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.moneymanager.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.qubitPixel.pocketLog;
 				PRODUCT_NAME = MoneyManager;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
