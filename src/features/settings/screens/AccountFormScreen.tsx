@@ -21,7 +21,7 @@ import {
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { AccountType } from '../../../core/constants';
+import { AccountType, LABEL_OPT_OUT, LABEL_OPT_OUT_FULL, LABEL_OPT_OUT_DESCRIPTION, LABEL_OPT_OUT_MANDATORY_DESCRIPTION } from '../../../core/constants';
 import { BlurView } from '@react-native-community/blur';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { isMandatoryClosedBoxType, normalizeInitialBalanceByType } from '../../../core/utils';
@@ -206,7 +206,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
         setExcludeFromSummaries(newValue);
         if (newValue && !accountId) {
             Alert.alert(
-                'Opt Out of Summaries',
+                LABEL_OPT_OUT_FULL,
                 'This account will be excluded from your Total Income and Expense summaries. Transfers to/from it will still be counted as expense/income in the overall ledger.'
             );
         }
@@ -322,11 +322,11 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 {!isReserveMode && (
                     <View style={[styles.switchGroup, styles.switchGroupWithMargin]}>
                         <View style={styles.switchDescriptionContainer}>
-                            <Text style={[styles.closedBoxLabel, { color: theme.text }]}>Opt Out of Summaries</Text>
+                            <Text style={[styles.closedBoxLabel, { color: theme.text }]}>{LABEL_OPT_OUT_FULL}</Text>
                             <Text style={[styles.closedBoxDescription, { color: theme.textSecondary }]}>
                                 {isMandatoryClosedBoxAccountType
-                                    ? `Mandatory for ${type.toUpperCase()} accounts. Excluded from income/expense summary calculations.`
-                                    : 'Excluded from income/expense summary calculations. Transfers to/from this account are treated as expense/income.'}
+                                    ? LABEL_OPT_OUT_MANDATORY_DESCRIPTION(type)
+                                    : LABEL_OPT_OUT_DESCRIPTION}
                             </Text>
                         </View>
                         <TouchableOpacity

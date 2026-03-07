@@ -12,7 +12,7 @@ import { Colors, Layout, Spacing, Typography, FormHeaderPreset, LedgerRowDensity
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq } from 'drizzle-orm';
-import { AccountType } from '../../../core/constants';
+import { AccountType, LABEL_OPT_OUT } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { runOnJS } from 'react-native-reanimated';
@@ -180,7 +180,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                                 <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
                                 {!isEditing && item.excludeFromSummaries && (
                                     <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                        <Text style={styles.badgeText}>Opt Out</Text>
+                                        <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
                                     </View>
                                 )}
                             </View>

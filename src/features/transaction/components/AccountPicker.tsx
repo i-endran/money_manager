@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { Account } from '../../../database/schema';
+import { LABEL_OPT_OUT } from '../../../core/constants';
 
 interface AccountPickerProps {
     visible: boolean;
@@ -106,7 +107,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                 {item.excludeFromSummaries && (
                     <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
                         <Text style={[styles.closedBoxBadgeText, { color: colors.expense }]}>
-                            Opt Out
+                            {LABEL_OPT_OUT}
                         </Text>
                     </View>
                 )}

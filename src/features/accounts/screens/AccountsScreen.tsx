@@ -18,7 +18,7 @@ import { formatCurrency } from '../../../core/utils';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
-import { AccountType } from '../../../core/constants';
+import { AccountType, LABEL_OPT_OUT } from '../../../core/constants';
 import { isLoanLikeType, liabilityAmountFromBalance } from '../../../core/utils';
 import { AccountBalanceItem, AccountGroup, useAccountsSummary } from '../hooks/useAccountsSummary';
 
@@ -151,7 +151,7 @@ export const AccountsScreen: React.FC = () => {
                                                 <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{group.label}</Text>
                                                 {group.isClosedBoxType && (
                                                     <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                                        <Text style={styles.badgeText}>Closed-Box</Text>
+                                                        <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
                                                     </View>
                                                 )}
                                             </View>
@@ -214,7 +214,7 @@ export const AccountsScreen: React.FC = () => {
                                                             </Text>
                                                             {row.item.isClosedBoxLike && !group.isClosedBoxType && (
                                                                 <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                                                    <Text style={styles.badgeText}>Closed-Box</Text>
+                                                                    <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
                                                                 </View>
                                                             )}
                                                         </View>
@@ -254,7 +254,7 @@ export const AccountsScreen: React.FC = () => {
                                             <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>{group.label}</Text>
                                             {group.isClosedBoxType && (
                                                 <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                                    <Text style={styles.badgeText}>Closed-Box</Text>
+                                                    <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
                                                 </View>
                                             )}
                                         </View>
@@ -306,7 +306,7 @@ export const AccountsScreen: React.FC = () => {
                                                         </Text>
                                                         {row.item.isClosedBoxLike && !group.isClosedBoxType && (
                                                             <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                                                <Text style={styles.badgeText}>Closed-Box</Text>
+                                                                <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
                                                             </View>
                                                         )}
                                                     </View>
