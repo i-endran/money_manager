@@ -1,23 +1,13 @@
 import { useCallback, useState } from 'react';
-import { eq } from 'drizzle-orm';
-import { db } from '../../../database';
-import { accounts, transactions } from '../../../database/schema';
-import { AccountType, TransactionType } from '../../../core/constants';
+import { AccountType } from '../../../core/constants';
 import {
-    isClosedBoxLikeAccount,
     isLoanLikeType,
     liabilityAmountFromBalance,
-    normalizeInitialBalanceByType,
 } from '../../../core/utils';
-
-type TransactionRow = {
-    id: number;
-    amount: number;
-    type: string;
-    accountId: number;
-    linkedTransactionId: number | null;
-    date: string;
-};
+import {
+    fetchAccountBalanceRows,
+    fetchCardBreakdownDeltas,
+} from '../../../database/summarySql';
 
 export type AccountBalanceItem = {
     id: number;
@@ -111,20 +101,6 @@ function createEmptySummary(): SummaryState {
     };
 }
 
-function transferDelta(txn: TransactionRow): number {
-    if (txn.linkedTransactionId) {
-        return txn.id < txn.linkedTransactionId ? -txn.amount : txn.amount;
-    }
-    return -txn.amount;
-}
-
-function transactionDelta(txn: TransactionRow): number {
-    if (txn.type === TransactionType.INCOME) return txn.amount;
-    if (txn.type === TransactionType.EXPENSE) return -txn.amount;
-    if (txn.type === TransactionType.TRANSFER) return transferDelta(txn);
-    return 0;
-}
-
 function getLatestSettlementCutoff(now: Date, settlementDay: number): Date {
     const boundedDay = Math.max(1, Math.min(31, settlementDay || 28));
     const thisMonthLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -161,105 +137,77 @@ export function useAccountsSummary() {
         setLoading(true);
         try {
 
-            const [activeAccounts, transactionRows] = await Promise.all([
-                db.select().from(accounts).where(eq(accounts.isActive, true)),
-                db
-                    .select({
-                        id: transactions.id,
-                        amount: transactions.amount,
-                        type: transactions.type,
-                        accountId: transactions.accountId,
-                        linkedTransactionId: transactions.linkedTransactionId,
-                        date: transactions.date,
-                    })
-                    .from(transactions),
-            ]);
+            const accountRows = await fetchAccountBalanceRows();
 
-        const balances = new Map<number, number>();
-        const transactionsByAccount = new Map<number, TransactionRow[]>();
-
-        activeAccounts.forEach(account => {
-            balances.set(account.id, normalizeInitialBalanceByType(account.type, account.initialBalance));
-            transactionsByAccount.set(account.id, []);
-        });
-
-        transactionRows.forEach(txn => {
-            if (!balances.has(txn.accountId)) return;
-            const delta = transactionDelta(txn);
-            balances.set(txn.accountId, (balances.get(txn.accountId) || 0) + delta);
-            transactionsByAccount.get(txn.accountId)?.push(txn);
-        });
-
-        const accountBalances: AccountBalanceItem[] = activeAccounts
-            .map(account => ({
+            const accountBalances: AccountBalanceItem[] = accountRows.map(account => ({
                 id: account.id,
                 name: account.name,
                 type: account.type,
                 parentId: account.parentId,
                 sortOrder: account.sortOrder,
-                initialBalance: normalizeInitialBalanceByType(account.type, account.initialBalance),
-                isLoanLike: isLoanLikeType(account.type),
-                isClosedBoxLike: isClosedBoxLikeAccount(account),
-                balance: balances.get(account.id) || 0,
+                initialBalance: account.initialBalance,
+                isLoanLike: account.isLoanLike,
+                isClosedBoxLike: account.isClosedBoxLike,
+                balance: account.balance,
                 settlementDay: account.settlementDay || 28,
-            }))
-            .sort((a, b) => {
-                if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-                return a.name.localeCompare(b.name);
-            });
+            }));
 
-        const assets = accountBalances
-            .filter(item => !item.isLoanLike)
-            .reduce((sum, item) => sum + item.balance, 0);
-        const liabilities = accountBalances
-            .filter(item => item.isLoanLike)
-            .reduce((sum, item) => sum + liabilityAmountFromBalance(item.balance), 0);
-        const standingBalance = accountBalances
-            .filter(item => !item.isClosedBoxLike && !item.isLoanLike)
-            .reduce((sum, item) => sum + item.balance, 0);
-        const totalBalance = standingBalance - liabilities;
-
-        const cardDebt = accountBalances
-            .filter(item => item.type === AccountType.CARD)
-            .reduce((sum, item) => sum + liabilityAmountFromBalance(item.balance), 0);
-        const debtDebt = accountBalances
-            .filter(item => item.type === AccountType.DEBT)
-            .reduce((sum, item) => sum + liabilityAmountFromBalance(item.balance), 0);
-
-        const typeBalanceMap = new Map<string, AccountTypeBalanceItem>();
-        accountBalances.forEach(item => {
-            const existing = typeBalanceMap.get(item.type);
-            if (existing) {
-                existing.balance += item.balance;
-                existing.count += 1;
-            } else {
-                typeBalanceMap.set(item.type, {
-                    type: item.type,
-                    balance: item.balance,
-                    count: 1,
-                    isLoanLike: item.isLoanLike,
-                });
-            }
-        });
-
-        const now = new Date();
-        const cardBreakdowns: CardBreakdownItem[] = accountBalances
-            .filter(item => item.type === AccountType.CARD)
-            .map(item => {
-                const cutoff = getLatestSettlementCutoff(now, item.settlementDay);
-                const cardTransactions = transactionsByAccount.get(item.id) || [];
-                let billGenerated = item.initialBalance;
-                let current = 0;
-
-                cardTransactions.forEach(txn => {
-                    const delta = transactionDelta(txn);
-                    const txnDate = new Date(txn.date);
-                    if (txnDate <= cutoff) {
-                        billGenerated += delta;
+            const totals = accountBalances.reduce(
+                (acc, item) => {
+                    if (item.isLoanLike) {
+                        acc.liabilities += liabilityAmountFromBalance(item.balance);
                     } else {
-                        current += delta;
+                        acc.assets += item.balance;
+                        if (!item.isClosedBoxLike) {
+                            acc.standingBalance += item.balance;
+                        }
                     }
-                });
+
+                    if (item.type === AccountType.CARD) {
+                        acc.cardDebt += liabilityAmountFromBalance(item.balance);
+                        acc.cardAccounts.push(item);
+                    } else if (item.type === AccountType.DEBT) {
+                        acc.debtDebt += liabilityAmountFromBalance(item.balance);
+                    }
+
+                    const existing = acc.typeBalanceMap.get(item.type);
+                    if (existing) {
+                        existing.balance += item.balance;
+                        existing.count += 1;
+                    } else {
+                        acc.typeBalanceMap.set(item.type, {
+                            type: item.type,
+                            balance: item.balance,
+                            count: 1,
+                            isLoanLike: item.isLoanLike,
+                        });
+                    }
+
+                    return acc;
+                },
+                {
+                    assets: 0,
+                    liabilities: 0,
+                    standingBalance: 0,
+                    cardDebt: 0,
+                    debtDebt: 0,
+                    cardAccounts: [] as AccountBalanceItem[],
+                    typeBalanceMap: new Map<string, AccountTypeBalanceItem>(),
+                },
+            );
+
+            const totalBalance = totals.standingBalance - totals.liabilities;
+            const now = new Date();
+            const cardCutoffs = totals.cardAccounts.map(item => ({
+                accountId: item.id,
+                cutoff: getLatestSettlementCutoff(now, item.settlementDay).toISOString(),
+            }));
+            const cardDeltaRows = await fetchCardBreakdownDeltas(cardCutoffs);
+            const cardDeltaMap = new Map(cardDeltaRows.map(row => [row.accountId, row]));
+            const cardBreakdowns: CardBreakdownItem[] = totals.cardAccounts.map(item => {
+                const deltas = cardDeltaMap.get(item.id);
+                const billGenerated = item.initialBalance + (deltas?.billedDelta ?? 0);
+                const current = deltas?.currentDelta ?? 0;
 
                 return {
                     id: item.id,
@@ -271,60 +219,60 @@ export function useAccountsSummary() {
                 };
             });
 
-        const roots = accountBalances.filter(item => item.parentId === null);
-        const reservesByParent = new Map<number, AccountBalanceItem[]>();
-        accountBalances
-            .filter(item => item.parentId !== null)
-            .forEach(item => {
-                const parentId = item.parentId as number;
-                const reserves = reservesByParent.get(parentId) || [];
-                reserves.push(item);
-                reservesByParent.set(parentId, reserves);
-            });
-
-        const groups: AccountGroup[] = GROUP_ORDER.map(type => {
-            const rootAccounts = roots.filter(item => item.type === type);
-            if (rootAccounts.length === 0) return null;
-
-            const groupedAccounts: AccountWithReserves[] = rootAccounts.map(item => {
-                const reserves = (reservesByParent.get(item.id) || []).sort((a, b) => {
-                    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-                    return a.name.localeCompare(b.name);
+            const roots = accountBalances.filter(item => item.parentId === null);
+            const reservesByParent = new Map<number, AccountBalanceItem[]>();
+            accountBalances
+                .filter(item => item.parentId !== null)
+                .forEach(item => {
+                    const parentId = item.parentId as number;
+                    const reserves = reservesByParent.get(parentId) || [];
+                    reserves.push(item);
+                    reservesByParent.set(parentId, reserves);
                 });
+
+            const groups: AccountGroup[] = GROUP_ORDER.map(type => {
+                const rootAccounts = roots.filter(item => item.type === type);
+                if (rootAccounts.length === 0) return null;
+
+                const groupedAccounts: AccountWithReserves[] = rootAccounts.map(item => {
+                    const reserves = (reservesByParent.get(item.id) || []).sort((a, b) => {
+                        if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+                        return a.name.localeCompare(b.name);
+                    });
+                    return {
+                        ...item,
+                        reserves,
+                    };
+                });
+
+                const total = groupedAccounts.reduce((sum, item) => {
+                    const reserveTotal = item.reserves.reduce((reserveSum, reserve) => reserveSum + reserve.balance, 0);
+                    return sum + item.balance + reserveTotal;
+                }, 0);
+                const groupRows = groupedAccounts.flatMap(item => [item, ...item.reserves]);
+                const isClosedBoxType = groupRows.length > 0 && groupRows.every(item => item.isClosedBoxLike);
+
                 return {
-                    ...item,
-                    reserves,
+                    type,
+                    label: GROUP_LABELS[type] || type,
+                    accounts: groupedAccounts,
+                    total,
+                    isLoanLike: isLoanLikeType(type),
+                    isClosedBoxType,
                 };
-            });
-
-            const total = groupedAccounts.reduce((sum, item) => {
-                const reserveTotal = item.reserves.reduce((reserveSum, reserve) => reserveSum + reserve.balance, 0);
-                return sum + item.balance + reserveTotal;
-            }, 0);
-            const groupRows = groupedAccounts.flatMap(item => [item, ...item.reserves]);
-            const isClosedBoxType = groupRows.length > 0 && groupRows.every(item => item.isClosedBoxLike);
-
-            return {
-                type,
-                label: GROUP_LABELS[type] || type,
-                accounts: groupedAccounts,
-                total,
-                isLoanLike: isLoanLikeType(type),
-                isClosedBoxType,
-            };
-        }).filter((group): group is AccountGroup => Boolean(group));
+            }).filter((group): group is AccountGroup => Boolean(group));
 
             setSummary({
-                assets,
-                liabilities,
+                assets: totals.assets,
+                liabilities: totals.liabilities,
                 totalBalance,
-                standingBalance,
-                overallDebt: cardDebt + debtDebt,
-                cardDebt,
-                debtDebt,
+                standingBalance: totals.standingBalance,
+                overallDebt: totals.cardDebt + totals.debtDebt,
+                cardDebt: totals.cardDebt,
+                debtDebt: totals.debtDebt,
                 accounts: accountBalances,
                 groups,
-                typeBalances: Array.from(typeBalanceMap.values()),
+                typeBalances: Array.from(totals.typeBalanceMap.values()),
                 cardBreakdowns,
             });
         } catch (error) {

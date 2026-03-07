@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { AccountType, TransactionType } from '../core/constants';
 
 type SqlRow = Record<string, unknown>;
@@ -61,6 +62,31 @@ export type AccountSummary = {
     holding: number;
     payable: number;
     current: number;
+};
+
+export type CardCutoff = {
+    accountId: number;
+    cutoff: string;
+};
+
+export type CardBreakdownDeltaRow = {
+    accountId: number;
+    billedDelta: number;
+    currentDelta: number;
+};
+
+type AccountBalanceSqlRow = {
+    id: number;
+    name: string;
+    type: string;
+    parent_id: number | null;
+    sort_order: number;
+    exclude_from_summaries: number | boolean;
+    settlement_day: number | null;
+    initial_balance: number;
+    is_loan_like: number | boolean;
+    is_closed_box_like: number | boolean;
+    balance: number;
 };
 
 const accountBalancesCte = `
@@ -256,6 +282,64 @@ export function parseAccountBalances(rows: unknown[]): AccountBalancesSummary {
         current,
         accounts,
     };
+}
+
+export async function fetchAccountBalanceRows(): Promise<AccountBalance[]> {
+    const { db } = await import('./index');
+    const rows = await db.all<AccountBalanceSqlRow>(sql.raw(ACCOUNT_BALANCES_SQL));
+    return rows.map(row => ({
+        id: toNumber(row.id),
+        name: toStringValue(row.name),
+        type: toStringValue(row.type),
+        parentId: toNullableNumber(row.parent_id),
+        sortOrder: toNumber(row.sort_order),
+        excludeFromSummaries: toBoolean(row.exclude_from_summaries),
+        settlementDay: toNumber(row.settlement_day, 28),
+        initialBalance: toNumber(row.initial_balance),
+        isLoanLike: toBoolean(row.is_loan_like),
+        isClosedBoxLike: toBoolean(row.is_closed_box_like),
+        balance: toNumber(row.balance),
+    }));
+}
+
+const transactionDeltaSql = sql<number>`
+    CASE
+        WHEN t.type = ${TransactionType.INCOME} THEN t.amount
+        WHEN t.type = ${TransactionType.EXPENSE} THEN -t.amount
+        WHEN t.type = ${TransactionType.TRANSFER} THEN
+            CASE
+                WHEN t.linked_transaction_id IS NOT NULL AND t.id < t.linked_transaction_id THEN -t.amount
+                WHEN t.linked_transaction_id IS NOT NULL THEN t.amount
+                ELSE -t.amount
+            END
+        ELSE 0
+    END
+`;
+
+export async function fetchCardBreakdownDeltas(
+    cutoffs: CardCutoff[],
+): Promise<CardBreakdownDeltaRow[]> {
+    if (cutoffs.length === 0) return [];
+
+    const { db } = await import('./index');
+    const values = cutoffs.map(cutoff => sql`(${cutoff.accountId}, ${cutoff.cutoff})`);
+
+    return db.all<CardBreakdownDeltaRow>(sql`
+        WITH card_cutoffs(account_id, cutoff) AS (VALUES ${sql.join(values, sql`, `)})
+        SELECT
+            c.account_id AS accountId,
+            COALESCE(
+                SUM(CASE WHEN t.date <= c.cutoff THEN ${transactionDeltaSql} ELSE 0 END),
+                0
+            ) AS billedDelta,
+            COALESCE(
+                SUM(CASE WHEN t.date > c.cutoff THEN ${transactionDeltaSql} ELSE 0 END),
+                0
+            ) AS currentDelta
+        FROM card_cutoffs c
+        LEFT JOIN transactions t ON t.account_id = c.account_id
+        GROUP BY c.account_id
+    `);
 }
 
 export function parseAccountSummary(rows: unknown[]): AccountSummary {
