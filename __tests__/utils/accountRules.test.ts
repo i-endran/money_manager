@@ -14,7 +14,7 @@ describe('Account Rules', () => {
         expect(isLoanLikeType('cash')).toBe(false);
     });
 
-    it('unifies closed-box-like behavior for debt and exclude flag', () => {
+    it('unifies opt-out-like behavior for debt and exclude flag', () => {
         expect(isClosedBoxLikeAccount({ type: 'debt', excludeFromSummaries: false })).toBe(true);
         expect(isClosedBoxLikeAccount({ type: 'bank', excludeFromSummaries: true })).toBe(true);
         expect(isClosedBoxLikeAccount({ type: 'bank', excludeFromSummaries: false })).toBe(false);

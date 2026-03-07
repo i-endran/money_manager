@@ -106,7 +106,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                 {item.excludeFromSummaries && (
                     <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
                         <Text style={[styles.closedBoxBadgeText, { color: colors.expense }]}>
-                            Closed-Box
+                            Opt Out
                         </Text>
                     </View>
                 )}

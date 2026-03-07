@@ -561,8 +561,16 @@ export type LedgerSummaryTotalsRow = {
 };
 
 function buildLedgerWhereClause(filters: LedgerFilters) {
-    const conditions = ['(t.linked_transaction_id IS NULL OR t.id < t.linked_transaction_id)'];
+    const conditions: string[] = [];
     const params: SqlParams = [];
+
+    // When filtering to a specific account we show that account's own transaction leg
+    // directly (t.account_id = ?).  Each leg already carries the correct effectiveType,
+    // so no pair de-duplication is needed.  Without an account filter we apply the
+    // standard de-dup to avoid double-counting transfer pairs in the global view.
+    if (typeof filters.accountId !== 'number') {
+        conditions.push('(t.linked_transaction_id IS NULL OR t.id < t.linked_transaction_id)');
+    }
 
     if (filters.startDate) {
         conditions.push('t.date >= ?');
@@ -580,14 +588,13 @@ function buildLedgerWhereClause(filters: LedgerFilters) {
     }
 
     if (typeof filters.accountId === 'number') {
-        conditions.push(
-            `(t.account_id = ? OR (t.type = '${TransactionType.TRANSFER}' AND t.to_account_id = ?))`,
-        );
-        params.push(filters.accountId, filters.accountId);
+        // Only this account's own leg — correct effectiveType is already encoded in it.
+        conditions.push('t.account_id = ?');
+        params.push(filters.accountId);
     }
 
     return {
-        whereClause: `WHERE ${conditions.join(' AND ')}`,
+        whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
         params,
     };
 }

@@ -206,8 +206,8 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
         setExcludeFromSummaries(newValue);
         if (newValue && !accountId) {
             Alert.alert(
-                'Closed-Box Account',
-                'This account will only allow Transfers. Its balance will not affect your Total Income or Expense summaries.'
+                'Opt Out of Summaries',
+                'This account will be excluded from your Total Income and Expense summaries. Transfers to/from it will still be counted as expense/income in the overall ledger.'
             );
         }
     };
@@ -322,11 +322,11 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 {!isReserveMode && (
                     <View style={[styles.switchGroup, styles.switchGroupWithMargin]}>
                         <View style={styles.switchDescriptionContainer}>
-                            <Text style={[styles.closedBoxLabel, { color: theme.text }]}>Closed-Box Account</Text>
+                            <Text style={[styles.closedBoxLabel, { color: theme.text }]}>Opt Out of Summaries</Text>
                             <Text style={[styles.closedBoxDescription, { color: theme.textSecondary }]}>
                                 {isMandatoryClosedBoxAccountType
-                                    ? `Mandatory for ${type.toUpperCase()} accounts. Only transfers allowed and excluded from income/expense calculations.`
-                                    : 'Only transfers allowed. Excluded from income/expense calculations.'}
+                                    ? `Mandatory for ${type.toUpperCase()} accounts. Excluded from income/expense summary calculations.`
+                                    : 'Excluded from income/expense summary calculations. Transfers to/from this account are treated as expense/income.'}
                             </Text>
                         </View>
                         <TouchableOpacity

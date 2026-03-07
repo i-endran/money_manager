@@ -14,7 +14,7 @@ describe('Ledger summary SQL', () => {
         db.close();
     });
 
-    it('treats closed-box transfers as income or expense', () => {
+    it('treats opt-out transfers as income or expense', () => {
         const start = '2024-06-01T00:00:00.000Z';
         const end = '2024-06-30T23:59:59.999Z';
         const { sql, params } = buildLedgerMonthlySummaryQuery({ startDate: start, endDate: end });

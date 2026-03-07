@@ -29,7 +29,7 @@ describe('Account summary SQL', () => {
         db.close();
     });
 
-    it('computes balances with transfers, loan-like, and closed-box flags', () => {
+    it('computes balances with transfers, loan-like, and opt-out flags', () => {
         const balances = db.prepare(accountBalancesSql).all() as AccountBalanceRow[];
         const byName = new Map(balances.map(row => [row.name, row]));
 

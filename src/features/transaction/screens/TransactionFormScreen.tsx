@@ -31,7 +31,6 @@ import { useSettingsStore } from '../../../stores/settingsStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { BlurView } from '@react-native-community/blur';
-import { isClosedBoxLikeAccount } from '../../../core/utils';
 
 const FormTextRoles = {
     label: LedgerTextHierarchyPreset.secondary,
@@ -121,9 +120,6 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
         if (newType !== type) {
             setType(newType);
             setSelectedCategory(null);
-            if (newType !== TransactionType.TRANSFER && selectedAccount && isClosedBoxLikeAccount(selectedAccount)) {
-                setSelectedAccount(null);
-            }
         }
     };
 
@@ -502,7 +498,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             <AccountPicker
                 visible={accPickerVisible}
                 onClose={() => setAccPickerVisible(false)}
-                accounts={type === TransactionType.TRANSFER ? accounts : accounts.filter(a => !isClosedBoxLikeAccount(a))}
+                accounts={accounts}
                 onSelect={setSelectedAccount}
                 title="Select Account"
             />

@@ -96,8 +96,8 @@ src/database/
 | `transactions` | Ledger entries | `amount`, `type`, `date`, `linkedTransactionId` |
 | `appSettings` | Key-value store | `key`, `value` |
 
-### Feature: Closed-Box Accounts & Nested Reserves
-Accounts support 1-level deep nesting (Reserves) and custom grouping. Accounts marked `excludeFromSummaries` (Closed-Box) do not participate directly in the monthly income/expense totals. Special ledger logic ensures transfers *to* a closed box count as expenses, while transfers *from* a closed box count as income.
+### Feature: Opt-Out Accounts & Nested Reserves
+Accounts support 1-level deep nesting (Reserves) and custom grouping. Accounts marked `excludeFromSummaries` (**Opt Out**) are excluded from the monthly income/expense totals. Direct income/expense transactions can still be recorded on opt-out accounts. Special ledger logic ensures transfers *to* an opt-out account count as expenses in the global view, while transfers *from* an opt-out account count as income. In an account-filtered ledger view, transfers are shown from that account's own perspective (credits = income, debits = expense).
 
 ### Feature: Carry Forward Balance
 The `appSettings` table stores a `carryForwardBalance` toggle. When enabled, the ledger hook queries all transactions prior to the current month to calculate an opening balance, which is then injected as a virtual row in the ledger.

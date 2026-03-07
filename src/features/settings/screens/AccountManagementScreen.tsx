@@ -180,7 +180,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                                 <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
                                 {!isEditing && item.excludeFromSummaries && (
                                     <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                        <Text style={styles.badgeText}>Closed-Box</Text>
+                                        <Text style={styles.badgeText}>Opt Out</Text>
                                     </View>
                                 )}
                             </View>

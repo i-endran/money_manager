@@ -77,7 +77,7 @@ All domain values (`TransactionType`, `AccountType`, `CategoryType`, `ThemeMode`
 Enforce exactly 2 decimal places on all currency amount inputs and display.
 
 ### Transfers are atomic (linked pairs)
-A transfer creates two `transactions` rows linked via `linkedTransactionId`. When deleting, always delete both entries. Transfers to a **closed-box account** (`excludeFromSummaries: true`) count as an expense; transfers from one count as income in summary calculations.
+A transfer creates two `transactions` rows linked via `linkedTransactionId`. When deleting, always delete both entries. Transfers to an **opt-out account** (`excludeFromSummaries: true`) count as an expense in the global ledger; transfers from one count as income. In an account-filtered view, the account's own transaction leg is shown — so a transfer credited to an opt-out account appears as income in that account's filtered view.
 
 ### Category hierarchy
 Categories are always 3 levels deep (`level: 1 | 2 | 3`). `MAX_CATEGORY_DEPTH = 3` is exported from constants. Pickers use drill-down navigation.
