@@ -68,6 +68,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
 
     const [createdAt, setCreatedAt] = useState<string | null>(null);
     const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+    const [linkedTxnId, setLinkedTxnId] = useState<number | null>(null);
 
     const [accPickerVisible, setAccPickerVisible] = useState(false);
     const [toAccPickerVisible, setToAccPickerVisible] = useState(false);
@@ -106,6 +107,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     setSelectedCategory(catList.find(c => c.id === txn.categoryId) || null);
                     setCreatedAt(txn.createdAt);
                     setUpdatedAt(txn.updatedAt);
+                    setLinkedTxnId(txn.linkedTransactionId ?? null);
                     if (txn.toAccountId) {
                         setToAccount(accList.find(a => a.id === txn.toAccountId) || null);
                     }
@@ -149,40 +151,67 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 }
 
                 await db.transaction(async (tx) => {
-                    // 1. Create Debit entry (From Account)
-                    const [res1] = await tx.insert(schema.transactions).values({
-                        amount: numericAmount,
-                        type: TransactionType.TRANSFER,
-                        accountId: selectedAccount.id,
-                        toAccountId: toAccount.id,
-                        categoryId: 0,
-                        note: note,
-                        description: description,
-                        date: dateStr,
-                        createdAt: now,
-                        updatedAt: now,
-                    }).returning({ insertedId: schema.transactions.id });
+                    if (transactionId && linkedTxnId) {
+                        // Edit existing transfer — update both legs in place
+                        await tx
+                            .update(schema.transactions)
+                            .set({
+                                amount: numericAmount,
+                                accountId: selectedAccount.id,
+                                toAccountId: toAccount.id,
+                                note,
+                                description,
+                                date: dateStr,
+                                updatedAt: now,
+                            })
+                            .where(eq(schema.transactions.id, transactionId));
 
-                    // 2. Create Credit entry (To Account)
-                    const [res2] = await tx.insert(schema.transactions).values({
-                        amount: numericAmount,
-                        type: TransactionType.TRANSFER,
-                        accountId: toAccount.id,
-                        toAccountId: selectedAccount.id,
-                        categoryId: 0,
-                        note: note,
-                        description: description,
-                        date: dateStr,
-                        linkedTransactionId: res1.insertedId,
-                        createdAt: now,
-                        updatedAt: now,
-                    }).returning({ insertedId: schema.transactions.id });
+                        await tx
+                            .update(schema.transactions)
+                            .set({
+                                amount: numericAmount,
+                                accountId: toAccount.id,
+                                toAccountId: selectedAccount.id,
+                                note,
+                                description,
+                                date: dateStr,
+                                updatedAt: now,
+                            })
+                            .where(eq(schema.transactions.id, linkedTxnId));
+                    } else {
+                        // New transfer — insert both legs and cross-link them
+                        const [res1] = await tx.insert(schema.transactions).values({
+                            amount: numericAmount,
+                            type: TransactionType.TRANSFER,
+                            accountId: selectedAccount.id,
+                            toAccountId: toAccount.id,
+                            categoryId: 0,
+                            note: note,
+                            description: description,
+                            date: dateStr,
+                            createdAt: now,
+                            updatedAt: now,
+                        }).returning({ insertedId: schema.transactions.id });
 
-                    // 3. Link back the first one
-                    await tx
-                        .update(schema.transactions)
-                        .set({ linkedTransactionId: res2.insertedId })
-                        .where(eq(schema.transactions.id, res1.insertedId));
+                        const [res2] = await tx.insert(schema.transactions).values({
+                            amount: numericAmount,
+                            type: TransactionType.TRANSFER,
+                            accountId: toAccount.id,
+                            toAccountId: selectedAccount.id,
+                            categoryId: 0,
+                            note: note,
+                            description: description,
+                            date: dateStr,
+                            linkedTransactionId: res1.insertedId,
+                            createdAt: now,
+                            updatedAt: now,
+                        }).returning({ insertedId: schema.transactions.id });
+
+                        await tx
+                            .update(schema.transactions)
+                            .set({ linkedTransactionId: res2.insertedId })
+                            .where(eq(schema.transactions.id, res1.insertedId));
+                    }
                 });
 
             } else {
