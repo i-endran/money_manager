@@ -16,13 +16,13 @@ import { AccountType } from '../../../core/constants';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { runOnJS } from 'react-native-reanimated';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Helper to map AccountType to UI Display
 const TYPE_CONFIG: Record<string, { title: string; emoji: string }> = {
     [AccountType.CASH]: { title: '💵 CASH', emoji: '💵' },
     [AccountType.BANK]: { title: '🏦 BANK', emoji: '🏦' },
     [AccountType.CARD]: { title: '💳 CARDS', emoji: '💳' },
+    [AccountType.DEBT]: { title: '🧾 DEBT', emoji: '🧾' },
     [AccountType.WALLET]: { title: '👛 WALLETS', emoji: '👛' },
     [AccountType.DEPOSITS]: { title: '🏦 DEPOSITS', emoji: '🏦' },
     [AccountType.CUSTOM]: { title: '📁 CUSTOM', emoji: '📁' },
@@ -62,6 +62,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
             { type: AccountType.CASH, data: [] as AccountWithReserves[] },
             { type: AccountType.BANK, data: [] as AccountWithReserves[] },
             { type: AccountType.CARD, data: [] as AccountWithReserves[] },
+            { type: AccountType.DEBT, data: [] as AccountWithReserves[] },
             { type: AccountType.WALLET, data: [] as AccountWithReserves[] },
             { type: AccountType.DEPOSITS, data: [] as AccountWithReserves[] },
             { type: AccountType.CUSTOM, data: [] as AccountWithReserves[] },

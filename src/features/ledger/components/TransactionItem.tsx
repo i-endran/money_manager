@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Typography, useAppTheme } from '../../../core/theme';
 import { formatCurrency, splitEmoji } from '../../../core/utils';
 import { TransactionType } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
@@ -36,7 +37,11 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <View style={[styles.container, { opacity: 0.5 }]}>
                 <View style={styles.left}>
                     <View style={[styles.iconPlaceholder, { backgroundColor: theme.border }]}>
-                        <Text style={styles.iconText}>{transaction.type === TransactionType.INCOME ? '📥' : '📤'}</Text>
+                        <Ionicons 
+                            name="arrow-up-outline" 
+                            size={16} 
+                            color={theme.textSecondary} 
+                        />
                     </View>
                     <View style={styles.details}>
                         <Text style={[styles.category, { color: theme.textSecondary }]}>
@@ -91,7 +96,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 10,
+        paddingVertical: 8,
         paddingHorizontal: 16,
     },
     left: {
@@ -100,33 +105,33 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     iconPlaceholder: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        marginRight: 10,
     },
     iconText: {
-        fontSize: 16,
+        fontSize: 14,
     },
     details: {
         flex: 1,
     },
     category: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '500',
     },
     note: {
-        fontSize: 12,
+        fontSize: 11,
         marginTop: 2,
     },
     right: {
         alignItems: 'flex-end',
     },
     amount: {
-        fontSize: 16,
-        fontWeight: '500',
+        fontSize: 13,
+        fontWeight: '600',
     },
     account: {
         fontSize: 10,

@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import { Typography, useAppTheme } from '../../../core/theme';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { useMonthlyLedger } from '../hooks/useMonthlyLedger';
 import { MonthSelector } from '../components/MonthSelector';
@@ -18,30 +18,48 @@ import { TransactionItem } from '../components/TransactionItem';
 import { formatCurrency } from '../../../core/utils';
 import { useSettingsStore } from '../../../stores/settingsStore';
 
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../navigation/RootNavigator';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { format } from 'date-fns';
+import { RootStackParamList, TabParamList } from '../../../navigation/RootNavigator';
+import { BottomTabNavigationProp, useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { format, subMonths } from 'date-fns';
 
 export const LedgerScreen: React.FC = () => {
     const { theme, colors, isDark } = useAppTheme();
     const { currentDate, nextMonth, prevMonth } = useLedgerStore();
-    const { data, summary, loading } = useMonthlyLedger();
+    const route = useRoute<RouteProp<TabParamList, 'Ledger'>>();
+    const activeFilterAccountId = route.params?.accountId as number | undefined;
+    const activeFilterAccountName = route.params?.accountName as string | undefined;
+    const hasAccountFilter = typeof activeFilterAccountId === 'number';
+    const { data, summary, loading } = useMonthlyLedger(activeFilterAccountId);
     const { currencySymbol } = useSettingsStore();
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const stackNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const tabNavigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
     const insets = useSafeAreaInsets();
     const tabBarHeight = useBottomTabBarHeight();
 
     const handleTransactionPress = (txn: any) => {
-        navigation.navigate('TransactionForm', { transactionId: txn.id });
+        stackNavigation.navigate('TransactionForm', { transactionId: txn.id });
     };
 
     const handleAddPress = () => {
-        navigation.navigate('TransactionForm');
+        stackNavigation.navigate('TransactionForm');
     };
 
-    const renderSectionHeader = ({ section: { title, dayIncome, dayExpense } }: any) => {
+    const clearAccountFilter = () => {
+        tabNavigation.setParams({
+            accountId: undefined,
+            accountName: undefined,
+            fromAccounts: undefined,
+        });
+    };
+
+    const goBackToAccounts = () => {
+        clearAccountFilter();
+        tabNavigation.navigate('Accounts');
+    };
+
+    const renderSectionHeader = ({ section: { title, dayIncome, dayExpense, isOpeningBalanceSection } }: any) => {
         const sectionDate = new Date(title);
         const weekendLabel = format(sectionDate, 'EEE').toUpperCase();
         const isWeekendDay = weekendLabel === 'SAT' || weekendLabel === 'SUN';
@@ -49,38 +67,34 @@ export const LedgerScreen: React.FC = () => {
 
         return (
             <TouchableOpacity
-                onPress={() => navigation.navigate('TransactionForm', { selectedDate: sectionDate.toISOString() })}
+                onPress={() => stackNavigation.navigate('TransactionForm', { selectedDate: sectionDate.toISOString() })}
                 style={styles.sectionHeader}>
                 <View style={styles.sectionLeft}>
-                    {isWeekendDay ? (
-                        <View style={styles.weekendBadge}>
-                            <Text style={styles.weekendBadgeText}>{dayStampLabel}</Text>
-                        </View>
+                    {isOpeningBalanceSection ? (
+                        <Text style={{ fontSize: Typography.sizes.sm, fontWeight: '600', color: theme.textSecondary }}>
+                            {format(subMonths(sectionDate, 1), 'MMMM')}
+                        </Text>
                     ) : (
-                        <View
-                            style={[
-                                styles.weekdayBadge,
-                                {
-                                    backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7',
-                                    borderColor: isDark ? '#3A3A3C' : '#E2E2E8',
-                                },
-                            ]}
-                        >
+                        isWeekendDay ? (
+                            <Text style={[styles.weekendBadgeText, { color: colors.expense }]}>
+                                {dayStampLabel}
+                            </Text>
+                        ) : (
                             <Text style={[styles.weekdayBadgeText, { color: isDark ? '#FFFFFF' : '#111111' }]}>
                                 {dayStampLabel}
                             </Text>
-                        </View>
+                        )
                     )}
                 </View>
                 <View style={styles.daySummary}>
                     {dayIncome > 0 && (
                         <Text style={[styles.daySummaryText, { color: colors.income }]}>
-                            +{formatCurrency(dayIncome, currencySymbol)}
+                            {formatCurrency(dayIncome, currencySymbol)}
                         </Text>
                     )}
                     {dayExpense > 0 && (
                         <Text style={[styles.daySummaryText, { color: colors.expense }]}>
-                            -{formatCurrency(dayExpense, currencySymbol)}
+                            {formatCurrency(dayExpense, currencySymbol)}
                         </Text>
                     )}
                     {dayIncome === 0 && dayExpense === 0 && (
@@ -124,6 +138,23 @@ export const LedgerScreen: React.FC = () => {
             <View style={[styles.header, { backgroundColor: theme.background }]}>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Pocket Log</Text>
             </View>
+
+            {hasAccountFilter && (
+                <View style={[styles.filterControls, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <TouchableOpacity onPress={goBackToAccounts} style={styles.filterButton}>
+                        <Text style={[styles.filterButtonText, { color: colors.primary }]}>Back</Text>
+                    </TouchableOpacity>
+                    <View style={styles.filterCenter}>
+                        <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>Filtered Account</Text>
+                        <Text style={[styles.filterAccountName, { color: theme.text }]}>
+                            {activeFilterAccountName || 'Account'}
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={clearAccountFilter} style={styles.filterButton}>
+                        <Text style={[styles.filterButtonText, { color: colors.primary }]}>Clear</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             <View style={[styles.summaryBubble, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <MonthSelector
@@ -187,16 +218,49 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
     },
     headerTitle: {
-        fontSize: 28,
+        fontSize: Typography.sizes.xl,
         fontWeight: 'bold',
     },
     summaryBubble: {
         marginHorizontal: 16,
-        marginTop: 8,
-        marginBottom: 10,
+        marginTop: 6,
+        marginBottom: 6, // Reduced from 10
         borderRadius: 12,
         borderWidth: StyleSheet.hairlineWidth,
         overflow: 'hidden',
+    },
+    filterControls: {
+        marginHorizontal: 16,
+        marginTop: 4,
+        marginBottom: 4,
+        borderRadius: 12,
+        borderWidth: StyleSheet.hairlineWidth,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+    },
+    filterButton: {
+        minWidth: 52,
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    filterButtonText: {
+        fontSize: Typography.sizes.sm,
+        fontWeight: '600',
+    },
+    filterCenter: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    filterLabel: {
+        fontSize: Typography.sizes.xs,
+        fontWeight: '500',
+    },
+    filterAccountName: {
+        fontSize: Typography.sizes.md,
+        fontWeight: '600',
+        marginTop: 2,
     },
     bubbleDivider: {
         height: StyleSheet.hairlineWidth,
@@ -214,21 +278,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
         paddingHorizontal: 16,
-        paddingTop: 8,
+        marginTop: 7,
     },
     sectionLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     weekendBadge: {
-        backgroundColor: '#C62828',
         borderRadius: 999,
         paddingHorizontal: 8,
         paddingVertical: 3,
     },
     weekendBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
+        fontSize: Typography.sizes.xs,
         fontWeight: '700',
         letterSpacing: 0.2,
     },
@@ -239,7 +301,7 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
     },
     weekdayBadgeText: {
-        fontSize: 10,
+        fontSize: Typography.sizes.xs,
         fontWeight: '600',
         letterSpacing: 0.2,
     },

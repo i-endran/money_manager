@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { eq, and, gte, lte, lt } from 'drizzle-orm';
+import { useIsFocused } from '@react-navigation/native';
+import { eq, and, or, gte, lte, lt } from 'drizzle-orm';
 import { db } from '../../../database';
 import { transactions, accounts, categories, appSettings } from '../../../database/schema';
 import { useLedgerStore } from '../../../stores/ledgerStore';
-import { getMonthRange, groupByDay } from '../../../core/utils';
+import { getMonthRange, groupByDay, isClosedBoxLikeAccount } from '../../../core/utils';
 import { TransactionType, SettingsKey } from '../../../core/constants';
 
 function parseStoredBoolean(value?: string): boolean {
@@ -20,13 +21,16 @@ function parseStoredBoolean(value?: string): boolean {
     }
 }
 
-export function useMonthlyLedger() {
+export function useMonthlyLedger(accountId?: number) {
     const { currentDate, refreshTick } = useLedgerStore();
+    const isFocused = useIsFocused();
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
 
     useEffect(() => {
+        if (!isFocused) return;
+
         async function fetchLedger() {
             setLoading(true);
             const { start, end } = getMonthRange(
@@ -44,16 +48,33 @@ export function useMonthlyLedger() {
                 settings.find(s => s.key === SettingsKey.CARRY_FORWARD_BALANCE)?.value,
             );
 
+            const accountFilter =
+                typeof accountId === 'number'
+                    ? or(
+                          eq(transactions.accountId, accountId),
+                          and(
+                              eq(transactions.type, TransactionType.TRANSFER),
+                              eq(transactions.toAccountId, accountId),
+                          ),
+                      )
+                    : undefined;
+
             let openingBalance = 0;
             if (carryForward) {
                 // Compute all income - expense before this month
-                const priorRows = await db
+                const priorRowsQuery = db
                     .select({ transaction: transactions })
                     .from(transactions)
-                    .where(lt(transactions.date, start.toISOString()));
+                    .where(
+                        accountFilter
+                            ? and(lt(transactions.date, start.toISOString()), accountFilter)
+                            : lt(transactions.date, start.toISOString()),
+                    );
+                const priorRows = await priorRowsQuery;
+                const sortedPriorRows = [...priorRows].sort((a, b) => a.transaction.id - b.transaction.id);
 
                 const priorIds = new Set<number>();
-                priorRows.forEach(row => {
+                sortedPriorRows.forEach(row => {
                     const txn = row.transaction;
                     if (priorIds.has(txn.id)) return;
 
@@ -65,9 +86,9 @@ export function useMonthlyLedger() {
                         const toAcc = txn.toAccountId ? accountMap.get(txn.toAccountId) : null;
 
                         if (fromAcc && toAcc) {
-                            if (!fromAcc.excludeFromSummaries && toAcc.excludeFromSummaries) {
+                            if (!isClosedBoxLikeAccount(fromAcc) && isClosedBoxLikeAccount(toAcc)) {
                                 openingBalance -= txn.amount;
-                            } else if (fromAcc.excludeFromSummaries && !toAcc.excludeFromSummaries) {
+                            } else if (isClosedBoxLikeAccount(fromAcc) && !isClosedBoxLikeAccount(toAcc)) {
                                 openingBalance += txn.amount;
                             }
                         }
@@ -93,7 +114,7 @@ export function useMonthlyLedger() {
                 return acc.name;
             };
 
-            const rows = await db
+            const rowsQuery = db
                 .select({
                     transaction: transactions,
                     categoryName: categories.name,
@@ -102,11 +123,19 @@ export function useMonthlyLedger() {
                 .from(transactions)
                 .leftJoin(categories, eq(transactions.categoryId, categories.id))
                 .where(
-                    and(
-                        gte(transactions.date, start.toISOString()),
-                        lte(transactions.date, end.toISOString()),
-                    ),
+                    accountFilter
+                        ? and(
+                              gte(transactions.date, start.toISOString()),
+                              lte(transactions.date, end.toISOString()),
+                              accountFilter,
+                          )
+                        : and(
+                              gte(transactions.date, start.toISOString()),
+                              lte(transactions.date, end.toISOString()),
+                          ),
                 );
+            const rows = await rowsQuery;
+            const sortedRows = [...rows].sort((a, b) => a.transaction.id - b.transaction.id);
 
             // Merge logic for transfers
             const mergedList: any[] = [];
@@ -115,7 +144,7 @@ export function useMonthlyLedger() {
             let totalIncome = 0;
             let totalExpense = 0;
 
-            rows.forEach(row => {
+            sortedRows.forEach(row => {
                 const txn = row.transaction;
                 if (mergedIds.has(txn.id)) return;
 
@@ -129,10 +158,10 @@ export function useMonthlyLedger() {
                     const toAcc = txn.toAccountId ? accountMap.get(txn.toAccountId) : null;
 
                     if (fromAcc && toAcc) {
-                        if (!fromAcc.excludeFromSummaries && toAcc.excludeFromSummaries) {
+                        if (!isClosedBoxLikeAccount(fromAcc) && isClosedBoxLikeAccount(toAcc)) {
                             effectiveType = TransactionType.EXPENSE;
                             totalExpense += txn.amount;
-                        } else if (fromAcc.excludeFromSummaries && !toAcc.excludeFromSummaries) {
+                        } else if (isClosedBoxLikeAccount(fromAcc) && !isClosedBoxLikeAccount(toAcc)) {
                             effectiveType = TransactionType.INCOME;
                             totalIncome += txn.amount;
                         }
@@ -163,9 +192,11 @@ export function useMonthlyLedger() {
 
             // Inject opening balance as a special section at the end (oldest date)
             if (carryForward) {
-                const obDate = start.toISOString().split('T')[0];
+                // Use start date directly to avoid timezone shifts
+                const obDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
                 grouped.push({
-                    title: new Date(obDate),
+                    title: obDate,
+                    isOpeningBalanceSection: true,
                     dayIncome: Math.max(0, openingBalance),
                     dayExpense: Math.max(0, -openingBalance),
                     data: [{
@@ -192,7 +223,7 @@ export function useMonthlyLedger() {
         }
 
         fetchLedger();
-    }, [currentDate, refreshTick]);
+    }, [accountId, currentDate, refreshTick, isFocused]);
 
     return { data, summary, loading };
 }

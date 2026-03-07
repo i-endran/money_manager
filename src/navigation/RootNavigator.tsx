@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigatorScreenParams } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from '@react-native-community/blur';
 
@@ -19,7 +20,7 @@ import { useAppTheme } from '../core/theme';
 
 // --- Type definitions ---
 export type RootStackParamList = {
-    MainTabs: undefined;
+    MainTabs: NavigatorScreenParams<TabParamList> | undefined;
     TransactionForm: { transactionId?: number; selectedDate?: string } | undefined;
     AccountManagement: undefined;
     CategoryManagement: undefined;
@@ -27,8 +28,14 @@ export type RootStackParamList = {
     CategoryForm: { categoryId?: number } | undefined;
 };
 
-type TabParamList = {
-    Ledger: undefined;
+export type TabParamList = {
+    Ledger:
+        | {
+              accountId?: number;
+              accountName?: string;
+              fromAccounts?: boolean;
+          }
+        | undefined;
     Accounts: undefined;
     Stats: undefined;
     Settings: undefined;
@@ -134,7 +141,22 @@ const MainTabs = () => {
                 },
             })}
         >
-            <Tab.Screen name="Ledger" component={LedgerScreen} />
+            <Tab.Screen
+                name="Ledger"
+                component={LedgerScreen}
+                listeners={({ navigation, route }) => ({
+                    tabPress: () => {
+                        const params = route.params as TabParamList['Ledger'];
+                        if (params?.fromAccounts) {
+                            navigation.setParams({
+                                accountId: undefined,
+                                accountName: undefined,
+                                fromAccounts: undefined,
+                            });
+                        }
+                    },
+                })}
+            />
             <Tab.Screen name="Accounts" component={AccountsScreen} />
             <Tab.Screen name="Stats" component={StatsScreen} />
             <Tab.Screen name="Settings" component={SettingsScreen} />

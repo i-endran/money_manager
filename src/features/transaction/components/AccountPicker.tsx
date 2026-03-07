@@ -51,11 +51,12 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
     const sections = useMemo(() => {
         if (currentParentId !== null) return [];
 
-        const typeOrder = ['bank', 'cash', 'card', 'wallet', 'deposits', 'custom'];
+        const typeOrder = ['bank', 'cash', 'card', 'debt', 'wallet', 'deposits', 'custom'];
         const typeLabels: Record<string, string> = {
             bank: '🏦 Bank Accounts',
             cash: '💵 Cash',
             card: '💳 Cards',
+            debt: '🧾 Debt',
             wallet: '📱 Digital Wallets',
             deposits: '🔒 Deposits',
             custom: '🏷️ Other',

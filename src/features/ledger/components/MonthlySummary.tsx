@@ -39,11 +39,11 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
             <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
             <View style={styles.item}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>Balance</Text>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Total</Text>
                 <Text
                     style={[
                         styles.value,
-                        { color: balance >= 0 ? colors.income : colors.expense },
+                        { color: theme.text },
                     ]}>
                     {formatCurrency(balance, currencySymbol)}
                 </Text>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     value: {
-        fontSize: 16,
+        fontSize: 14, // Reduced from 16
         fontWeight: 'bold',
     },
 });

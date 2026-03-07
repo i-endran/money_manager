@@ -16,6 +16,7 @@ import { eq, desc } from 'drizzle-orm';
 import { AccountType } from '../../../core/constants';
 import { BlurView } from '@react-native-community/blur';
 import { useLedgerStore } from '../../../stores/ledgerStore';
+import { isMandatoryClosedBoxType, normalizeInitialBalanceByType } from '../../../core/utils';
 
 export const AccountFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
@@ -30,12 +31,16 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     const [originalName, setOriginalName] = useState('');
     const [type, setType] = useState<AccountType>(initialType);
     const [initialBalance, setInitialBalance] = useState('');
+    const [settlementDay, setSettlementDay] = useState('10');
     const [isActive, setIsActive] = useState(true);
     const [excludeFromSummaries, setExcludeFromSummaries] = useState(false);
 
     const [parentCache, setParentCache] = useState<schema.Account | null>(null);
 
     const isReserveMode = !!parentId || (parentCache !== null);
+    const isDebtAccountType = type === AccountType.DEBT;
+    const isMandatoryClosedBoxAccountType = isMandatoryClosedBoxType(type);
+    const isCardAccountType = type === AccountType.CARD;
 
     useEffect(() => {
         async function load() {
@@ -46,8 +51,11 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                     setOriginalName(acc.name);
                     setType(acc.type as AccountType);
                     setInitialBalance(acc.initialBalance.toString());
+                    setSettlementDay(String(acc.settlementDay || 28));
                     setIsActive(acc.isActive);
-                    setExcludeFromSummaries(acc.excludeFromSummaries);
+                    setExcludeFromSummaries(
+                        isMandatoryClosedBoxType(acc.type) ? true : acc.excludeFromSummaries,
+                    );
 
                     if (acc.parentId) {
                         const [p] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, acc.parentId)).limit(1);
@@ -60,12 +68,35 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 if (p) {
                     setParentCache(p);
                     setType(p.type as AccountType);
-                    setExcludeFromSummaries(p.excludeFromSummaries);
+                    setExcludeFromSummaries(
+                        isMandatoryClosedBoxType(p.type) ? true : p.excludeFromSummaries,
+                    );
+                    setSettlementDay(String(p.settlementDay || 28));
                 }
             }
         }
         load();
     }, [accountId, parentId]);
+
+    useEffect(() => {
+        if (isMandatoryClosedBoxAccountType && !excludeFromSummaries) {
+            setExcludeFromSummaries(true);
+        }
+    }, [isMandatoryClosedBoxAccountType, excludeFromSummaries]);
+
+    const handleTypeSelect = (selectedType: AccountType) => {
+        const wasMandatoryClosedBoxType = isMandatoryClosedBoxType(type);
+        const nextMandatoryClosedBoxType = isMandatoryClosedBoxType(selectedType);
+        setType(selectedType);
+        if (nextMandatoryClosedBoxType) {
+            setExcludeFromSummaries(true);
+        } else if (!accountId && !isReserveMode && wasMandatoryClosedBoxType) {
+            setExcludeFromSummaries(false);
+        }
+        if (selectedType === AccountType.CARD && !settlementDay) {
+            setSettlementDay('28');
+        }
+    };
 
     const handleSave = async () => {
         if (!name.trim()) {
@@ -84,6 +115,12 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
         }
 
         const balance = parseFloat(initialBalance) || 0;
+        const normalizedSettlementDay = Math.max(1, Math.min(31, parseInt(settlementDay, 10) || 28));
+        const finalExcludeFromSummaries = isMandatoryClosedBoxType(type) ? true : excludeFromSummaries;
+        const finalSettlementDay = isReserveMode
+            ? (parentCache?.settlementDay || normalizedSettlementDay)
+            : (isCardAccountType ? normalizedSettlementDay : 28);
+        const normalizedInitialBalance = normalizeInitialBalanceByType(type, balance);
         const now = new Date().toISOString();
 
         try {
@@ -91,9 +128,10 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 await db.update(schema.accounts).set({
                     name: name.trim(),
                     type,
-                    initialBalance: isReserveMode ? 0 : balance,
+                    initialBalance: isReserveMode ? 0 : normalizedInitialBalance,
                     isActive,
-                    excludeFromSummaries,
+                    excludeFromSummaries: finalExcludeFromSummaries,
+                    settlementDay: finalSettlementDay,
                 }).where(eq(schema.accounts.id, accountId));
 
                 refresh(); // Trigger ledger refresh in case name changed
@@ -107,11 +145,12 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                     name: name.trim(),
                     iconName: isReserveMode ? 'subdirectory-arrow-right' : '🏦',
                     type,
-                    initialBalance: isReserveMode ? 0 : balance,
+                    initialBalance: isReserveMode ? 0 : normalizedInitialBalance,
                     isActive,
                     parentId: finalParentId || null,
                     sortOrder: nextSort,
-                    excludeFromSummaries,
+                    excludeFromSummaries: finalExcludeFromSummaries,
+                    settlementDay: finalSettlementDay,
                     createdAt: now,
                 });
 
@@ -154,6 +193,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     };
 
     const handleExcludeToggle = () => {
+        if (isMandatoryClosedBoxAccountType) return;
         const newValue = !excludeFromSummaries;
         setExcludeFromSummaries(newValue);
         if (newValue && !accountId) {
@@ -215,7 +255,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                             {Object.values(AccountType).map((t) => (
                                 <TouchableOpacity
                                     key={t}
-                                    onPress={() => setType(t as AccountType)}
+                                    onPress={() => handleTypeSelect(t as AccountType)}
                                     style={[
                                         styles.typeBtn,
                                         { backgroundColor: type === t ? colors.primary : theme.surface },
@@ -240,6 +280,25 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                             placeholderTextColor={theme.textSecondary}
                             keyboardType="numeric"
                         />
+                        {(isCardAccountType || isDebtAccountType) && (
+                            <Text style={{ color: colors.expense, marginTop: 8, fontSize: 12 }}>
+                                Loan-like accounts are stored as liabilities and shown in red.
+                            </Text>
+                        )}
+                    </View>
+                )}
+
+                {!isReserveMode && isCardAccountType && (
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Settlement Day (1-31)</Text>
+                        <TextInput
+                            style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
+                            value={settlementDay}
+                            onChangeText={text => setSettlementDay(text.replace(/[^0-9]/g, '').slice(0, 2))}
+                            placeholder="28"
+                            placeholderTextColor={theme.textSecondary}
+                            keyboardType="number-pad"
+                        />
                     </View>
                 )}
 
@@ -257,12 +316,15 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                         <View style={{ flex: 1, paddingRight: 16 }}>
                             <Text style={[styles.label, { color: theme.text, marginBottom: 4 }]}>Closed-Box Account</Text>
                             <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                                Only transfers allowed. Excluded from income/expense calculations.
+                                {isMandatoryClosedBoxAccountType
+                                    ? `Mandatory for ${type.toUpperCase()} accounts. Only transfers allowed and excluded from income/expense calculations.`
+                                    : 'Only transfers allowed. Excluded from income/expense calculations.'}
                             </Text>
                         </View>
                         <TouchableOpacity
                             style={[styles.switch, excludeFromSummaries ? { backgroundColor: colors.expense } : { backgroundColor: theme.border }]}
-                            onPress={handleExcludeToggle}>
+                            onPress={handleExcludeToggle}
+                            disabled={isMandatoryClosedBoxAccountType}>
                             <Text style={{ color: 'white', fontWeight: 'bold' }}>{excludeFromSummaries ? 'ON' : 'OFF'}</Text>
                         </TouchableOpacity>
                     </View>

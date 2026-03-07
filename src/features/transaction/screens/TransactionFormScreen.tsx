@@ -23,6 +23,7 @@ import { useSettingsStore } from '../../../stores/settingsStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { BlurView } from '@react-native-community/blur';
+import { isClosedBoxLikeAccount } from '../../../core/utils';
 
 export const TransactionFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
@@ -98,6 +99,9 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
         if (newType !== type) {
             setType(newType);
             setSelectedCategory(null);
+            if (newType !== TransactionType.TRANSFER && selectedAccount && isClosedBoxLikeAccount(selectedAccount)) {
+                setSelectedAccount(null);
+            }
         }
     };
 
@@ -444,7 +448,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
             <AccountPicker
                 visible={accPickerVisible}
                 onClose={() => setAccPickerVisible(false)}
-                accounts={type === TransactionType.TRANSFER ? accounts : accounts.filter(a => !a.excludeFromSummaries)}
+                accounts={type === TransactionType.TRANSFER ? accounts : accounts.filter(a => !isClosedBoxLikeAccount(a))}
                 onSelect={setSelectedAccount}
                 title="Select Account"
             />

@@ -10,6 +10,7 @@ export enum AccountType {
   BANK = 'bank',
   CASH = 'cash',
   CARD = 'card',
+  DEBT = 'debt',
   WALLET = 'wallet',
   DEPOSITS = 'deposits',
   CUSTOM = 'custom',

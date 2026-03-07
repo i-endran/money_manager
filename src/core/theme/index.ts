@@ -28,3 +28,4 @@ export function useAppTheme() {
 }
 
 export * from './colors';
+export * from './typography';

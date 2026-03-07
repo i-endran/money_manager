@@ -5,6 +5,7 @@ import { db } from '../../database';
 import { accounts, appSettings, categories, transactions } from '../../database/schema';
 import { DEFAULT_SETTINGS, TransactionType } from '../constants';
 import type { ExportPayload } from './exportData';
+import { isDebtType, normalizeInitialBalanceByType } from './accountRules';
 
 type SheetRow = Record<string, unknown>;
 
@@ -221,6 +222,7 @@ export function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): ExportP
         Name: 'Cash Wallet',
         Type: 'cash',
         'Initial Balance': 1000,
+        'Settlement Day': '',
         'Parent Account': '',
         'Sort Order': 0,
         'Is Active': 'true',
@@ -258,6 +260,7 @@ export function createImportTemplatePayload(formatType: 'csv' | 'xlsx'): ExportP
         'Name',
         'Type',
         'Initial Balance',
+        'Settlement Day',
         'Parent Account',
         'Sort Order',
         'Is Active',
@@ -331,15 +334,28 @@ export async function importDataFromWorkbookBuffer(buffer: ArrayBuffer): Promise
 
         const accountIdByName = new Map<string, number>();
         const pendingAccounts = accountRowsRaw
-            .map((row, index) => ({
-                name: getCell(row, ['Name', 'name']),
-                type: getCell(row, ['Type', 'type']).toLowerCase() || 'bank',
-                initialBalance: parseNumber(getCell(row, ['Initial Balance', 'initial_balance']), 0),
-                parentName: getCell(row, ['Parent Account', 'parent_account']),
-                sortOrder: parseNumber(getCell(row, ['Sort Order', 'sort_order']), index * 10),
-                isActive: parseBoolean(getCell(row, ['Is Active', 'is_active']), true),
-                excludeFromSummaries: parseBoolean(getCell(row, ['Exclude From Summaries', 'exclude_from_summaries']), false),
-            }))
+            .map((row, index) => {
+                const type = getCell(row, ['Type', 'type']).toLowerCase() || 'bank';
+                const settlementCell = getCell(row, ['Settlement Day', 'settlement_day']);
+                return {
+                    name: getCell(row, ['Name', 'name']),
+                    type,
+                    initialBalance: normalizeInitialBalanceByType(
+                        type,
+                        parseNumber(getCell(row, ['Initial Balance', 'initial_balance']), 0),
+                    ),
+                    settlementDay: Math.max(
+                        1,
+                        Math.min(31, settlementCell ? parseNumber(settlementCell, 28) : 28),
+                    ),
+                    parentName: getCell(row, ['Parent Account', 'parent_account']),
+                    sortOrder: parseNumber(getCell(row, ['Sort Order', 'sort_order']), index * 10),
+                    isActive: parseBoolean(getCell(row, ['Is Active', 'is_active']), true),
+                    excludeFromSummaries:
+                        parseBoolean(getCell(row, ['Exclude From Summaries', 'exclude_from_summaries']), false)
+                        || isDebtType(type),
+                };
+            })
             .filter(row => row.name);
 
         let unresolved = [...pendingAccounts];
@@ -363,6 +379,7 @@ export async function importDataFromWorkbookBuffer(buffer: ArrayBuffer): Promise
                     parentId: parentId || null,
                     sortOrder: row.sortOrder,
                     excludeFromSummaries: row.excludeFromSummaries,
+                    settlementDay: row.settlementDay,
                     createdAt: now,
                 }).returning({ insertedId: accounts.id });
 
@@ -386,6 +403,7 @@ export async function importDataFromWorkbookBuffer(buffer: ArrayBuffer): Promise
                         parentId: null,
                         sortOrder: row.sortOrder,
                         excludeFromSummaries: row.excludeFromSummaries,
+                        settlementDay: row.settlementDay,
                         createdAt: now,
                     }).returning({ insertedId: accounts.id });
 
