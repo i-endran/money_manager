@@ -16,7 +16,7 @@ import { AccountManagementScreen } from '../features/settings/screens/AccountMan
 import { CategoryManagementScreen } from '../features/settings/screens/CategoryManagementScreen';
 import { AccountFormScreen } from '../features/settings/screens/AccountFormScreen';
 import { CategoryFormScreen } from '../features/settings/screens/CategoryFormScreen';
-import { useAppTheme } from '../core/theme';
+import { Colors, Layout, Spacing, Typography, useAppTheme } from '../core/theme';
 
 // --- Type definitions ---
 export type RootStackParamList = {
@@ -52,8 +52,15 @@ const TAB_ICONS: Record<string, { focused: string; unfocused: string }> = {
     Settings: { focused: 'settings', unfocused: 'settings-outline' },
 };
 
+const withOpacity = (hexColor: string, opacity: number) => {
+    const alpha = Math.round(opacity * 255).toString(16).padStart(2, '0');
+    return `${hexColor}${alpha}`;
+};
+
 const MainTabs = () => {
     const { theme, isDark } = useAppTheme();
+    const iosTabBarGlassColor = withOpacity(isDark ? Colors.dark.tabBar : Colors.light.tabBar, 0.35);
+    const iosTabBarBorderColor = withOpacity(isDark ? Colors.white : Colors.black, isDark ? 0.16 : 0.08);
 
     return (
         <Tab.Navigator
@@ -92,24 +99,24 @@ const MainTabs = () => {
                     borderTopColor: Platform.OS === 'ios' ? 'transparent' : theme.border,
                     borderTopWidth: Platform.OS === 'ios' ? 0 : 0.5,
                     elevation: 0,
-                    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
-                    paddingTop: 6,
+                    paddingBottom: Platform.OS === 'ios' ? Spacing.xs + Spacing.sm : Spacing.md,
+                    paddingTop: Spacing.sm,
                     height: Platform.OS === 'ios' ? 76 : 60,
                     ...(Platform.OS === 'ios' ? {
                         position: 'absolute',
-                        marginHorizontal: 12,
-                        marginBottom: 10,
-                        borderRadius: 22,
+                        marginHorizontal: Spacing.lg,
+                        marginBottom: Spacing.xs + Spacing.sm,
+                        borderRadius: Layout.radius.xl,
                         overflow: 'hidden',
-                        shadowColor: '#000',
+                        shadowColor: Colors.black,
                         shadowOpacity: 0.15,
-                        shadowRadius: 16,
-                        shadowOffset: { width: 0, height: 8 },
+                        shadowRadius: Spacing.xl,
+                        shadowOffset: { width: 0, height: Spacing.md },
                     } : {}),
                 },
                 tabBarItemStyle: Platform.OS === 'ios' ? {
-                    marginHorizontal: 2,
-                    borderRadius: 14,
+                    marginHorizontal: Spacing.xxs,
+                    borderRadius: Layout.radius.md + Spacing.xxs,
                 } : undefined,
                 tabBarBackground: () =>
                     Platform.OS === 'ios' ? (
@@ -124,10 +131,10 @@ const MainTabs = () => {
                                 style={[
                                     StyleSheet.absoluteFill,
                                     {
-                                        backgroundColor: isDark ? 'rgba(28,28,30,0.35)' : 'rgba(255,255,255,0.35)',
-                                        borderRadius: 22,
+                                        backgroundColor: iosTabBarGlassColor,
+                                        borderRadius: Layout.radius.xl,
                                         borderWidth: StyleSheet.hairlineWidth,
-                                        borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+                                        borderColor: iosTabBarBorderColor,
                                     },
                                 ]}
                             />
@@ -136,8 +143,8 @@ const MainTabs = () => {
                         <View style={{ flex: 1, backgroundColor: theme.tabBar }} />
                     ),
                 tabBarLabelStyle: {
-                    fontSize: 11,
-                    fontWeight: '500',
+                    fontSize: Typography.sizes.xs2,
+                    fontWeight: Typography.weights.medium,
                 },
             })}
         >

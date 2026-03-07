@@ -12,7 +12,17 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import {
+    Colors,
+    FormDensityPreset,
+    Layout,
+    LedgerRowDensityPreset,
+    LedgerSummaryCardMetricsPreset,
+    LedgerTextHierarchyPreset,
+    Spacing,
+    Typography,
+    useAppTheme,
+} from '../../../core/theme';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
@@ -199,23 +209,23 @@ export const SettingsScreen = () => {
                 styles.item,
                 {
                     backgroundColor: theme.surface,
-                    borderTopLeftRadius: isFirst ? 12 : 0,
-                    borderTopRightRadius: isFirst ? 12 : 0,
-                    borderBottomLeftRadius: isLast ? 12 : 0,
-                    borderBottomRightRadius: isLast ? 12 : 0,
+                    borderTopLeftRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                    borderTopRightRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                    borderBottomLeftRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                    borderBottomRightRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
                 },
             ]}
             onPress={onPress}
             disabled={loading}
         >
-            <View style={{ flex: 1 }}>
+            <View style={styles.itemContent}>
                 <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
                 {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
             </View>
             {loading ? (
                 <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-                <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
+                <Text style={[styles.chevronText, { color: theme.textSecondary }]}>›</Text>
             )}
         </TouchableOpacity>
     );
@@ -255,18 +265,18 @@ export const SettingsScreen = () => {
                             styles.item,
                             {
                                 backgroundColor: theme.surface,
-                                borderBottomLeftRadius: 12,
-                                borderBottomRightRadius: 12,
+                                borderBottomLeftRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderBottomRightRadius: LedgerSummaryCardMetricsPreset.cardRadius,
                             },
                         ]}
                         onPress={handleCarryForwardToggle}
                     >
-                        <View style={{ flex: 1 }}>
+                        <View style={styles.itemContent}>
                             <Text style={[styles.itemLabel, { color: theme.text }]}>Carry Forward Balance</Text>
-                            <Text style={[styles.itemValue, { color: theme.textSecondary }]}>Show last month's balance as opening</Text>
+                            <Text style={[styles.itemSubtext, { color: theme.textSecondary }]}>Show last month's balance as opening</Text>
                         </View>
                         <View style={[styles.toggle, carryForward ? { backgroundColor: colors.primary } : { backgroundColor: theme.border }]}>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{carryForward ? 'ON' : 'OFF'}</Text>
+                            <Text style={styles.toggleText}>{carryForward ? 'ON' : 'OFF'}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -321,7 +331,7 @@ export const SettingsScreen = () => {
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Pocket Log v1.0.0</Text>
+                    <Text style={[styles.footerText, { color: theme.textSecondary }]}>Pocket Log v1.0.0</Text>
                 </View>
             </ScrollView>
 
@@ -357,7 +367,7 @@ export const SettingsScreen = () => {
             {/* Theme Picker Modal */}
             <Modal visible={themePickerVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: 240 }]}>
+                    <View style={[styles.modalContent, styles.themeModalContent, { backgroundColor: theme.surface }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: theme.text }]}>Select Theme</Text>
                             <TouchableOpacity onPress={() => setThemePickerVisible(false)}>
@@ -378,7 +388,7 @@ export const SettingsScreen = () => {
                                     {opt.label}
                                 </Text>
                                 {themeMode === opt.value && (
-                                    <Text style={{ color: colors.primary, fontWeight: 'bold' }}>✓</Text>
+                                    <Text style={[styles.selectedText, { color: colors.primary }]}>✓</Text>
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -389,7 +399,7 @@ export const SettingsScreen = () => {
             {/* Export Picker Modal */}
             <Modal visible={exportPickerVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: 260 }]}>
+                    <View style={[styles.modalContent, styles.exportModalContent, { backgroundColor: theme.surface }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: theme.text }]}>Export Data</Text>
                             <TouchableOpacity
@@ -412,7 +422,7 @@ export const SettingsScreen = () => {
                                 onPress={() => handleExportFormat(option.value)}
                                 disabled={!!exportingFormat}
                             >
-                                <View style={{ flex: 1 }}>
+                                <View style={styles.itemContent}>
                                     <Text style={[styles.modalItemText, { color: theme.text }]}>
                                         {option.label}
                                     </Text>
@@ -423,7 +433,7 @@ export const SettingsScreen = () => {
                                 {exportingFormat === option.value ? (
                                     <ActivityIndicator size="small" color={colors.primary} />
                                 ) : (
-                                    <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
+                                    <Text style={[styles.chevronText, { color: theme.textSecondary }]}>›</Text>
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -437,20 +447,20 @@ export const SettingsScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
     },
-    headerTitle: { fontSize: 28, fontWeight: 'bold' },
+    headerTitle: { fontSize: Typography.sizes.xl, fontWeight: Typography.weights.bold },
     scrollContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 40,
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: Spacing.xxxxxl,
     },
     sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        marginLeft: 4,
-        marginBottom: 6,
-        marginTop: 24,
+        fontSize: LedgerTextHierarchyPreset.meta.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.meta.fontWeight,
+        marginLeft: Spacing.xs,
+        marginBottom: Spacing.md,
+        marginTop: FormDensityPreset.sectionSpacing,
         textTransform: 'uppercase',
     },
     cardGroup: {
@@ -460,59 +470,90 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
-    itemLabel: { fontSize: 16 },
-    itemValue: { fontSize: 12, marginTop: 2 },
+    itemContent: { flex: 1 },
+    itemLabel: {
+        fontSize: LedgerTextHierarchyPreset.primary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.primary.fontWeight,
+    },
+    itemValue: {
+        fontSize: LedgerTextHierarchyPreset.meta.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.meta.fontWeight,
+        marginTop: LedgerSummaryCardMetricsPreset.labelValueSpacing,
+    },
+    itemSubtext: {
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
+        marginTop: LedgerSummaryCardMetricsPreset.labelValueSpacing,
+    },
     separator: {
-        height: StyleSheet.hairlineWidth,
-        marginLeft: 16,
+        height: LedgerRowDensityPreset.separatorThickness,
+        marginLeft: LedgerRowDensityPreset.paddingHorizontal,
+        marginRight: LedgerRowDensityPreset.paddingHorizontal,
     },
     toggle: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 14,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        borderRadius: FormDensityPreset.controlRadius + Spacing.sm,
+    },
+    toggleText: {
+        color: Colors.white,
+        fontWeight: Typography.weights.bold,
+        fontSize: Typography.sizes.sm,
     },
     footer: {
-        marginTop: 40,
+        marginTop: Spacing.xxxxxl,
         alignItems: 'center',
-        paddingBottom: 40,
+        paddingBottom: Spacing.xxxxxl,
+    },
+    footerText: {
+        fontSize: LedgerTextHierarchyPreset.meta.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.meta.fontWeight,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.overlayMedium,
         justifyContent: 'flex-end',
     },
     modalContent: {
         maxHeight: '50%',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 16,
+        borderTopLeftRadius: Layout.radius.lg + Spacing.xs,
+        borderTopRightRadius: Layout.radius.lg + Spacing.xs,
+        padding: Spacing.xl,
+    },
+    themeModalContent: {
+        maxHeight: 240,
+    },
+    exportModalContent: {
+        maxHeight: 260,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: Spacing.lg,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: Typography.sizes.lg,
+        fontWeight: Typography.weights.bold,
     },
     modalItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 4,
+        paddingVertical: Spacing.lg + Spacing.xxs,
+        paddingHorizontal: Spacing.xs,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     modalItemText: {
-        fontSize: 16,
+        fontSize: Typography.sizes.md,
     },
     modalItemSubText: {
-        fontSize: 12,
-        marginTop: 2,
+        fontSize: Typography.sizes.sm,
+        marginTop: Spacing.xxs,
     },
+    chevronText: { fontSize: Typography.sizes.lg },
+    selectedText: { fontWeight: Typography.weights.bold },
 });

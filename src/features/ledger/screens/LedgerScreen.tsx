@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Typography, useAppTheme } from '../../../core/theme';
+import { Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { useMonthlyLedger } from '../hooks/useMonthlyLedger';
 import { MonthSelector } from '../components/MonthSelector';
@@ -25,7 +25,7 @@ import { BottomTabNavigationProp, useBottomTabBarHeight } from '@react-navigatio
 import { format, subMonths } from 'date-fns';
 
 export const LedgerScreen: React.FC = () => {
-    const { theme, colors, isDark } = useAppTheme();
+    const { theme, colors } = useAppTheme();
     const { currentDate, nextMonth, prevMonth } = useLedgerStore();
     const route = useRoute<RouteProp<TabParamList, 'Ledger'>>();
     const activeFilterAccountId = route.params?.accountId as number | undefined;
@@ -71,7 +71,7 @@ export const LedgerScreen: React.FC = () => {
                 style={styles.sectionHeader}>
                 <View style={styles.sectionLeft}>
                     {isOpeningBalanceSection ? (
-                        <Text style={{ fontSize: Typography.sizes.sm, fontWeight: '600', color: theme.textSecondary }}>
+                        <Text style={[styles.openingBalanceMonthText, { color: theme.textSecondary }]}>
                             {format(subMonths(sectionDate, 1), 'MMMM')}
                         </Text>
                     ) : (
@@ -80,7 +80,7 @@ export const LedgerScreen: React.FC = () => {
                                 {dayStampLabel}
                             </Text>
                         ) : (
-                            <Text style={[styles.weekdayBadgeText, { color: isDark ? '#FFFFFF' : '#111111' }]}>
+                            <Text style={[styles.weekdayBadgeText, { color: theme.text }]}>
                                 {dayStampLabel}
                             </Text>
                         )
@@ -116,10 +116,10 @@ export const LedgerScreen: React.FC = () => {
                 styles.cardWrapper,
                 {
                     backgroundColor: theme.surface,
-                    borderTopLeftRadius: isFirst ? 12 : 0,
-                    borderTopRightRadius: isFirst ? 12 : 0,
-                    borderBottomLeftRadius: isLast ? 12 : 0,
-                    borderBottomRightRadius: isLast ? 12 : 0,
+                    borderTopLeftRadius: isFirst ? Layout.radius.md : 0,
+                    borderTopRightRadius: isFirst ? Layout.radius.md : 0,
+                    borderBottomLeftRadius: isLast ? Layout.radius.md : 0,
+                    borderBottomRightRadius: isLast ? Layout.radius.md : 0,
                 },
             ]}>
                 <TransactionItem
@@ -187,7 +187,7 @@ export const LedgerScreen: React.FC = () => {
                     ]}
                     ListEmptyComponent={
                         <View style={styles.center}>
-                            <Text style={{ color: theme.textSecondary }}>No transactions found</Text>
+                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No transactions found</Text>
                         </View>
                     }
                 />
@@ -200,10 +200,11 @@ export const LedgerScreen: React.FC = () => {
                     {
                         backgroundColor: colors.primary,
                         bottom: Platform.OS === 'ios' ? tabBarHeight + 22 : insets.bottom + 20,
+                        shadowColor: colors.black,
                     },
                 ]}
                 onPress={handleAddPress}>
-                <Text style={styles.fabText}>+</Text>
+                <Text style={[styles.fabText, { color: colors.white }]}>+</Text>
             </TouchableOpacity>
         </SafeAreaView>
     );
@@ -214,40 +215,40 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
     },
     headerTitle: {
         fontSize: Typography.sizes.xl,
-        fontWeight: 'bold',
+        fontWeight: Typography.weights.bold,
     },
     summaryBubble: {
-        marginHorizontal: 16,
-        marginTop: 6,
-        marginBottom: 6, // Reduced from 10
-        borderRadius: 12,
+        marginHorizontal: Spacing.xl,
+        marginTop: Spacing.sm,
+        marginBottom: Spacing.sm,
+        borderRadius: Layout.radius.md,
         borderWidth: StyleSheet.hairlineWidth,
         overflow: 'hidden',
     },
     filterControls: {
-        marginHorizontal: 16,
-        marginTop: 4,
-        marginBottom: 4,
-        borderRadius: 12,
+        marginHorizontal: Spacing.xl,
+        marginTop: Spacing.xs,
+        marginBottom: Spacing.xs,
+        borderRadius: Layout.radius.md,
         borderWidth: StyleSheet.hairlineWidth,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 8,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
     },
     filterButton: {
         minWidth: 52,
         alignItems: 'center',
-        paddingVertical: 4,
+        paddingVertical: Spacing.xs,
     },
     filterButtonText: {
         fontSize: Typography.sizes.sm,
-        fontWeight: '600',
+        fontWeight: Typography.weights.semibold,
     },
     filterCenter: {
         flex: 1,
@@ -255,66 +256,59 @@ const styles = StyleSheet.create({
     },
     filterLabel: {
         fontSize: Typography.sizes.xs,
-        fontWeight: '500',
+        fontWeight: Typography.weights.medium,
     },
     filterAccountName: {
         fontSize: Typography.sizes.md,
-        fontWeight: '600',
-        marginTop: 2,
+        fontWeight: Typography.weights.semibold,
+        marginTop: Spacing.xxs,
     },
     bubbleDivider: {
         height: StyleSheet.hairlineWidth,
-        marginHorizontal: 16,
+        marginHorizontal: Spacing.xl,
     },
     center: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
+        padding: Spacing.xxl,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.xl,
         marginTop: 7,
+    },
+    openingBalanceMonthText: {
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.semibold,
     },
     sectionLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    weekendBadge: {
-        borderRadius: 999,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-    },
     weekendBadgeText: {
         fontSize: Typography.sizes.xs,
-        fontWeight: '700',
+        fontWeight: Typography.weights.bold,
         letterSpacing: 0.2,
-    },
-    weekdayBadge: {
-        borderRadius: 999,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderWidth: StyleSheet.hairlineWidth,
     },
     weekdayBadgeText: {
         fontSize: Typography.sizes.xs,
-        fontWeight: '600',
+        fontWeight: Typography.weights.semibold,
         letterSpacing: 0.2,
     },
     daySummary: {
         flexDirection: 'row',
-        gap: 8,
+        gap: Spacing.md,
     },
     daySummaryText: {
-        fontSize: 11,
-        fontWeight: '500',
+        fontSize: Typography.sizes.xs2,
+        fontWeight: Typography.weights.medium,
     },
     listContent: {
-        paddingHorizontal: 16,
+        paddingHorizontal: Spacing.xl,
     },
     cardWrapper: {
         paddingHorizontal: 0,
@@ -326,21 +320,23 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        right: 20,
+        right: Spacing.xxl,
         width: 56,
         height: 56,
-        borderRadius: 28,
+        borderRadius: Layout.radius.full,
         alignItems: 'center',
         justifyContent: 'center',
         elevation: 4,
-        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 4,
     },
     fabText: {
-        color: 'white',
-        fontSize: 30,
-        lineHeight: 34,
+        fontSize: Typography.sizes.xxl,
+        lineHeight: Typography.sizes.xxl + Spacing.xs,
+    },
+    emptyText: {
+        fontSize: Typography.sizes.sm,
+        fontWeight: Typography.weights.regular,
     },
 });

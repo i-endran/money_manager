@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import { Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
 import { useSettingsStore } from '../../../stores/settingsStore';
 
@@ -55,8 +55,8 @@ export const MonthlySummary: React.FC<MonthlySummaryProps> = ({
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        paddingVertical: 12,
-        paddingHorizontal: 8,
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.md,
     },
     item: {
         flex: 1,
@@ -67,11 +67,11 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     label: {
-        fontSize: 12,
-        marginBottom: 4,
+        fontSize: Typography.sizes.sm,
+        marginBottom: Spacing.xs,
     },
     value: {
-        fontSize: 14, // Reduced from 16
-        fontWeight: 'bold',
+        fontSize: Typography.sizes.base,
+        fontWeight: Typography.weights.bold,
     },
 });

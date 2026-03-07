@@ -3,6 +3,11 @@ export const Colors = {
     white: '#FFFFFF',
     black: '#000000',
     transparent: 'transparent',
+    overlayStrong: 'rgba(0, 0, 0, 0.72)',
+    overlayMedium: 'rgba(0, 0, 0, 0.48)',
+    overlayLight: 'rgba(0, 0, 0, 0.24)',
+    lightGlass: 'rgba(255, 255, 255, 0.72)',
+    darkGlass: 'rgba(18, 18, 18, 0.72)',
 
     // Light theme — iOS-style off-white "Cloud Gray"
     light: {
@@ -23,6 +28,8 @@ export const Colors = {
         tabBar: '#FFFFFF',
         tabBarActive: '#1B3A5C',
         tabBarInactive: '#8E8E93',
+        statusActive: '#2E7D32',
+        statusInactive: '#8E8E93',
     },
 
     // Dark theme — softer black to reduce eye strain with brighter accents
@@ -44,5 +51,7 @@ export const Colors = {
         tabBar: '#1C1C1E',
         tabBarActive: '#5B9BD5',
         tabBarInactive: '#636366',
+        statusActive: '#73bd77ff',
+        statusInactive: '#636366',
     },
 };

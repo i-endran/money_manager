@@ -11,7 +11,14 @@ import {
     Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import {
+    Colors,
+    FormDensityPreset,
+    LedgerTextHierarchyPreset,
+    Spacing,
+    Typography,
+    useAppTheme,
+} from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { TransactionType } from '../../../core/constants';
@@ -24,6 +31,18 @@ import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { BlurView } from '@react-native-community/blur';
 import { isClosedBoxLikeAccount } from '../../../core/utils';
+
+const FormTextRoles = {
+    label: LedgerTextHierarchyPreset.secondary,
+    value: LedgerTextHierarchyPreset.primary,
+    action: LedgerTextHierarchyPreset.amount,
+    amountDisplay: {
+        ...LedgerTextHierarchyPreset.amount,
+        fontSize: Typography.sizes.display,
+    },
+    section: LedgerTextHierarchyPreset.meta,
+    meta: LedgerTextHierarchyPreset.meta,
+} as const;
 
 export const TransactionFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
@@ -256,16 +275,16 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
     return (
         <SafeAreaView
             edges={['left', 'right', 'bottom']}
-            style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}
+            style={[styles.container, { backgroundColor: isDark ? Colors.overlayMedium : Colors.lightGlass }]}
         >
             <BlurView
                 style={StyleSheet.absoluteFillObject}
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + 8 }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + Spacing.md }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={{ color: colors.primary }}>Cancel</Text>
+                    <Text style={[styles.cancelText, { color: colors.primary }]}>Cancel</Text>
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]}>
                     {transactionId
@@ -273,16 +292,16 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                             : type === TransactionType.INCOME ? 'Edit Income'
                                 : 'Edit Expense'
                         : type === TransactionType.TRANSFER ? 'Transfer'
-                            : type === TransactionType.INCOME ? 'Add Income'
+                        : type === TransactionType.INCOME ? 'Add Income'
                                 : 'Add Expense'
                     }
                 </Text>
-                <View style={{ width: 50 }} />
+                <View style={styles.headerSpacer} />
             </View>
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
+            <KeyboardAvoidingView style={styles.keyboardContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
                     {/* Type Selector — Color-coded */}
-                    <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : '#ECEDF0' }]}>
+                    <View style={[styles.segmentContainer, { backgroundColor: isDark ? theme.surface : theme.weekendTint }]}>
                         {[
                             { type: TransactionType.INCOME, label: 'INCOME', color: colors.income },
                             { type: TransactionType.EXPENSE, label: 'EXPENSE', color: colors.expense },
@@ -295,7 +314,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                                     styles.segment,
                                     type === t && { backgroundColor: color },
                                 ]}>
-                                <Text style={[styles.segmentText, { color: type === t ? '#FFFFFF' : theme.textSecondary }]}>
+                                <Text style={[styles.segmentText, { color: type === t ? colors.white : theme.textSecondary }]}>
                                     {label}
                                 </Text>
                             </TouchableOpacity>
@@ -305,7 +324,7 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     {/* Amount */}
                     <View style={styles.inputGroup}>
                         <Text style={[styles.label, { color: theme.textSecondary }]}>Amount</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={styles.amountRow}>
                             <Text style={[styles.currencySymbol, { color: theme.textSecondary }]}>{currencySymbol}</Text>
                             <TextInput
                                 style={[styles.amountInput, { color: theme.text }]}
@@ -413,10 +432,15 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                     {/* Delete Button (Only in Edit Mode) */}
                     {transactionId && (
                         <TouchableOpacity
-                            style={[styles.deleteBtn, { borderColor: colors.expense, marginTop: 10, marginBottom: 10 }]}
+                            style={[
+                                styles.deleteBtn,
+                                {
+                                    borderColor: colors.expense,
+                                },
+                            ]}
                             onPress={handleDelete}
                         >
-                            <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Transaction</Text>
+                            <Text style={[styles.deleteBtnText, { color: colors.expense }]}>Delete Transaction</Text>
                         </TouchableOpacity>
                     )}
 
@@ -487,79 +511,115 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingBottom: FormDensityPreset.rowPaddingVertical + Spacing.sm,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
-    title: { fontSize: 18, fontWeight: 'bold' },
-    content: { padding: 16 },
+    cancelText: {
+        ...FormTextRoles.value,
+    },
+    headerSpacer: {
+        width: Spacing.xxxxl + Spacing.md,
+    },
+    title: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
+    keyboardContainer: {
+        flex: 1,
+    },
+    content: {
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+    },
+    contentContainer: {
+        flexGrow: 1,
+        paddingBottom: FormDensityPreset.sectionSpacing + Spacing.xxxxl,
+    },
     segmentContainer: {
         flexDirection: 'row',
-        borderRadius: 8,
-        padding: 4,
-        marginBottom: 16,
+        borderRadius: FormDensityPreset.controlRadius,
+        padding: Spacing.xs,
+        marginBottom: FormDensityPreset.sectionSpacing,
     },
     segment: {
         flex: 1,
-        paddingVertical: 6,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
         alignItems: 'center',
-        borderRadius: 6,
+        borderRadius: FormDensityPreset.controlRadius,
     },
-    segmentText: { fontSize: 12, fontWeight: 'bold' },
-    inputGroup: { marginBottom: 16 },
-    label: { fontSize: 12, fontWeight: '500', marginBottom: 4 },
-    currencySymbol: { fontSize: 32, fontWeight: '300', marginRight: 4 },
-    amountInput: { fontSize: 40, fontWeight: 'bold', flex: 1 },
+    segmentText: {
+        ...FormTextRoles.section,
+    },
+    inputGroup: { marginBottom: FormDensityPreset.fieldSpacing },
+    label: {
+        ...FormTextRoles.label,
+        marginBottom: Spacing.xs,
+    },
+    amountRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    currencySymbol: {
+        fontSize: Typography.sizes.xxxl,
+        fontWeight: FormTextRoles.amountDisplay.fontWeight,
+        marginRight: Spacing.md,
+    },
+    amountInput: {
+        ...FormTextRoles.amountDisplay,
+        flex: 1,
+    },
     pickerField: {
-        paddingVertical: 10,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        marginBottom: 16,
+        marginBottom: FormDensityPreset.fieldSpacing,
     },
-    pickerValue: { fontSize: 16, marginTop: 4 },
+    pickerValue: {
+        ...FormTextRoles.value,
+        marginTop: Spacing.xxs,
+    },
     textInput: {
-        fontSize: 16,
-        paddingVertical: 6,
+        ...FormTextRoles.value,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     primaryBtn: {
-        marginTop: 10,
-        marginBottom: 10,
-        paddingVertical: 16,
+        marginTop: FormDensityPreset.sectionSpacing,
+        marginBottom: FormDensityPreset.fieldSpacing,
+        paddingVertical: FormDensityPreset.rowPaddingVertical + Spacing.md,
         alignItems: 'center',
-        borderRadius: 8,
+        borderRadius: FormDensityPreset.controlRadius,
     },
     primaryBtnText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
+        color: Colors.white,
+        ...FormTextRoles.action,
     },
     secondaryBtn: {
-        marginBottom: 40,
-        paddingVertical: 16,
+        marginBottom: FormDensityPreset.sectionSpacing + Spacing.xxxxl,
+        paddingVertical: FormDensityPreset.rowPaddingVertical + Spacing.md,
         alignItems: 'center',
-        borderRadius: 8,
+        borderRadius: FormDensityPreset.controlRadius,
         borderWidth: 1,
-        borderColor: 'transparent',
+        borderColor: Colors.transparent,
     },
     secondaryBtnText: {
-        fontWeight: 'bold',
-        fontSize: 16,
+        ...FormTextRoles.action,
     },
     deleteBtn: {
-        marginTop: 20,
-        marginBottom: 80,
-        paddingVertical: 16,
+        marginTop: FormDensityPreset.fieldSpacing,
+        marginBottom: FormDensityPreset.fieldSpacing,
+        paddingVertical: FormDensityPreset.rowPaddingVertical + Spacing.md,
         alignItems: 'center',
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: FormDensityPreset.controlRadius,
+    },
+    deleteBtnText: {
+        ...FormTextRoles.action,
     },
     timestamps: {
-        marginTop: 24,
-        paddingTop: 16,
+        marginTop: FormDensityPreset.sectionSpacing,
+        paddingTop: FormDensityPreset.fieldSpacing,
         borderTopWidth: StyleSheet.hairlineWidth,
     },
     timestampText: {
-        fontSize: 12,
-        marginBottom: 4,
+        ...FormTextRoles.meta,
+        marginBottom: Spacing.xs,
     },
 });

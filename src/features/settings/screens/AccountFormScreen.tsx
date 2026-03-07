@@ -9,7 +9,14 @@ import {
     ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import {
+    Colors,
+    FormDensityPreset,
+    LedgerTextHierarchyPreset,
+    Spacing,
+    Typography,
+    useAppTheme,
+} from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -207,14 +214,14 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     return (
         <SafeAreaView
             edges={['left', 'right', 'bottom']}
-            style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}
+            style={[styles.container, { backgroundColor: isDark ? Colors.darkGlass : Colors.lightGlass }]}
         >
             <BlurView
                 style={StyleSheet.absoluteFillObject}
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + 8 }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + Spacing.md }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>
@@ -260,7 +267,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                                         styles.typeBtn,
                                         { backgroundColor: type === t ? colors.primary : theme.surface },
                                     ]}>
-                                    <Text style={[styles.typeText, { color: type === t ? 'white' : theme.textSecondary }]}>
+                                    <Text style={[styles.typeText, { color: type === t ? Colors.white : theme.textSecondary }]}>
                                         {t.toUpperCase()}
                                     </Text>
                                 </TouchableOpacity>
@@ -281,7 +288,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                             keyboardType="numeric"
                         />
                         {(isCardAccountType || isDebtAccountType) && (
-                            <Text style={{ color: colors.expense, marginTop: 8, fontSize: 12 }}>
+                            <Text style={[styles.warningText, { color: colors.expense }]}>
                                 Loan-like accounts are stored as liabilities and shown in red.
                             </Text>
                         )}
@@ -303,19 +310,19 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 )}
 
                 <View style={styles.switchGroup}>
-                    <Text style={[styles.label, { color: theme.text, marginBottom: 0 }]}>Active</Text>
+                    <Text style={[styles.label, styles.labelNoMargin, { color: theme.text }]}>Active</Text>
                     <TouchableOpacity
                         style={[styles.switch, isActive ? { backgroundColor: colors.primary } : { backgroundColor: theme.border }]}
                         onPress={() => setIsActive(!isActive)}>
-                        <Text style={{ color: 'white', fontWeight: 'bold' }}>{isActive ? 'ON' : 'OFF'}</Text>
+                        <Text style={styles.switchText}>{isActive ? 'ON' : 'OFF'}</Text>
                     </TouchableOpacity>
                 </View>
 
                 {!isReserveMode && (
-                    <View style={[styles.switchGroup, { marginTop: 24 }]}>
-                        <View style={{ flex: 1, paddingRight: 16 }}>
-                            <Text style={[styles.label, { color: theme.text, marginBottom: 4 }]}>Closed-Box Account</Text>
-                            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                    <View style={[styles.switchGroup, styles.switchGroupWithMargin]}>
+                        <View style={styles.switchDescriptionContainer}>
+                            <Text style={[styles.closedBoxLabel, { color: theme.text }]}>Closed-Box Account</Text>
+                            <Text style={[styles.closedBoxDescription, { color: theme.textSecondary }]}>
                                 {isMandatoryClosedBoxAccountType
                                     ? `Mandatory for ${type.toUpperCase()} accounts. Only transfers allowed and excluded from income/expense calculations.`
                                     : 'Only transfers allowed. Excluded from income/expense calculations.'}
@@ -325,7 +332,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                             style={[styles.switch, excludeFromSummaries ? { backgroundColor: colors.expense } : { backgroundColor: theme.border }]}
                             onPress={handleExcludeToggle}
                             disabled={isMandatoryClosedBoxAccountType}>
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>{excludeFromSummaries ? 'ON' : 'OFF'}</Text>
+                            <Text style={styles.switchText}>{excludeFromSummaries ? 'ON' : 'OFF'}</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -335,7 +342,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                         style={[styles.deleteBtn, { borderColor: colors.expense }]}
                         onPress={handleDelete}
                     >
-                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>
+                        <Text style={[styles.deleteText, { color: colors.expense }]}>
                             {isReserveMode ? 'Delete Reserve' : 'Delete Account'}
                         </Text>
                     </TouchableOpacity>
@@ -350,50 +357,77 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
-    title: { fontSize: 18, fontWeight: 'bold' },
-    saveText: { fontWeight: 'bold', fontSize: 16 },
-    content: { padding: 16 },
+    title: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
+    saveText: { ...LedgerTextHierarchyPreset.amount },
+    content: { padding: FormDensityPreset.rowPaddingHorizontal },
     parentBadge: {
-        padding: 8,
-        borderRadius: 8,
-        marginBottom: 24,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        borderRadius: FormDensityPreset.controlRadius,
+        marginBottom: FormDensityPreset.sectionSpacing,
         alignSelf: 'flex-start',
     },
-    parentBadgeText: { fontSize: 12, fontWeight: '600' },
-    inputGroup: { marginBottom: 24 },
-    label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+    parentBadgeText: { ...LedgerTextHierarchyPreset.secondary },
+    inputGroup: { marginBottom: FormDensityPreset.sectionSpacing },
+    label: { ...LedgerTextHierarchyPreset.secondary, marginBottom: Spacing.md },
+    labelNoMargin: {
+        marginBottom: 0,
+    },
     input: {
-        fontSize: 16,
-        paddingVertical: 8,
+        ...LedgerTextHierarchyPreset.primary,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    typeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    typeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
     typeBtn: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        borderRadius: FormDensityPreset.controlRadius,
     },
-    typeText: { fontSize: 12, fontWeight: 'bold' },
+    typeText: { ...LedgerTextHierarchyPreset.amount },
+    warningText: { marginTop: Spacing.md, ...LedgerTextHierarchyPreset.secondary },
     switchGroup: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: FormDensityPreset.fieldSpacing,
+    },
+    switchGroupWithMargin: {
+        marginTop: FormDensityPreset.sectionSpacing,
+    },
+    switchDescriptionContainer: {
+        flex: 1,
+        paddingRight: FormDensityPreset.fieldSpacing,
+    },
+    closedBoxLabel: {
+        ...LedgerTextHierarchyPreset.primary,
+        marginBottom: Spacing.xs,
+    },
+    closedBoxDescription: {
+        ...LedgerTextHierarchyPreset.secondary,
     },
     switch: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        borderRadius: FormDensityPreset.controlRadius,
+    },
+    switchText: {
+        color: Colors.white,
+        ...LedgerTextHierarchyPreset.amount,
     },
     deleteBtn: {
-        marginTop: 40,
-        paddingVertical: 16,
+        marginTop: FormDensityPreset.sectionSpacing * 2,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
         alignItems: 'center',
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: FormDensityPreset.controlRadius,
     },
+    deleteText: { ...LedgerTextHierarchyPreset.amount },
 });

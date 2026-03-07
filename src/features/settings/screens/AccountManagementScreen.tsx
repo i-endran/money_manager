@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { useAppTheme } from '../../../core/theme';
+import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq } from 'drizzle-orm';
@@ -121,7 +121,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 {!isEditing && (
                     <View style={[
                         styles.statusDot,
-                        { backgroundColor: reserve.isActive ? '#34C759' : '#AEAEB2' }
+                        { backgroundColor: reserve.isActive ? theme.statusActive : theme.statusInactive }
                     ]} />
                 )}
             </TouchableOpacity>
@@ -135,13 +135,13 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 styles.itemContainer,
                 {
                     backgroundColor: isActiveDrag ? theme.border : theme.surface,
-                    borderTopLeftRadius: isFirst ? 16 : 0,
-                    borderTopRightRadius: isFirst ? 16 : 0,
-                    borderBottomLeftRadius: isLast ? 16 : 0,
-                    borderBottomRightRadius: isLast ? 16 : 0,
+                    borderTopLeftRadius: isFirst ? Layout.radius.lg : 0,
+                    borderTopRightRadius: isFirst ? Layout.radius.lg : 0,
+                    borderBottomLeftRadius: isLast ? Layout.radius.lg : 0,
+                    borderBottomRightRadius: isLast ? Layout.radius.lg : 0,
                 },
                 !isLast && !isActiveDrag && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
-                isActiveDrag && { elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 }
+                isActiveDrag && { elevation: 5, shadowColor: Colors.black, shadowOffset: { width: 0, height: Spacing.xxs }, shadowOpacity: 0.2, shadowRadius: Spacing.xs }
             ]}>
                 <TouchableOpacity
                     style={styles.rootRow}
@@ -154,7 +154,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                 >
                     <View style={styles.rootInfo}>
                         {isEditing && (
-                            <View style={{ marginRight: 16 }}>
+                            <View style={styles.dragHandleContainer}>
                                 <Icon name="drag-handle" size={24} color={theme.textSecondary} />
                             </View>
                         )}
@@ -175,7 +175,7 @@ export const AccountManagementScreen = ({ navigation }: any) => {
                         <View style={styles.rootActions}>
                             <View style={[
                                 styles.statusDot,
-                                { backgroundColor: item.isActive ? '#34C759' : '#AEAEB2', marginRight: 12 }
+                                { backgroundColor: item.isActive ? theme.statusActive : theme.statusInactive, marginRight: Spacing.lg }
                             ]} />
                             <TouchableOpacity
                                 style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
@@ -203,11 +203,11 @@ export const AccountManagementScreen = ({ navigation }: any) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-                    <Text style={{ color: colors.primary, fontSize: 16 }}>Back</Text>
+                    <Text style={[styles.headerButtonText, { color: colors.primary }]}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Accounts</Text>
                 <TouchableOpacity onPress={() => setIsEditing(!isEditing)} style={styles.headerBtn}>
-                    <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>
+                    <Text style={[styles.headerActionText, { color: colors.primary }]}>
                         {isEditing ? 'Done' : 'Edit Order'}
                     </Text>
                 </TouchableOpacity>
@@ -257,29 +257,34 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
         alignItems: 'center',
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    headerBtn: { padding: 4, minWidth: 60, alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '700' },
+    headerBtn: { padding: Spacing.xs, minWidth: 60, alignItems: 'center' },
+    headerButtonText: { fontSize: Typography.sizes.md },
+    headerActionText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.semibold,
+    },
+    headerTitle: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
     listContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 40,
-        paddingTop: 16,
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: Spacing.xxxxxl,
+        paddingTop: Spacing.xl,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 8,
-        paddingHorizontal: 4,
+        marginTop: Spacing.md,
+        marginBottom: Spacing.md,
+        paddingHorizontal: Spacing.xs,
     },
     sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
+        fontSize: Typography.sizes.sm2,
+        fontWeight: Typography.weights.semibold,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -290,44 +295,50 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
     },
     rootInfo: {
         flexDirection: 'row',
         alignItems: 'center',
     },
+    dragHandleContainer: { marginRight: Spacing.xl },
     statusDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        width: Spacing.md + Spacing.xxs,
+        height: Spacing.md + Spacing.xxs,
+        borderRadius: (Spacing.md + Spacing.xxs) / 2,
     },
-    name: { fontSize: 16, fontWeight: '500' },
+    name: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium },
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: Spacing.md,
     },
-    type: { fontSize: 12, marginTop: 2, textTransform: 'uppercase' },
+    type: { fontSize: Typography.sizes.sm, marginTop: Spacing.xxs, textTransform: 'uppercase' },
     badge: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 999,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm / 2,
+        borderRadius: Layout.radius.full,
     },
-    badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.2, color: '#FFFFFF' },
+    badgeText: {
+        fontSize: Typography.sizes.xs,
+        fontWeight: Typography.weights.bold,
+        letterSpacing: 0.2,
+        color: Colors.white,
+    },
     rootActions: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     addReserveBtn: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: Typography.sizes.xl,
+        height: Typography.sizes.xl,
+        borderRadius: Layout.radius.sm + Spacing.sm,
         justifyContent: 'center',
         alignItems: 'center',
     },
     reservesContainer: {
-        paddingBottom: 8,
+        paddingBottom: Spacing.md,
     },
     reserveRowContainer: {
         flexDirection: 'row',
@@ -338,16 +349,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingRight: 16,
-        paddingLeft: 34,
+        paddingVertical: Spacing.md + Spacing.xxs,
+        paddingRight: Spacing.xl,
+        paddingLeft: Spacing.xxxl + Spacing.md + Spacing.xxs,
     },
     reserveName: {
-        fontSize: 15,
-        marginLeft: 8,
+        fontSize: Typography.sizes.sm2 + Spacing.xxs,
+        marginLeft: Spacing.md,
     },
     emptyContainer: {
-        padding: 40,
+        padding: Spacing.xxxxxl,
         alignItems: 'center',
     },
 });

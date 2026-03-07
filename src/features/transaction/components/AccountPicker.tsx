@@ -8,7 +8,7 @@ import {
     SectionList,
     Modal,
 } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { Account } from '../../../database/schema';
 
 interface AccountPickerProps {
@@ -95,8 +95,8 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                 styles.item,
                 { backgroundColor: theme.surface },
                 !isLast && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
-                isFirst && { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-                isLast && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+                isFirst && { borderTopLeftRadius: Layout.radius.md, borderTopRightRadius: Layout.radius.md },
+                isLast && { borderBottomLeftRadius: Layout.radius.md, borderBottomRightRadius: Layout.radius.md },
             ]}
             onPress={onPress}>
             <View style={styles.itemRow}>
@@ -105,15 +105,15 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                 </Text>
                 {item.excludeFromSummaries && (
                     <View style={[styles.closedBoxBadge, { backgroundColor: colors.expense + '20' }]}>
-                        <Text style={[{ color: colors.expense, fontSize: 10, fontWeight: 'bold' }]}>
+                        <Text style={[styles.closedBoxBadgeText, { color: colors.expense }]}>
                             Closed-Box
                         </Text>
                     </View>
                 )}
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={styles.itemRight}>
                 {parentIdSet.has(item.id) && (
-                    <Text style={{ color: theme.textSecondary, fontSize: 18, marginLeft: 8 }}>›</Text>
+                    <Text style={[styles.chevron, { color: theme.textSecondary }]}>›</Text>
                 )}
             </View>
         </TouchableOpacity>
@@ -133,7 +133,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                         <View style={styles.headerLeft}>
                             {currentParentId !== null && (
                                 <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-                                    <Text style={{ color: colors.primary, fontSize: 16 }}>← Back</Text>
+                                    <Text style={[styles.navText, { color: colors.primary }]}>← Back</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -149,7 +149,7 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                 onClose();
                                 setCurrentParentId(null);
                             }} style={styles.cancelBtn}>
-                                <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
+                                <Text style={[styles.navText, { color: colors.primary }]}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -183,8 +183,10 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                 />
                             )}
                             ListEmptyComponent={
-                                <View style={{ padding: 20, alignItems: 'center' }}>
-                                    <Text style={{ color: theme.textSecondary }}>No available accounts</Text>
+                                <View style={styles.emptyRoot}>
+                                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                        No available accounts
+                                    </Text>
                                 </View>
                             }
                         />
@@ -200,15 +202,15 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                             styles.item,
                                             { backgroundColor: theme.surface },
                                             reservesList.length > 0 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
-                                            { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-                                            reservesList.length === 0 && { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 }
+                                            { borderTopLeftRadius: Layout.radius.md, borderTopRightRadius: Layout.radius.md },
+                                            reservesList.length === 0 && { borderBottomLeftRadius: Layout.radius.md, borderBottomRightRadius: Layout.radius.md }
                                         ]}
                                         onPress={() => {
                                             onSelect(parentAccount);
                                             onClose();
                                             setTimeout(() => setCurrentParentId(null), 300);
                                         }}>
-                                        <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 16 }}>
+                                        <Text style={[styles.selectParentText, { color: colors.primary }]}>
                                             ✓ Select {parentAccount.name}
                                         </Text>
                                     </TouchableOpacity>
@@ -230,8 +232,8 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
                                 />
                             )}
                             ListEmptyComponent={
-                                <View style={{ padding: 24, alignItems: 'center' }}>
-                                    <Text style={{ color: theme.textSecondary }}>No sub-accounts</Text>
+                                <View style={styles.emptySub}>
+                                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No sub-accounts</Text>
                                 </View>
                             }
                         />
@@ -245,15 +247,15 @@ export const AccountPicker: React.FC<AccountPickerProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.overlayMedium,
         justifyContent: 'flex-end',
     },
     content: {
         maxHeight: '80%',
         minHeight: '40%',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 16,
+        borderTopLeftRadius: Layout.radius.xl,
+        borderTopRightRadius: Layout.radius.xl,
+        padding: Spacing.xl,
         elevation: 0,
         shadowOpacity: 0,
         overflow: 'hidden',
@@ -261,7 +263,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: Spacing.xxl,
         justifyContent: 'center',
     },
     headerLeft: {
@@ -279,33 +281,33 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     backBtn: {
-        padding: 4,
+        padding: Spacing.xs,
     },
     cancelBtn: {
-        padding: 4,
+        padding: Spacing.xs,
     },
     title: {
-        fontSize: 18,
+        fontSize: Typography.sizes.lg,
         fontWeight: 'bold',
     },
     listContent: {
-        paddingBottom: 24,
+        paddingBottom: Spacing.xxxl,
     },
     sectionHeader: {
-        paddingVertical: 8,
-        paddingHorizontal: 8,
-        marginTop: 12,
-        marginBottom: 4,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.md,
+        marginTop: Spacing.lg,
+        marginBottom: Spacing.xs,
     },
     sectionTitle: {
-        fontSize: 12,
+        fontSize: Typography.sizes.sm,
         fontWeight: 'bold',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     item: {
-        paddingVertical: 14,
-        paddingHorizontal: 16,
+        paddingVertical: Spacing.lg + Spacing.xxs,
+        paddingHorizontal: Spacing.xl,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -315,13 +317,43 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemText: {
-        fontSize: 16,
-        marginRight: 8,
+        fontSize: Typography.sizes.md,
+        marginRight: Spacing.md,
     },
     closedBoxBadge: {
-        paddingHorizontal: 4,
-        paddingVertical: 2,
-        borderRadius: 4,
-        marginLeft: 4,
+        paddingHorizontal: Spacing.xs,
+        paddingVertical: Spacing.xxs,
+        borderRadius: Layout.radius.xs,
+        marginLeft: Spacing.xs,
+    },
+    closedBoxBadgeText: {
+        fontSize: Typography.sizes.xs,
+        fontWeight: 'bold',
+    },
+    itemRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    chevron: {
+        fontSize: Typography.sizes.lg,
+        marginLeft: Spacing.md,
+    },
+    navText: {
+        fontSize: Typography.sizes.md,
+    },
+    emptyRoot: {
+        padding: Spacing.xxl,
+        alignItems: 'center',
+    },
+    emptySub: {
+        padding: Spacing.xxxl,
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: Typography.sizes.base,
+    },
+    selectParentText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: '600',
     },
 });

@@ -4,7 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Typography, useAppTheme } from '../../../core/theme';
+import {
+    Colors,
+    LedgerRowDensityPreset,
+    LedgerSummaryCardMetricsPreset,
+    LedgerTextHierarchyPreset,
+    Layout,
+    Spacing,
+    Typography,
+    useAppTheme,
+} from '../../../core/theme';
 import { formatCurrency } from '../../../core/utils';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useLedgerStore } from '../../../stores/ledgerStore';
@@ -86,9 +95,16 @@ export const AccountsScreen: React.FC = () => {
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.content}>
-                    <View style={[styles.summaryBar, { backgroundColor: theme.surface }]}>
+                    <View
+                        style={[
+                            styles.summaryBar,
+                            {
+                                backgroundColor: theme.surface,
+                                borderColor: theme.border,
+                            },
+                        ]}>
                         <View style={styles.summaryColumn}>
-                            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Balance</Text>
+                            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Holding</Text>
                             <Text style={[styles.summaryValue, { color: colors.income }]}>
                                 {formatCurrency(summary.standingBalance, currencySymbol)}
                             </Text>
@@ -102,7 +118,7 @@ export const AccountsScreen: React.FC = () => {
                         </View>
                         <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
                         <View style={styles.summaryColumn}>
-                            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Total</Text>
+                            <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Current Bal.</Text>
                             <Text style={[styles.summaryValue, { color: theme.text }]}>
                                 {formatCurrency(summary.totalBalance, currencySymbol)}
                             </Text>
@@ -123,10 +139,10 @@ export const AccountsScreen: React.FC = () => {
                                     if (!breakdown) return sum;
                                     return sum + liabilityAmountFromBalance(breakdown.billGenerated);
                                 }, 0);
-                                const totalOutstanding = rows.reduce((sum, row) => {
+                                const totalUnbilled = rows.reduce((sum, row) => {
                                     const breakdown = cardBreakdownById.get(row.item.id);
                                     if (!breakdown) return sum;
-                                    return sum + liabilityAmountFromBalance(breakdown.total);
+                                    return sum + liabilityAmountFromBalance(breakdown.current);
                                 }, 0);
 
                                 return (
@@ -142,7 +158,7 @@ export const AccountsScreen: React.FC = () => {
                                             </View>
                                             <View style={styles.cardColumnsWrap}>
                                                 <View style={styles.cardColumn}>
-                                                    <Text style={[styles.cardColumnLabel, { color: theme.textSecondary }]}>Payable</Text>
+                                                    <Text style={[styles.cardColumnLabel, { color: theme.textSecondary }]}>Billed</Text>
                                                     <Text
                                                         style={[
                                                             styles.cardColumnValue,
@@ -152,13 +168,13 @@ export const AccountsScreen: React.FC = () => {
                                                     </Text>
                                                 </View>
                                                 <View style={styles.cardColumn}>
-                                                    <Text style={[styles.cardColumnLabel, { color: theme.textSecondary }]}>Outst. Bal</Text>
+                                                    <Text style={[styles.cardColumnLabel, { color: theme.textSecondary }]}>Unbilled</Text>
                                                     <Text
                                                         style={[
                                                             styles.cardColumnValue,
-                                                            { color: totalOutstanding > 0 ? colors.expense : theme.text },
+                                                            { color: totalUnbilled > 0 ? colors.expense : theme.text },
                                                         ]}>
-                                                        {formatCurrency(totalOutstanding, currencySymbol)}
+                                                        {formatCurrency(totalUnbilled, currencySymbol)}
                                                     </Text>
                                                 </View>
                                             </View>
@@ -169,7 +185,7 @@ export const AccountsScreen: React.FC = () => {
                                                 const isLast = index === rows.length - 1;
                                                 const breakdown = cardBreakdownById.get(row.item.id);
                                                 const payable = liabilityAmountFromBalance(breakdown?.billGenerated || 0);
-                                                const outstanding = liabilityAmountFromBalance(breakdown?.total || 0);
+                                                const unbilled = liabilityAmountFromBalance(breakdown?.current || 0);
 
                                                 return (
                                                     <TouchableOpacity
@@ -177,12 +193,12 @@ export const AccountsScreen: React.FC = () => {
                                                         activeOpacity={0.72}
                                                         onPress={() => openFilteredLedger(row.item)}
                                                         style={[
-                                                            styles.cardRow,
-                                                            !isLast && {
-                                                                borderBottomWidth: StyleSheet.hairlineWidth,
-                                                                borderBottomColor: theme.border,
-                                                            },
-                                                        ]}>
+                                                             styles.cardRow,
+                                                             !isLast && {
+                                                                borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                 borderBottomColor: theme.border,
+                                                             },
+                                                         ]}>
                                                         <View style={styles.rowNameWrap}>
                                                             <Text
                                                                 style={[
@@ -205,9 +221,9 @@ export const AccountsScreen: React.FC = () => {
                                                             <Text
                                                                 style={[
                                                                     styles.cardRowAmount,
-                                                                    { color: outstanding > 0 ? colors.expense : theme.text },
+                                                                    { color: unbilled > 0 ? colors.expense : theme.text },
                                                                 ]}>
-                                                                {formatCurrency(outstanding, currencySymbol)}
+                                                                {formatCurrency(unbilled, currencySymbol)}
                                                             </Text>
                                                         </View>
                                                     </TouchableOpacity>
@@ -264,9 +280,9 @@ export const AccountsScreen: React.FC = () => {
                                                     activeOpacity={0.72}
                                                     onPress={() => openFilteredLedger(row.item)}
                                                     style={[
-                                                        styles.row,
-                                                        !isLast && {
-                                                            borderBottomWidth: StyleSheet.hairlineWidth,
+                                                         styles.row,
+                                                         !isLast && {
+                                                            borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
                                                             borderBottomColor: theme.border,
                                                         },
                                                     ]}>
@@ -313,8 +329,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
     },
     headerSpacer: {
         width: 72,
@@ -325,25 +341,27 @@ const styles = StyleSheet.create({
         width: 72,
     },
     iconButton: {
-        width: 32,
+        width: Spacing.xxxxl,
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: 8,
+        marginLeft: Spacing.md,
     },
     title: {
         fontSize: Typography.sizes.lg,
-        fontWeight: '700',
+        fontWeight: Typography.weights.bold,
     },
     content: {
-        paddingHorizontal: 16,
-        paddingBottom: 40,
-        gap: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: Spacing.xxxxxl,
+        gap: Spacing.lg,
     },
     summaryBar: {
         flexDirection: 'row',
-        borderRadius: 16,
+        borderRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+        borderWidth: LedgerSummaryCardMetricsPreset.dividerThickness,
         overflow: 'hidden',
-        paddingVertical: 12,
+        paddingVertical: LedgerSummaryCardMetricsPreset.paddingVertical,
+        paddingHorizontal: LedgerSummaryCardMetricsPreset.paddingHorizontal,
     },
     summaryColumn: {
         flex: 1,
@@ -351,90 +369,93 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     summaryDivider: {
-        width: StyleSheet.hairlineWidth,
+        width: LedgerSummaryCardMetricsPreset.dividerThickness,
+        marginVertical: LedgerSummaryCardMetricsPreset.dividerSpacing / 2,
+        borderRadius: LedgerSummaryCardMetricsPreset.dividerRadius,
     },
     summaryLabel: {
         fontSize: Typography.sizes.sm,
-        fontWeight: '500',
+        fontWeight: Typography.weights.regular,
     },
     summaryValue: {
-        marginTop: 4,
-        fontSize: Typography.sizes.md,
-        fontWeight: '600',
+        marginTop: LedgerSummaryCardMetricsPreset.labelValueSpacing,
+        fontSize: Typography.sizes.base,
+        fontWeight: Typography.weights.bold,
     },
     sectionBlock: {
-        marginTop: 2,
+        marginTop: Spacing.xxs,
     },
     floatingHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        marginHorizontal: 8,
-        marginBottom: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
+        marginHorizontal: 0,
+        marginBottom: Spacing.xs,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
+        paddingVertical: Spacing.xxs,
         zIndex: 1,
     },
     sectionHeaderLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: Spacing.sm,
         flex: 1,
     },
     sectionCard: {
-        borderRadius: 16,
+        borderRadius: LedgerSummaryCardMetricsPreset.cardRadius,
         overflow: 'hidden',
     },
     sectionLabel: {
-        fontSize: Typography.sizes.sm,
-        fontWeight: '600',
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
     },
     sectionAmount: {
-        fontSize: 13,
-        fontWeight: '600',
+        fontSize: LedgerTextHierarchyPreset.amount.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.amount.fontWeight,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
     cardRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
     rowNameWrap: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: Spacing.sm,
         flex: 1,
     },
     rowName: {
-        fontSize: Typography.sizes.md,
-        fontWeight: '500',
+        fontSize: LedgerTextHierarchyPreset.primary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.primary.fontWeight,
         flexShrink: 1,
     },
     rowAmount: {
-        fontSize: Typography.sizes.md,
-        fontWeight: '600',
+        fontSize: LedgerTextHierarchyPreset.amount.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.amount.fontWeight,
     },
     reserveName: {
-        paddingLeft: 18,
-        fontSize: Typography.sizes.sm,
+        paddingLeft: Spacing.xl + Spacing.xxs,
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
     },
     badge: {
-        borderRadius: 999,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        borderRadius: Layout.radius.full,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
     },
     badgeText: {
-        color: '#fff',
+        color: Colors.white,
         fontSize: Typography.sizes.xs,
-        fontWeight: '700',
+        fontWeight: Typography.weights.bold,
     },
     cardColumnsWrap: {
         flexDirection: 'row',
@@ -446,13 +467,13 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     cardColumnLabel: {
-        fontSize: Typography.sizes.sm,
-        fontWeight: '500',
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
     },
     cardColumnValue: {
-        marginTop: 2,
-        fontSize: 13,
-        fontWeight: '600',
+        marginTop: LedgerSummaryCardMetricsPreset.labelValueSpacing,
+        fontSize: LedgerTextHierarchyPreset.amount.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.amount.fontWeight,
     },
     cardRowAmounts: {
         flexDirection: 'row',
@@ -461,11 +482,11 @@ const styles = StyleSheet.create({
     cardRowAmount: {
         flex: 1,
         textAlign: 'right',
-        fontSize: Typography.sizes.md,
-        fontWeight: '600',
+        fontSize: LedgerTextHierarchyPreset.amount.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.amount.fontWeight,
     },
     center: {
-        paddingVertical: 24,
+        paddingVertical: Spacing.xxxl,
         alignItems: 'center',
     },
 });

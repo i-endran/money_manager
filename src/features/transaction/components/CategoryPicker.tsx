@@ -7,7 +7,7 @@ import {
     FlatList,
     Modal,
 } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { Category } from '../../../database/schema';
 import { splitEmoji } from '../../../core/utils';
 
@@ -15,7 +15,7 @@ const CategoryLabel = ({ name, textStyle }: { name: string; textStyle?: any }) =
     const { emoji, text } = splitEmoji(name, '');
     return (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {!!emoji && <Text style={[textStyle, { marginRight: 6 }]}>{emoji}</Text>}
+            {!!emoji && <Text style={[textStyle, { marginRight: Spacing.sm }]}>{emoji}</Text>}
             <Text style={textStyle}>{text}</Text>
         </View>
     );
@@ -66,7 +66,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                         <View style={styles.headerLeft}>
                             {currentParentId !== null && (
                                 <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-                                    <Text style={{ color: colors.primary, fontSize: 16 }}>← Back</Text>
+                                    <Text style={[styles.navText, { color: colors.primary }]}>← Back</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -84,7 +84,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
 
                         <View style={styles.headerRight}>
                             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-                                <Text style={{ color: colors.primary, fontSize: 16 }}>Cancel</Text>
+                                <Text style={[styles.navText, { color: colors.primary }]}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -101,8 +101,11 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                                         onClose();
                                     }}>
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <Text style={{ color: colors.primary, fontWeight: '600', marginRight: 4, fontSize: 16 }}>✓ Select</Text>
-                                        <CategoryLabel name={parentCategory.name} textStyle={{ color: colors.primary, fontWeight: '600', fontSize: 16 }} />
+                                        <Text style={[styles.selectParentPrefix, { color: colors.primary }]}>✓ Select</Text>
+                                        <CategoryLabel
+                                            name={parentCategory.name}
+                                            textStyle={[styles.selectParentText, { color: colors.primary }]}
+                                        />
                                     </View>
                                 </TouchableOpacity>
                             ) : null
@@ -121,7 +124,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                                 }}>
                                 <CategoryLabel name={item.name} textStyle={[styles.itemText, { color: theme.text }]} />
                                 {categories.some(c => c.parentId === item.id) && (
-                                    <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
+                                    <Text style={[styles.chevron, { color: theme.textSecondary }]}>›</Text>
                                 )}
                             </TouchableOpacity>
                         )}
@@ -130,7 +133,7 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                         )}
                         ListEmptyComponent={
                             <View style={styles.empty}>
-                                <Text style={{ color: theme.textSecondary }}>No sub-categories</Text>
+                                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No sub-categories</Text>
                                 {parentCategory && (
                                     <TouchableOpacity
                                         onPress={() => {
@@ -139,7 +142,9 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
                                         }}
                                         style={styles.selectParentBtn}
                                     >
-                                        <Text style={{ color: colors.primary }}>Select "{parentCategory.name}"</Text>
+                                        <Text style={[styles.selectParentBtnText, { color: colors.primary }]}>
+                                            Select "{parentCategory.name}"
+                                        </Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -154,14 +159,14 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.overlayMedium,
         justifyContent: 'flex-end',
     },
     content: {
         maxHeight: '80%',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 16,
+        borderTopLeftRadius: Layout.radius.xl,
+        borderTopRightRadius: Layout.radius.xl,
+        padding: Spacing.xl,
         elevation: 0,
         shadowOpacity: 0,
         overflow: 'hidden',
@@ -169,7 +174,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: Spacing.xxl,
         justifyContent: 'center',
     },
     headerLeft: {
@@ -187,37 +192,58 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     backBtn: {
-        padding: 4,
+        padding: Spacing.xs,
     },
     cancelBtn: {
-        padding: 4,
+        padding: Spacing.xs,
     },
     title: {
-        fontSize: 18,
+        fontSize: Typography.sizes.lg,
         fontWeight: 'bold',
     },
     item: {
-        paddingVertical: 16,
+        paddingVertical: Spacing.xl,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     itemText: {
-        fontSize: 16,
+        fontSize: Typography.sizes.md,
     },
     separator: {
         height: StyleSheet.hairlineWidth,
     },
     empty: {
-        padding: 24,
+        padding: Spacing.xxxl,
         alignItems: 'center',
     },
     selectParentBtn: {
-        marginTop: 16,
+        marginTop: Spacing.xl,
     },
     selectParentItem: {
-        paddingVertical: 14,
-        paddingHorizontal: 4,
+        paddingVertical: Spacing.lg + Spacing.xxs,
+        paddingHorizontal: Spacing.xs,
         borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    navText: {
+        fontSize: Typography.sizes.md,
+    },
+    selectParentText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: '600',
+    },
+    selectParentPrefix: {
+        fontSize: Typography.sizes.md,
+        fontWeight: '600',
+        marginRight: Spacing.xs,
+    },
+    chevron: {
+        fontSize: Typography.sizes.lg,
+    },
+    emptyText: {
+        fontSize: Typography.sizes.base,
+    },
+    selectParentBtnText: {
+        fontSize: Typography.sizes.base,
     },
 });

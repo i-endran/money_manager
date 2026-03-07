@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -6,43 +6,43 @@ import {
     TouchableOpacity,
     SafeAreaView,
     Vibration,
-    Platform,
 } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import { Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { useAuthStore } from '../../../stores/authStore';
 import ReactNativeBiometrics from 'react-native-biometrics';
 
 export const LockScreen = () => {
-    const { theme, colors, isDark } = useAppTheme();
+    const { theme, colors } = useAppTheme();
     const { unlockWithPin, unlockWithBiometrics, biometricsEnabled } = useAuthStore();
 
     const [pin, setPin] = useState('');
     const [error, setError] = useState(false);
     const [biometryType, setBiometryType] = useState<string | undefined>();
-    const rnBiometrics = new ReactNativeBiometrics();
 
-    useEffect(() => {
-        rnBiometrics.isSensorAvailable().then((resultObject) => {
-            const { available, biometryType } = resultObject;
-            if (available) {
-                setBiometryType(biometryType);
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        if (biometricsEnabled && biometryType) {
-            handleBiometrics();
-        }
-    }, [biometryType, biometricsEnabled]);
-
-    const handleBiometrics = async () => {
+    const handleBiometrics = useCallback(async () => {
         const success = await unlockWithBiometrics();
         if (!success) {
             setError(true);
             setTimeout(() => setError(false), 1000);
         }
-    };
+    }, [unlockWithBiometrics]);
+
+    const rnBiometrics = React.useMemo(() => new ReactNativeBiometrics(), []);
+
+    useEffect(() => {
+        rnBiometrics.isSensorAvailable().then((resultObject) => {
+            const { available, biometryType: detectedBiometryType } = resultObject;
+            if (available) {
+                setBiometryType(detectedBiometryType);
+            }
+        });
+    }, [rnBiometrics]);
+
+    useEffect(() => {
+        if (biometricsEnabled && biometryType) {
+            handleBiometrics();
+        }
+    }, [biometryType, biometricsEnabled, handleBiometrics]);
 
     const handlePress = (num: string) => {
         if (pin.length < 4) {
@@ -132,30 +132,39 @@ export const LockScreen = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center' },
-    header: { alignItems: 'center', marginBottom: 40 },
-    title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
-    error: { fontSize: 14, fontWeight: '500' },
-    dotsContainer: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 60 },
+    header: { alignItems: 'center', marginBottom: Spacing.xxxxxl },
+    title: {
+        fontSize: Typography.sizes.lg + Spacing.sm,
+        fontWeight: Typography.weights.bold,
+        marginBottom: Spacing.md,
+    },
+    error: { fontSize: Typography.sizes.base, fontWeight: Typography.weights.medium },
+    dotsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: Spacing.xxxl,
+        marginBottom: Spacing.xxxxxl + Spacing.xxl,
+    },
     dot: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        borderWidth: 2,
+        width: Spacing.xl,
+        height: Spacing.xl,
+        borderRadius: Layout.radius.sm,
+        borderWidth: Spacing.xxs,
     },
     pad: {
         alignItems: 'center',
-        gap: 16,
+        gap: Spacing.xl,
     },
     row: {
         flexDirection: 'row',
-        gap: 24,
+        gap: Spacing.xxxl,
     },
     btn: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
+        width: Spacing.xxxl * 3,
+        height: Spacing.xxxl * 3,
+        borderRadius: Layout.radius.full,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    btnText: { fontSize: 28, fontWeight: '500' },
+    btnText: { fontSize: Typography.sizes.xl, fontWeight: Typography.weights.medium },
 });

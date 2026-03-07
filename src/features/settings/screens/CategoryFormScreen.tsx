@@ -8,7 +8,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq } from 'drizzle-orm';
@@ -23,7 +23,7 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
 
     const [name, setName] = useState('');
     const [type, setType] = useState<CategoryType>(CategoryType.EXPENSE);
-    const [parentId, setParentId] = useState<number | null>(null);
+    const [_parentId, setParentId] = useState<number | null>(null);
     const [isActive, setIsActive] = useState(true);
 
     const [parentCategory, setParentCategory] = useState<schema.Category | null>(null);
@@ -66,7 +66,6 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
             return;
         }
 
-        const now = new Date().toISOString();
         let level = 1;
         if (parentCategory) {
             level = parentCategory.level + 1;
@@ -133,7 +132,7 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
     return (
         <SafeAreaView
             edges={['left', 'right', 'bottom']}
-            style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}
+            style={[styles.container, { backgroundColor: isDark ? Colors.overlayMedium : Colors.lightGlass }]}
         >
             <BlurView
                 style={StyleSheet.absoluteFillObject}
@@ -172,10 +171,11 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                                 key={t}
                                 onPress={() => { setType(t); setParentCategory(null); }}
                                 style={[
-                                    styles.typeBtn,
-                                    type === t && { backgroundColor: t === CategoryType.EXPENSE ? colors.expense : colors.income },
-                                ]}>
-                                <Text style={[styles.typeText, type === t && { color: 'white' }]}>
+                                     styles.typeBtn,
+                                     { backgroundColor: theme.weekendTint },
+                                     type === t && { backgroundColor: t === CategoryType.EXPENSE ? colors.expense : colors.income },
+                                 ]}>
+                                <Text style={[styles.typeText, { color: type === t ? Colors.white : theme.textSecondary }]}>
                                     {t.toUpperCase()}
                                 </Text>
                             </TouchableOpacity>
@@ -197,7 +197,7 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                     <TouchableOpacity
                         style={[styles.switch, isActive ? { backgroundColor: colors.primary } : { backgroundColor: theme.border }]}
                         onPress={() => setIsActive(!isActive)}>
-                        <Text style={{ color: 'white', fontWeight: 'bold' }}>{isActive ? 'ON' : 'OFF'}</Text>
+                        <Text style={styles.switchText}>{isActive ? 'ON' : 'OFF'}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -206,7 +206,7 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                         style={[styles.deleteBtn, { borderColor: colors.expense }]}
                         onPress={handleDelete}
                     >
-                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>Delete Category</Text>
+                        <Text style={[styles.deleteText, { color: colors.expense }]}>Delete Category</Text>
                     </TouchableOpacity>
                 )}
             </View>
@@ -229,50 +229,51 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 16,
+        padding: Spacing.xl,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
-    title: { fontSize: 18, fontWeight: 'bold' },
-    saveText: { fontWeight: 'bold', fontSize: 16 },
-    content: { padding: 16 },
-    inputGroup: { marginBottom: 24 },
-    label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+    title: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
+    saveText: { fontWeight: Typography.weights.semibold, fontSize: Typography.sizes.md },
+    content: { padding: Spacing.xl },
+    inputGroup: { marginBottom: Spacing.xxxl },
+    label: { fontSize: Typography.sizes.sm, fontWeight: Typography.weights.medium, marginBottom: Spacing.md },
     input: {
-        fontSize: 16,
-        paddingVertical: 8,
+        fontSize: Typography.sizes.md,
+        paddingVertical: Spacing.md,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    typeContainer: { flexDirection: 'row', gap: 8 },
+    typeContainer: { flexDirection: 'row', gap: Spacing.md },
     typeBtn: {
         flex: 1,
-        paddingVertical: 10,
-        borderRadius: 8,
-        backgroundColor: '#eee',
+        paddingVertical: Spacing.md + Spacing.xxs,
+        borderRadius: Layout.radius.sm,
         alignItems: 'center',
     },
-    typeText: { fontSize: 14, fontWeight: 'bold', color: '#666' },
+    typeText: { fontSize: Typography.sizes.base, fontWeight: Typography.weights.bold },
     pickerField: {
-        paddingVertical: 12,
+        paddingVertical: Spacing.lg,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        marginBottom: 24,
+        marginBottom: Spacing.xxxl,
     },
-    pickerValue: { fontSize: 16, marginTop: 4 },
+    pickerValue: { fontSize: Typography.sizes.md, marginTop: Spacing.xs },
     switchGroup: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     switch: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.md,
+        borderRadius: Layout.radius.lg,
     },
+    switchText: { color: Colors.white, fontWeight: Typography.weights.bold, fontSize: Typography.sizes.sm },
     deleteBtn: {
-        marginTop: 40,
-        paddingVertical: 16,
+        marginTop: Spacing.xxxxxl,
+        paddingVertical: Spacing.xl,
         alignItems: 'center',
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: Layout.radius.sm,
     },
+    deleteText: { fontWeight: Typography.weights.bold, fontSize: Typography.sizes.md },
 });

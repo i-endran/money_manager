@@ -31,7 +31,7 @@ interface SettingsState {
     updateSetting: (key: SettingsKey, value: string) => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
+export const useSettingsStore = create<SettingsState>((set, _get) => ({
     currencySymbol: DEFAULT_SETTINGS[SettingsKey.CURRENCY_SYMBOL] as string,
     currencyCode: DEFAULT_SETTINGS[SettingsKey.CURRENCY_CODE] as string,
     themeMode: DEFAULT_SETTINGS[SettingsKey.THEME_MODE] as ThemeMode,

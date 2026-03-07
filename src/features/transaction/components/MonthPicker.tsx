@@ -5,9 +5,8 @@ import {
     StyleSheet,
     TouchableOpacity,
     Modal,
-    FlatList,
 } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import { Colors, Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { format } from 'date-fns';
 
 interface MonthPickerProps {
@@ -44,6 +43,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
                                     key={index}
                                     style={[
                                         styles.monthItem,
+                                        { borderColor: theme.border },
                                         isSelected && { backgroundColor: colors.primary },
                                     ]}
                                     onPress={() => {
@@ -53,7 +53,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
                                     <Text
                                         style={[
                                             styles.monthText,
-                                            { color: isSelected ? 'white' : theme.text },
+                                            { color: isSelected ? colors.white : theme.text },
                                         ]}>
                                         {format(m, 'MMM')}
                                     </Text>
@@ -63,7 +63,7 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
                     </View>
 
                     <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                        <Text style={{ color: colors.primary, fontWeight: 'bold' }}>Close</Text>
+                        <Text style={[styles.closeText, { color: colors.primary }]}>Close</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -74,21 +74,21 @@ export const MonthPicker: React.FC<MonthPickerProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.overlayMedium,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
+        padding: Spacing.xxl,
     },
     content: {
         width: '100%',
-        padding: 20,
-        borderRadius: 16,
+        padding: Spacing.xxl,
+        borderRadius: Layout.radius.lg,
         alignItems: 'center',
     },
     title: {
-        fontSize: 18,
+        fontSize: Typography.sizes.lg,
         fontWeight: 'bold',
-        marginBottom: 20,
+        marginBottom: Spacing.xxl,
     },
     grid: {
         flexDirection: 'row',
@@ -101,16 +101,19 @@ const styles = StyleSheet.create({
         margin: '1.5%',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: Layout.radius.sm,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: '#eee',
     },
     monthText: {
-        fontSize: 16,
+        fontSize: Typography.sizes.md,
         fontWeight: '500',
     },
     closeBtn: {
-        marginTop: 20,
-        padding: 10,
+        marginTop: Spacing.xxl,
+        padding: Spacing.lg,
+    },
+    closeText: {
+        fontWeight: 'bold',
+        fontSize: Typography.sizes.md,
     },
 });
