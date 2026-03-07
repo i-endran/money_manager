@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -38,7 +38,6 @@ export const AccountsScreen: React.FC = () => {
     const setCurrentDate = useLedgerStore(state => state.setCurrentDate);
     const { loading, summary, load } = useAccountsSummary();
     const navigation = useNavigation<NavType>();
-    const isFocused = useIsFocused();
     const cardBreakdownById = useMemo(
         () => new Map(summary.cardBreakdowns.map(item => [item.id, item])),
         [summary.cardBreakdowns],
@@ -60,10 +59,14 @@ export const AccountsScreen: React.FC = () => {
         [navigation, setCurrentDate],
     );
 
-    useEffect(() => {
-        if (!isFocused) return;
-        load();
-    }, [load, refreshTick, isFocused]);
+    // Single hook: fires on focus + re-fires when refreshTick changes while focused.
+    // useFocusEffect's internal useEffect re-runs when callback identity changes,
+    // and re-executes the effect if navigation.isFocused() is true at that point.
+    useFocusEffect(
+        useCallback(() => {
+            load();
+        }, [load, refreshTick]),
+    );
 
     return (
         <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
