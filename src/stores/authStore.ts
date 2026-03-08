@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { APP_NAME } from '../core/constants';
 
 interface AuthState {
     isLocked: boolean;
@@ -65,7 +66,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
             const result = await Keychain.getGenericPassword({
                 service: 'app_pin',
-                authenticationPrompt: { title: 'Unlock Money Manager' },
+                authenticationPrompt: { title: `Unlock ${APP_NAME}` },
                 accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_CURRENT_SET,
             });
             if (result) {

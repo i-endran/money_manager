@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { formatMonthYearLabel } from '../../../core/utils';
-import { useAppTheme } from '../../../core/theme';
+import { Spacing, Typography, useAppTheme } from '../../../core/theme';
 
 interface MonthSelectorProps {
     currentDate: Date;
@@ -38,18 +38,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 6,
-        paddingHorizontal: 16,
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.xl,
     },
     button: {
-        padding: 6,
+        padding: Spacing.sm,
     },
     arrow: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: Typography.sizes.lg,
+        fontWeight: Typography.weights.bold,
     },
     label: {
-        fontSize: 15,
-        fontWeight: '600',
+        fontSize: Typography.sizes.base,
+        fontWeight: Typography.weights.semibold,
     },
 });

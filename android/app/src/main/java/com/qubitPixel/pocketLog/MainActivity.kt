@@ -1,4 +1,4 @@
-package com.moneymanager.app
+package com.qubitPixel.pocketLog
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

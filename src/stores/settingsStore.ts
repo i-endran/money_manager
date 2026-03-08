@@ -4,6 +4,21 @@ import * as schema from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { ThemeMode, SettingsKey, DEFAULT_SETTINGS } from '../core/constants';
 
+function normalizeStoredSettingValue(value: string): string {
+    const trimmed = value.trim();
+    const isJsonString = trimmed.startsWith('"') && trimmed.endsWith('"');
+    const isJsonBoolean = trimmed === 'true' || trimmed === 'false';
+
+    if (!isJsonString && !isJsonBoolean) return value;
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        return typeof parsed === 'string' ? parsed : String(parsed);
+    } catch {
+        return value;
+    }
+}
+
 interface SettingsState {
     currencySymbol: string;
     currencyCode: string;
@@ -16,7 +31,7 @@ interface SettingsState {
     updateSetting: (key: SettingsKey, value: string) => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
+export const useSettingsStore = create<SettingsState>((set, _get) => ({
     currencySymbol: DEFAULT_SETTINGS[SettingsKey.CURRENCY_SYMBOL] as string,
     currencyCode: DEFAULT_SETTINGS[SettingsKey.CURRENCY_CODE] as string,
     themeMode: DEFAULT_SETTINGS[SettingsKey.THEME_MODE] as ThemeMode,
@@ -29,10 +44,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             const stateUpdate: Partial<SettingsState> = { isLoaded: true };
 
             settings.forEach(s => {
-                if (s.key === SettingsKey.CURRENCY_SYMBOL) stateUpdate.currencySymbol = s.value;
-                if (s.key === SettingsKey.CURRENCY_CODE) stateUpdate.currencyCode = s.value;
-                if (s.key === SettingsKey.THEME_MODE) stateUpdate.themeMode = s.value as ThemeMode;
-                if (s.key === SettingsKey.CARRY_FORWARD_BALANCE) stateUpdate.carryForwardBalance = s.value === 'true';
+                const normalizedValue = normalizeStoredSettingValue(s.value);
+                if (s.key === SettingsKey.CURRENCY_SYMBOL) stateUpdate.currencySymbol = normalizedValue;
+                if (s.key === SettingsKey.CURRENCY_CODE) stateUpdate.currencyCode = normalizedValue;
+                if (s.key === SettingsKey.THEME_MODE) stateUpdate.themeMode = normalizedValue as ThemeMode;
+                if (s.key === SettingsKey.CARRY_FORWARD_BALANCE) stateUpdate.carryForwardBalance = normalizedValue === 'true';
             });
 
             set(stateUpdate);

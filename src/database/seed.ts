@@ -4,7 +4,6 @@ import {
     DEFAULT_SETTINGS,
     SEED_ACCOUNTS,
     SEED_CATEGORIES,
-    SettingsKey,
 } from '../core/constants';
 
 /**
@@ -18,7 +17,7 @@ export async function seedData() {
     for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
         await db.insert(schema.appSettings).values({
             key: key as string,
-            value: JSON.stringify(value),
+            value,
         });
     }
 

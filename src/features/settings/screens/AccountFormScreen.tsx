@@ -8,17 +8,27 @@ import {
     Alert,
     ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+    Colors,
+    FormDensityPreset,
+    FormHeaderPreset,
+    LedgerTextHierarchyPreset,
+    Spacing,
+    Typography,
+    useAppTheme,
+} from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { AccountType } from '../../../core/constants';
+import { AccountType, LABEL_OPT_OUT, LABEL_OPT_OUT_FULL, LABEL_OPT_OUT_DESCRIPTION, LABEL_OPT_OUT_MANDATORY_DESCRIPTION } from '../../../core/constants';
 import { BlurView } from '@react-native-community/blur';
 import { useLedgerStore } from '../../../stores/ledgerStore';
+import { isMandatoryClosedBoxType, normalizeInitialBalanceByType } from '../../../core/utils';
 
 export const AccountFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const { refresh } = useLedgerStore();
 
     const accountId = route.params?.accountId;
@@ -29,12 +39,16 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     const [originalName, setOriginalName] = useState('');
     const [type, setType] = useState<AccountType>(initialType);
     const [initialBalance, setInitialBalance] = useState('');
+    const [settlementDay, setSettlementDay] = useState('10');
     const [isActive, setIsActive] = useState(true);
     const [excludeFromSummaries, setExcludeFromSummaries] = useState(false);
 
     const [parentCache, setParentCache] = useState<schema.Account | null>(null);
 
     const isReserveMode = !!parentId || (parentCache !== null);
+    const isDebtAccountType = type === AccountType.DEBT;
+    const isMandatoryClosedBoxAccountType = isMandatoryClosedBoxType(type);
+    const isCardAccountType = type === AccountType.CARD;
 
     useEffect(() => {
         async function load() {
@@ -45,8 +59,11 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                     setOriginalName(acc.name);
                     setType(acc.type as AccountType);
                     setInitialBalance(acc.initialBalance.toString());
+                    setSettlementDay(String(acc.settlementDay || 10));
                     setIsActive(acc.isActive);
-                    setExcludeFromSummaries(acc.excludeFromSummaries);
+                    setExcludeFromSummaries(
+                        isMandatoryClosedBoxType(acc.type) ? true : acc.excludeFromSummaries,
+                    );
 
                     if (acc.parentId) {
                         const [p] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, acc.parentId)).limit(1);
@@ -59,12 +76,35 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 if (p) {
                     setParentCache(p);
                     setType(p.type as AccountType);
-                    setExcludeFromSummaries(p.excludeFromSummaries);
+                    setExcludeFromSummaries(
+                        isMandatoryClosedBoxType(p.type) ? true : p.excludeFromSummaries,
+                    );
+                    setSettlementDay(String(p.settlementDay || 10));
                 }
             }
         }
         load();
     }, [accountId, parentId]);
+
+    useEffect(() => {
+        if (isMandatoryClosedBoxAccountType && !excludeFromSummaries) {
+            setExcludeFromSummaries(true);
+        }
+    }, [isMandatoryClosedBoxAccountType, excludeFromSummaries]);
+
+    const handleTypeSelect = (selectedType: AccountType) => {
+        const wasMandatoryClosedBoxType = isMandatoryClosedBoxType(type);
+        const nextMandatoryClosedBoxType = isMandatoryClosedBoxType(selectedType);
+        setType(selectedType);
+        if (nextMandatoryClosedBoxType) {
+            setExcludeFromSummaries(true);
+        } else if (!accountId && !isReserveMode && wasMandatoryClosedBoxType) {
+            setExcludeFromSummaries(false);
+        }
+        if (selectedType === AccountType.CARD && !settlementDay) {
+            setSettlementDay('10');
+        }
+    };
 
     const handleSave = async () => {
         if (!name.trim()) {
@@ -83,6 +123,12 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
         }
 
         const balance = parseFloat(initialBalance) || 0;
+        const normalizedSettlementDay = Math.max(1, Math.min(28, parseInt(settlementDay, 10) || 10));
+        const finalExcludeFromSummaries = isMandatoryClosedBoxType(type) ? true : excludeFromSummaries;
+        const finalSettlementDay = isReserveMode
+            ? (parentCache?.settlementDay || normalizedSettlementDay)
+            : (isCardAccountType ? normalizedSettlementDay : 10);
+        const normalizedInitialBalance = normalizeInitialBalanceByType(type, balance);
         const now = new Date().toISOString();
 
         try {
@@ -90,9 +136,10 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 await db.update(schema.accounts).set({
                     name: name.trim(),
                     type,
-                    initialBalance: isReserveMode ? 0 : balance,
+                    initialBalance: isReserveMode ? 0 : normalizedInitialBalance,
                     isActive,
-                    excludeFromSummaries,
+                    excludeFromSummaries: finalExcludeFromSummaries,
+                    settlementDay: finalSettlementDay,
                 }).where(eq(schema.accounts.id, accountId));
 
                 refresh(); // Trigger ledger refresh in case name changed
@@ -106,38 +153,17 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                     name: name.trim(),
                     iconName: isReserveMode ? 'subdirectory-arrow-right' : '🏦',
                     type,
-                    initialBalance: isReserveMode ? 0 : balance,
+                    initialBalance: isReserveMode ? 0 : normalizedInitialBalance,
                     isActive,
                     parentId: finalParentId || null,
                     sortOrder: nextSort,
-                    excludeFromSummaries,
+                    excludeFromSummaries: finalExcludeFromSummaries,
+                    settlementDay: finalSettlementDay,
                     createdAt: now,
                 });
 
                 refresh();
-
-                if (!isReserveMode) {
-                    Alert.alert('Success', 'Account created. Would you like to add a reserve for this account?', [
-                        { text: 'No', style: 'cancel', onPress: () => navigation.goBack() },
-                        {
-                            text: 'Yes',
-                            onPress: async () => {
-                                // Find the inserted account
-                                const latest = await db.select().from(schema.accounts)
-                                    .where(eq(schema.accounts.name, name.trim()))
-                                    .orderBy(desc(schema.accounts.id)).limit(1);
-
-                                if (latest[0]) {
-                                    navigation.replace('AccountForm', { parentId: latest[0].id });
-                                } else {
-                                    navigation.goBack();
-                                }
-                            }
-                        }
-                    ]);
-                } else {
-                    navigation.goBack();
-                }
+                navigation.goBack();
             }
         } catch (error) {
             console.error('Failed to save account:', error);
@@ -175,26 +201,30 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
     };
 
     const handleExcludeToggle = () => {
+        if (isMandatoryClosedBoxAccountType) return;
         const newValue = !excludeFromSummaries;
         setExcludeFromSummaries(newValue);
         if (newValue && !accountId) {
             Alert.alert(
-                'Closed-Box Account',
-                'This account will only allow Transfers. Its balance will not affect your Total Income or Expense summaries.'
+                LABEL_OPT_OUT_FULL,
+                'This account will be excluded from your Total Income and Expense summaries. Transfers to/from it will still be counted as expense/income in the overall ledger.'
             );
         }
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }]}>
+        <SafeAreaView
+            edges={['left', 'right', 'bottom']}
+            style={[styles.container, { backgroundColor: isDark ? Colors.darkGlass : Colors.lightGlass }]}
+        >
             <BlurView
                 style={StyleSheet.absoluteFillObject}
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + Spacing.md }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={{ color: colors.primary }}>Cancel</Text>
+                    <Text style={{ color: colors.primary, fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium }}>Cancel</Text>
                 </TouchableOpacity>
                 <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                     {accountId
@@ -233,12 +263,12 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                             {Object.values(AccountType).map((t) => (
                                 <TouchableOpacity
                                     key={t}
-                                    onPress={() => setType(t as AccountType)}
+                                    onPress={() => handleTypeSelect(t as AccountType)}
                                     style={[
                                         styles.typeBtn,
                                         { backgroundColor: type === t ? colors.primary : theme.surface },
                                     ]}>
-                                    <Text style={[styles.typeText, { color: type === t ? 'white' : theme.textSecondary }]}>
+                                    <Text style={[styles.typeText, { color: type === t ? Colors.white : theme.textSecondary }]}>
                                         {t.toUpperCase()}
                                     </Text>
                                 </TouchableOpacity>
@@ -258,30 +288,52 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                             placeholderTextColor={theme.textSecondary}
                             keyboardType="numeric"
                         />
+                        {(isCardAccountType || isDebtAccountType) && (
+                            <Text style={[styles.warningText, { color: colors.expense }]}>
+                                Loan-like accounts are stored as liabilities and shown in red.
+                            </Text>
+                        )}
+                    </View>
+                )}
+
+                {!isReserveMode && isCardAccountType && (
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: theme.textSecondary }]}>Settlement Day (1–28)</Text>
+                        <TextInput
+                            style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
+                            value={settlementDay}
+                            onChangeText={text => setSettlementDay(text.replace(/[^0-9]/g, '').slice(0, 2))}
+                            placeholder="10"
+                            placeholderTextColor={theme.textSecondary}
+                            keyboardType="number-pad"
+                        />
                     </View>
                 )}
 
                 <View style={styles.switchGroup}>
-                    <Text style={[styles.label, { color: theme.text, marginBottom: 0 }]}>Active</Text>
+                    <Text style={[styles.label, styles.labelNoMargin, { color: theme.text }]}>Active</Text>
                     <TouchableOpacity
                         style={[styles.switch, isActive ? { backgroundColor: colors.primary } : { backgroundColor: theme.border }]}
                         onPress={() => setIsActive(!isActive)}>
-                        <Text style={{ color: 'white', fontWeight: 'bold' }}>{isActive ? 'ON' : 'OFF'}</Text>
+                        <Text style={styles.switchText}>{isActive ? 'ON' : 'OFF'}</Text>
                     </TouchableOpacity>
                 </View>
 
                 {!isReserveMode && (
-                    <View style={[styles.switchGroup, { marginTop: 24 }]}>
-                        <View style={{ flex: 1, paddingRight: 16 }}>
-                            <Text style={[styles.label, { color: theme.text, marginBottom: 4 }]}>Closed-Box Account</Text>
-                            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                                Only transfers allowed. Excluded from income/expense calculations.
+                    <View style={[styles.switchGroup, styles.switchGroupWithMargin]}>
+                        <View style={styles.switchDescriptionContainer}>
+                            <Text style={[styles.closedBoxLabel, { color: theme.text }]}>{LABEL_OPT_OUT_FULL}</Text>
+                            <Text style={[styles.closedBoxDescription, { color: theme.textSecondary }]}>
+                                {isMandatoryClosedBoxAccountType
+                                    ? LABEL_OPT_OUT_MANDATORY_DESCRIPTION(type)
+                                    : LABEL_OPT_OUT_DESCRIPTION}
                             </Text>
                         </View>
                         <TouchableOpacity
                             style={[styles.switch, excludeFromSummaries ? { backgroundColor: colors.expense } : { backgroundColor: theme.border }]}
-                            onPress={handleExcludeToggle}>
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>{excludeFromSummaries ? 'ON' : 'OFF'}</Text>
+                            onPress={handleExcludeToggle}
+                            disabled={isMandatoryClosedBoxAccountType}>
+                            <Text style={styles.switchText}>{excludeFromSummaries ? 'ON' : 'OFF'}</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -291,7 +343,7 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                         style={[styles.deleteBtn, { borderColor: colors.expense }]}
                         onPress={handleDelete}
                     >
-                        <Text style={{ color: colors.expense, fontWeight: 'bold' }}>
+                        <Text style={[styles.deleteText, { color: colors.expense }]}>
                             {isReserveMode ? 'Delete Reserve' : 'Delete Account'}
                         </Text>
                     </TouchableOpacity>
@@ -306,50 +358,77 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
     },
-    title: { fontSize: 18, fontWeight: 'bold' },
-    saveText: { fontWeight: 'bold', fontSize: 16 },
-    content: { padding: 16 },
+    title: { ...FormHeaderPreset.title },
+    saveText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold },
+    content: { padding: FormDensityPreset.rowPaddingHorizontal },
     parentBadge: {
-        padding: 8,
-        borderRadius: 8,
-        marginBottom: 24,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        borderRadius: FormDensityPreset.controlRadius,
+        marginBottom: FormDensityPreset.sectionSpacing,
         alignSelf: 'flex-start',
     },
-    parentBadgeText: { fontSize: 12, fontWeight: '600' },
-    inputGroup: { marginBottom: 24 },
-    label: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+    parentBadgeText: { ...LedgerTextHierarchyPreset.secondary },
+    inputGroup: { marginBottom: FormDensityPreset.sectionSpacing },
+    label: { ...LedgerTextHierarchyPreset.secondary, marginBottom: Spacing.md },
+    labelNoMargin: {
+        marginBottom: 0,
+    },
     input: {
-        fontSize: 16,
-        paddingVertical: 8,
+        ...LedgerTextHierarchyPreset.primary,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    typeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    typeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
     typeBtn: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        borderRadius: FormDensityPreset.controlRadius,
     },
-    typeText: { fontSize: 12, fontWeight: 'bold' },
+    typeText: { ...LedgerTextHierarchyPreset.amount },
+    warningText: { marginTop: Spacing.md, ...LedgerTextHierarchyPreset.secondary },
     switchGroup: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: FormDensityPreset.fieldSpacing,
+    },
+    switchGroupWithMargin: {
+        marginTop: FormDensityPreset.sectionSpacing,
+    },
+    switchDescriptionContainer: {
+        flex: 1,
+        paddingRight: FormDensityPreset.fieldSpacing,
+    },
+    closedBoxLabel: {
+        ...LedgerTextHierarchyPreset.primary,
+        marginBottom: Spacing.xs,
+    },
+    closedBoxDescription: {
+        ...LedgerTextHierarchyPreset.secondary,
     },
     switch: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        borderRadius: FormDensityPreset.controlRadius,
+    },
+    switchText: {
+        color: Colors.white,
+        ...LedgerTextHierarchyPreset.amount,
     },
     deleteBtn: {
-        marginTop: 40,
-        paddingVertical: 16,
+        marginTop: FormDensityPreset.sectionSpacing * 2,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: FormDensityPreset.rowPaddingHorizontal,
         alignItems: 'center',
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: FormDensityPreset.controlRadius,
     },
+    deleteText: { ...LedgerTextHierarchyPreset.amount },
 });

@@ -1,18 +1,69 @@
 import { useState, useEffect } from 'react';
-import { eq, and, gte, lte, lt } from 'drizzle-orm';
+import { useIsFocused } from '@react-navigation/native';
+import { format } from 'date-fns';
 import { db } from '../../../database';
-import { transactions, accounts, categories, appSettings } from '../../../database/schema';
+import { accounts, appSettings } from '../../../database/schema';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { getMonthRange, groupByDay } from '../../../core/utils';
 import { TransactionType, SettingsKey } from '../../../core/constants';
+import {
+    fetchLedgerDailySummaries,
+    fetchLedgerSummaryTotals,
+    fetchLedgerTransactions,
+    type LedgerTransactionRow,
+} from '../../../database/summarySql';
 
-export function useMonthlyLedger() {
+function parseStoredBoolean(value?: string): boolean {
+    if (!value) return false;
+    const trimmed = value.trim();
+    if (trimmed === 'true') return true;
+    if (trimmed === 'false') return false;
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        return parsed === true || parsed === 'true';
+    } catch {
+        return false;
+    }
+}
+
+type LedgerItem = LedgerTransactionRow & {
+    accountName: string;
+    toAccountName?: string;
+};
+
+type OpeningBalanceItem = {
+    id: number;
+    isOpeningBalance: true;
+    amount: number;
+    type: TransactionType;
+    effectiveType: TransactionType;
+    note: string;
+    categoryName: string;
+    accountName: string;
+    date: string;
+};
+
+type LedgerListItem = LedgerItem | OpeningBalanceItem;
+
+type LedgerSection = {
+    title: Date;
+    data: LedgerListItem[];
+    dayIncome: number;
+    dayExpense: number;
+    isOpeningBalanceSection?: boolean;
+};
+
+export function useMonthlyLedger(accountId?: number) {
     const { currentDate, refreshTick } = useLedgerStore();
-    const [data, setData] = useState<any[]>([]);
+    const isFocused = useIsFocused();
+    const [data, setData] = useState<LedgerSection[]>([]);
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
 
     useEffect(() => {
+        if (!isFocused) return;
+
         async function fetchLedger() {
             setLoading(true);
             const { start, end } = getMonthRange(
@@ -20,48 +71,20 @@ export function useMonthlyLedger() {
                 currentDate.getMonth(),
             );
 
+            const startIso = start.toISOString();
+            const endIso = end.toISOString();
+
             // Fetch all accounts into memory to resolve names & closed-box logic easily
-            const allAccounts = await db.select().from(accounts);
+            const [allAccounts, settings] = await Promise.all([
+                db.select().from(accounts),
+                db.select().from(appSettings),
+            ]);
             const accountMap = new Map(allAccounts.map(a => [a.id, a]));
 
             // Check carry-forward setting
-            const settings = await db.select().from(appSettings);
-            const carryForward = settings.find(s => s.key === SettingsKey.CARRY_FORWARD_BALANCE)?.value === 'true';
-
-            let openingBalance = 0;
-            if (carryForward) {
-                // Compute all income - expense before this month
-                const priorRows = await db
-                    .select({ transaction: transactions })
-                    .from(transactions)
-                    .where(lt(transactions.date, start.toISOString()));
-
-                const priorIds = new Set<number>();
-                priorRows.forEach(row => {
-                    const txn = row.transaction;
-                    if (priorIds.has(txn.id)) return;
-
-                    if (txn.type === TransactionType.TRANSFER && txn.linkedTransactionId) {
-                        priorIds.add(txn.id);
-                        priorIds.add(txn.linkedTransactionId);
-
-                        const fromAcc = accountMap.get(txn.accountId);
-                        const toAcc = txn.toAccountId ? accountMap.get(txn.toAccountId) : null;
-
-                        if (fromAcc && toAcc) {
-                            if (!fromAcc.excludeFromSummaries && toAcc.excludeFromSummaries) {
-                                openingBalance -= txn.amount;
-                            } else if (fromAcc.excludeFromSummaries && !toAcc.excludeFromSummaries) {
-                                openingBalance += txn.amount;
-                            }
-                        }
-                    } else if (txn.type === TransactionType.INCOME) {
-                        openingBalance += txn.amount;
-                    } else if (txn.type === TransactionType.EXPENSE) {
-                        openingBalance -= txn.amount;
-                    }
-                });
-            }
+            const carryForward = parseStoredBoolean(
+                settings.find(s => s.key === SettingsKey.CARRY_FORWARD_BALANCE)?.value,
+            );
 
             const resolveAccountName = (accId?: number | null) => {
                 if (!accId) return 'Unknown';
@@ -77,106 +100,84 @@ export function useMonthlyLedger() {
                 return acc.name;
             };
 
-            const rows = await db
-                .select({
-                    transaction: transactions,
-                    categoryName: categories.name,
-                    categoryIcon: categories.iconName,
-                })
-                .from(transactions)
-                .leftJoin(categories, eq(transactions.categoryId, categories.id))
-                .where(
-                    and(
-                        gte(transactions.date, start.toISOString()),
-                        lte(transactions.date, end.toISOString()),
-                    ),
-                );
+            const baseFilters = {
+                startDate: startIso,
+                endDate: endIso,
+                accountId,
+            };
 
-            // Merge logic for transfers
-            const mergedList: any[] = [];
-            const mergedIds = new Set<number>();
+            const [rows, dailySummaries, monthTotals, priorTotals] = await Promise.all([
+                fetchLedgerTransactions(baseFilters),
+                fetchLedgerDailySummaries(baseFilters),
+                fetchLedgerSummaryTotals(baseFilters),
+                carryForward
+                    ? fetchLedgerSummaryTotals({ endDateExclusive: startIso, accountId })
+                    : Promise.resolve({ incomeTotal: 0, expenseTotal: 0 }),
+            ]);
 
-            let totalIncome = 0;
-            let totalExpense = 0;
+            const openingBalance = carryForward
+                ? priorTotals.incomeTotal - priorTotals.expenseTotal
+                : 0;
 
-            rows.forEach(row => {
-                const txn = row.transaction;
-                if (mergedIds.has(txn.id)) return;
+            const dailySummaryMap = new Map(
+                dailySummaries.map(dailySummary => [
+                    dailySummary.dayKey,
+                    { dayIncome: dailySummary.dayIncome, dayExpense: dailySummary.dayExpense },
+                ]),
+            );
 
-                let effectiveType = txn.type;
+            const mergedList: LedgerItem[] = rows.map(row => ({
+                ...row,
+                accountName: resolveAccountName(row.accountId),
+                toAccountName: row.toAccountId ? resolveAccountName(row.toAccountId) : undefined,
+            }));
 
-                if (txn.type === TransactionType.TRANSFER && txn.linkedTransactionId) {
-                    mergedIds.add(txn.id);
-                    mergedIds.add(txn.linkedTransactionId);
-
-                    const fromAcc = accountMap.get(txn.accountId);
-                    const toAcc = txn.toAccountId ? accountMap.get(txn.toAccountId) : null;
-
-                    if (fromAcc && toAcc) {
-                        if (!fromAcc.excludeFromSummaries && toAcc.excludeFromSummaries) {
-                            effectiveType = TransactionType.EXPENSE;
-                            totalExpense += txn.amount;
-                        } else if (fromAcc.excludeFromSummaries && !toAcc.excludeFromSummaries) {
-                            effectiveType = TransactionType.INCOME;
-                            totalIncome += txn.amount;
-                        }
-                    }
-                } else if (txn.type === TransactionType.INCOME) {
-                    totalIncome += txn.amount;
-                } else if (txn.type === TransactionType.EXPENSE) {
-                    totalExpense += txn.amount;
-                }
-
-                mergedList.push({
-                    ...txn,
-                    effectiveType,
-                    accountName: resolveAccountName(txn.accountId),
-                    toAccountName: txn.toAccountId ? resolveAccountName(txn.toAccountId) : undefined,
-                    categoryName: row.categoryName,
-                    categoryIcon: row.categoryIcon,
-                });
+            const grouped: LedgerSection[] = groupByDay<LedgerListItem>(mergedList).map(group => {
+                const dayKey = format(group.title, 'yyyy-MM-dd');
+                const daySummary = dailySummaryMap.get(dayKey);
+                return {
+                    ...group,
+                    dayIncome: daySummary?.dayIncome ?? 0,
+                    dayExpense: daySummary?.dayExpense ?? 0,
+                };
             });
-
-            // Add opening balance to income summary
-            if (carryForward && openingBalance !== 0) {
-                totalIncome += Math.max(0, openingBalance);
-                totalExpense += Math.max(0, -openingBalance);
-            }
-
-            const grouped = groupByDay(mergedList);
 
             // Inject opening balance as a special section at the end (oldest date)
             if (carryForward) {
-                const obDate = start.toISOString().split('T')[0];
+                // Use start date directly to avoid timezone shifts
+                const obDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                const openingBalanceItem: OpeningBalanceItem = {
+                    id: -1,
+                    isOpeningBalance: true,
+                    amount: Math.abs(openingBalance),
+                    type: openingBalance >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
+                    effectiveType: openingBalance >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
+                    note: 'Carried forward from previous month',
+                    categoryName: openingBalance >= 0 ? '📥 Opening Balance' : '📤 Opening Deficit',
+                    accountName: '',
+                    date: start.toISOString(),
+                };
+
                 grouped.push({
-                    title: new Date(obDate),
+                    title: obDate,
+                    isOpeningBalanceSection: true,
                     dayIncome: Math.max(0, openingBalance),
                     dayExpense: Math.max(0, -openingBalance),
-                    data: [{
-                        id: -1,
-                        isOpeningBalance: true,
-                        amount: Math.abs(openingBalance),
-                        type: openingBalance >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
-                        effectiveType: openingBalance >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE,
-                        note: 'Carried forward from previous month',
-                        categoryName: openingBalance >= 0 ? '📥 Opening Balance' : '📤 Opening Deficit',
-                        accountName: '',
-                        date: start.toISOString(),
-                    }],
+                    data: [openingBalanceItem],
                 });
             }
 
             setData(grouped);
             setSummary({
-                income: totalIncome,
-                expense: totalExpense,
-                balance: totalIncome - totalExpense,
+                income: monthTotals.incomeTotal + Math.max(0, openingBalance),
+                expense: monthTotals.expenseTotal + Math.max(0, -openingBalance),
+                balance: (monthTotals.incomeTotal - monthTotals.expenseTotal) + openingBalance,
             });
             setLoading(false);
         }
 
         fetchLedger();
-    }, [currentDate, refreshTick]);
+    }, [accountId, currentDate, refreshTick, isFocused]);
 
     return { data, summary, loading };
 }

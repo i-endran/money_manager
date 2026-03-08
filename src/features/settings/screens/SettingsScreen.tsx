@@ -6,36 +6,126 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
-    Platform,
-    StatusBar,
     Modal,
     FlatList,
+    Share,
+    Switch,
+    Platform,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '../../../core/theme';
+import {
+    Colors,
+    FormDensityPreset,
+    Layout,
+    LedgerRowDensityPreset,
+    LedgerSummaryCardMetricsPreset,
+    LedgerTextHierarchyPreset,
+    Spacing,
+    Typography,
+    useAppTheme,
+} from '../../../core/theme';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../navigation/RootNavigator';
-import { db } from '../../../database';
-import * as schema from '../../../database/schema';
-import { eq } from 'drizzle-orm';
-import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS } from '../../../core/constants';
+import { SettingsKey, ThemeMode, CURRENCIES, THEME_OPTIONS, APP_NAME, APP_VERSION } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
+import { useLedgerStore } from '../../../stores/ledgerStore';
+import { useAuthStore } from '../../../stores/authStore';
+import { createExportPayload, ExportFormat, createImportTemplatePayload, importDataFromFilePath } from '../../../core/utils';
+import DocumentPicker from 'react-native-document-picker';
+import ReactNativeBiometrics from 'react-native-biometrics';
+import { PinSetupModal } from '../components/PinSetupModal';
+
+interface GroupedItemProps {
+    label: string;
+    value?: string;
+    onPress: () => void;
+    isFirst?: boolean;
+    isLast?: boolean;
+    loading?: boolean;
+    theme: any;
+    colors: any;
+}
+
+const GroupedItem = ({ label, value, onPress, isFirst, isLast, loading, theme, colors }: GroupedItemProps) => (
+    <TouchableOpacity
+        style={[
+            styles.item,
+            {
+                backgroundColor: theme.surface,
+                borderTopLeftRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                borderTopRightRadius: isFirst ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                borderBottomLeftRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+                borderBottomRightRadius: isLast ? LedgerSummaryCardMetricsPreset.cardRadius : 0,
+            },
+        ]}
+        onPress={onPress}
+        disabled={loading}
+    >
+        <View style={styles.itemContent}>
+            <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
+            {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
+        </View>
+        {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+        ) : (
+            <Text style={[styles.chevronText, { color: theme.textSecondary }]}>›</Text>
+        )}
+    </TouchableOpacity>
+);
+
+const Separator = ({ theme }: { theme: any }) => (
+    <View style={{ backgroundColor: theme.surface }}>
+        <View style={[styles.separator, { backgroundColor: theme.border }]} />
+    </View>
+);
 
 export const SettingsScreen = () => {
     const { theme, colors } = useAppTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const refresh = useLedgerStore(state => state.refresh);
 
     const {
         currencyCode,
         currencySymbol,
         themeMode,
         carryForwardBalance: carryForward,
-        updateSetting
+        updateSetting,
+        loadSettings,
     } = useSettingsStore();
+
+    const {
+        appPin,
+        biometricsEnabled,
+        setPin,
+        removePin,
+        setBiometricsEnabled,
+    } = useAuthStore();
+
+    const authEnabled = !!appPin;
 
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [themePickerVisible, setThemePickerVisible] = useState(false);
+    const [exportPickerVisible, setExportPickerVisible] = useState(false);
+    const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
+    const [busyAction, setBusyAction] = useState<'import' | 'template' | 'cloud' | null>(null);
+    const [isBusy, setIsBusy] = useState(false);
+
+    type PinStep = 'enable' | 'disable' | 'change_verify' | 'change_setup';
+    const [pinStep, setPinStep] = useState<PinStep | null>(null);
+    const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+    const [biometricsLabel, setBiometricsLabel] = useState('Biometrics');
+
+    useEffect(() => {
+        const rnBiometrics = new ReactNativeBiometrics();
+        rnBiometrics.isSensorAvailable().then(({ available, biometryType }) => {
+            setBiometricsAvailable(available);
+            if (biometryType === 'FaceID') setBiometricsLabel('Face ID');
+            else if (biometryType === 'TouchID') setBiometricsLabel('Touch ID');
+            else if (available) setBiometricsLabel('Biometrics');
+        });
+    }, []);
 
     const handleCurrencySelect = async (currency: typeof CURRENCIES[0]) => {
         setCurrencyPickerVisible(false);
@@ -49,46 +139,161 @@ export const SettingsScreen = () => {
     };
 
     const handleExport = () => {
-        Alert.alert('Coming Soon', 'CSV/Excel export functionality is under development.');
+        setExportPickerVisible(true);
+    };
+
+    const shareFile = async (title: string, filePath: string) => {
+        const url = Platform.OS === 'ios' ? `file://${filePath}` : filePath;
+        await Share.share({ title, url });
+    };
+
+    const handleExportFormat = async (format: ExportFormat) => {
+        setExportingFormat(format);
+        try {
+            const payload = await createExportPayload(format);
+            await shareFile('Export Data', payload.filePath);
+            setExportPickerVisible(false);
+        } catch (error) {
+            console.error(`Failed to export ${format}:`, error);
+            Alert.alert('Export Failed', 'Could not generate export file. Please try again.');
+        } finally {
+            setExportingFormat(null);
+        }
+    };
+
+    const downloadTemplate = async (format: 'csv' | 'xlsx') => {
+        setBusyAction('template');
+        setIsBusy(true);
+        try {
+            const payload = await createImportTemplatePayload(format);
+            await shareFile('Import Template', payload.filePath);
+        } catch (error) {
+            console.error('Template generation failed:', error);
+            Alert.alert('Template Failed', `Could not create ${format.toUpperCase()} template.`);
+        } finally {
+            setIsBusy(false);
+            setBusyAction(null);
+        }
+    };
+
+    const pickAndImportFile = async () => {
+        setBusyAction('import');
+        setIsBusy(true);
+        try {
+            const picked = await DocumentPicker.pickSingle({
+                type: [DocumentPicker.types.allFiles],
+                copyTo: 'cachesDirectory',
+            });
+            const fileUri = picked.fileCopyUri || picked.uri;
+            if (!fileUri) {
+                Alert.alert('Import Failed', 'Could not read selected file.');
+                return;
+            }
+
+            const result = await importDataFromFilePath(fileUri);
+            await loadSettings();
+            refresh();
+
+            Alert.alert(
+                'Import Completed',
+                `Mode: ${result.mode}\nAccounts: ${result.accounts}\nCategories: ${result.categories}\nTransactions: ${result.transactions}\nSettings: ${result.settings}\nSkipped: ${result.skipped}`,
+            );
+        } catch (error: any) {
+            if (DocumentPicker.isCancel(error)) return;
+            console.error('Import failed:', error);
+            Alert.alert('Import Failed', `Could not import file. Use ${APP_NAME} CSV/XLSX format.`);
+        } finally {
+            setIsBusy(false);
+            setBusyAction(null);
+        }
+    };
+
+    const performImport = () => {
+        Alert.alert('Import Data', 'What would you like to do?', [
+            {
+                text: 'Import File',
+                onPress: pickAndImportFile,
+            },
+            {
+                text: 'Download Template',
+                onPress: () => {
+                    Alert.alert('Download Template', 'Choose format', [
+                        { text: 'CSV', onPress: () => downloadTemplate('csv') },
+                        { text: 'XLSX', onPress: () => downloadTemplate('xlsx') },
+                        { text: 'Cancel', style: 'cancel' },
+                    ]);
+                },
+            },
+            { text: 'Cancel', style: 'cancel' },
+        ]);
+    };
+
+    const handleCloudBackup = () => {
+        Alert.alert('Cloud Backup', 'Choose an action', [
+            {
+                text: 'Backup to Cloud',
+                onPress: async () => {
+                    setBusyAction('cloud');
+                    setIsBusy(true);
+                    try {
+                        const payload = await createExportPayload('xlsx');
+                        await shareFile('Cloud Backup', payload.filePath);
+                    } catch (error) {
+                        console.error('Cloud backup failed:', error);
+                        Alert.alert('Backup Failed', 'Could not prepare backup file.');
+                    } finally {
+                        setIsBusy(false);
+                        setBusyAction(null);
+                    }
+                },
+            },
+            {
+                text: 'Restore from Cloud',
+                onPress: pickAndImportFile,
+            },
+            { text: 'Cancel', style: 'cancel' },
+        ]);
     };
 
     const handleCarryForwardToggle = async () => {
         const newValue = !carryForward;
         await updateSetting(SettingsKey.CARRY_FORWARD_BALANCE, newValue.toString());
+        refresh();
+    };
+
+    const handlePinSuccess = async (pin: string) => {
+        if (pinStep === 'enable') {
+            await setPin(pin);
+            setPinStep(null);
+        } else if (pinStep === 'disable') {
+            await removePin();
+            setPinStep(null);
+        } else if (pinStep === 'change_verify') {
+            // Seamlessly advance to setup step — key prop on modal causes internal reset
+            setPinStep('change_setup');
+        } else if (pinStep === 'change_setup') {
+            await setPin(pin);
+            setPinStep(null);
+        }
+    };
+
+    const getPinModalProps = () => {
+        switch (pinStep) {
+            case 'enable':
+                return { mode: 'setup' as const, title: 'Set PIN' };
+            case 'disable':
+                return { mode: 'verify' as const, title: 'Enter PIN to disable' };
+            case 'change_verify':
+                return { mode: 'verify' as const, title: 'Enter current PIN' };
+            case 'change_setup':
+                return { mode: 'setup' as const, title: 'Set new PIN' };
+            default:
+                return { mode: 'setup' as const, title: '' };
+        }
     };
 
     const currentCurrency = CURRENCIES.find(c => c.code === currencyCode);
     const currentThemeLabel = THEME_OPTIONS.find(t => t.value === themeMode)?.label || 'System';
-
-    // Reusable grouped item renderer
-    const GroupedItem = ({ label, value, onPress, isFirst, isLast }: any) => (
-        <TouchableOpacity
-            style={[
-                styles.item,
-                {
-                    backgroundColor: theme.surface,
-                    borderTopLeftRadius: isFirst ? 12 : 0,
-                    borderTopRightRadius: isFirst ? 12 : 0,
-                    borderBottomLeftRadius: isLast ? 12 : 0,
-                    borderBottomRightRadius: isLast ? 12 : 0,
-                },
-            ]}
-            onPress={onPress}
-        >
-            <View style={{ flex: 1 }}>
-                <Text style={[styles.itemLabel, { color: theme.text }]}>{label}</Text>
-                {value && <Text style={[styles.itemValue, { color: theme.textSecondary }]}>{value}</Text>}
-            </View>
-            <Text style={{ color: theme.textSecondary, fontSize: 18 }}>›</Text>
-        </TouchableOpacity>
-    );
-
-    // Inset separator
-    const Separator = () => (
-        <View style={{ backgroundColor: theme.surface }}>
-            <View style={[styles.separator, { backgroundColor: theme.border }]} />
-        </View>
-    );
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -105,33 +310,106 @@ export const SettingsScreen = () => {
                         value={`${currentCurrency?.code || currencyCode} (${currencySymbol})`}
                         onPress={() => setCurrencyPickerVisible(true)}
                         isFirst
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Theme"
                         value={currentThemeLabel}
                         onPress={() => setThemePickerVisible(true)}
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <TouchableOpacity
                         style={[
                             styles.item,
                             {
                                 backgroundColor: theme.surface,
-                                borderBottomLeftRadius: 12,
-                                borderBottomRightRadius: 12,
+                                borderBottomLeftRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderBottomRightRadius: LedgerSummaryCardMetricsPreset.cardRadius,
                             },
                         ]}
                         onPress={handleCarryForwardToggle}
                     >
-                        <View style={{ flex: 1 }}>
+                        <View style={styles.itemContent}>
                             <Text style={[styles.itemLabel, { color: theme.text }]}>Carry Forward Balance</Text>
-                            <Text style={[styles.itemValue, { color: theme.textSecondary }]}>Show last month's balance as opening</Text>
+                            <Text style={[styles.itemSubtext, { color: theme.textSecondary }]}>Show last month's balance as opening</Text>
                         </View>
                         <View style={[styles.toggle, carryForward ? { backgroundColor: colors.primary } : { backgroundColor: theme.border }]}>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{carryForward ? 'ON' : 'OFF'}</Text>
+                            <Text style={styles.toggleText}>{carryForward ? 'ON' : 'OFF'}</Text>
                         </View>
                     </TouchableOpacity>
+                </View>
+
+                {/* SECURITY */}
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>SECURITY</Text>
+                <View style={styles.cardGroup}>
+                    <TouchableOpacity
+                        style={[
+                            styles.item,
+                            {
+                                backgroundColor: theme.surface,
+                                borderTopLeftRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderTopRightRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderBottomLeftRadius: authEnabled ? 0 : LedgerSummaryCardMetricsPreset.cardRadius,
+                                borderBottomRightRadius: authEnabled ? 0 : LedgerSummaryCardMetricsPreset.cardRadius,
+                            },
+                        ]}
+                        onPress={() => authEnabled ? setPinStep('disable') : setPinStep('enable')}
+                    >
+                        <View style={styles.itemContent}>
+                            <Text style={[styles.itemLabel, { color: theme.text }]}>App Lock</Text>
+                            <Text style={[styles.itemSubtext, { color: theme.textSecondary }]}>Require PIN to open app</Text>
+                        </View>
+                        <Switch
+                            value={authEnabled}
+                            onValueChange={v => v ? setPinStep('enable') : setPinStep('disable')}
+                            trackColor={{ false: theme.border, true: colors.primary }}
+                            thumbColor="white"
+                        />
+                    </TouchableOpacity>
+
+                    {authEnabled && (
+                        <>
+                            <Separator theme={theme} />
+                            <TouchableOpacity
+                                style={[
+                                    styles.item,
+                                    {
+                                        backgroundColor: theme.surface,
+                                        opacity: biometricsAvailable ? 1 : 0.5,
+                                    },
+                                ]}
+                                disabled={!biometricsAvailable}
+                                onPress={() => biometricsAvailable && setBiometricsEnabled(!biometricsEnabled)}
+                            >
+                                <View style={styles.itemContent}>
+                                    <Text style={[styles.itemLabel, { color: theme.text }]}>{biometricsLabel}</Text>
+                                    <Text style={[styles.itemSubtext, { color: theme.textSecondary }]}>
+                                        {biometricsAvailable ? 'Unlock without PIN' : 'Not available on this device'}
+                                    </Text>
+                                </View>
+                                {biometricsAvailable && (
+                                    <Switch
+                                        value={biometricsEnabled}
+                                        onValueChange={v => setBiometricsEnabled(v)}
+                                        trackColor={{ false: theme.border, true: colors.primary }}
+                                        thumbColor="white"
+                                    />
+                                )}
+                            </TouchableOpacity>
+                            <Separator theme={theme} />
+                            <GroupedItem
+                                label="Change PIN"
+                                onPress={() => setPinStep('change_verify')}
+                                isLast
+                                theme={theme}
+                                colors={colors}
+                            />
+                        </>
+                    )}
                 </View>
 
                 {/* MANAGEMENT */}
@@ -141,12 +419,16 @@ export const SettingsScreen = () => {
                         label="Accounts"
                         onPress={() => navigation.navigate('AccountManagement')}
                         isFirst
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Categories"
                         onPress={() => navigation.navigate('CategoryManagement')}
                         isLast
+                        theme={theme}
+                        colors={colors}
                     />
                 </View>
 
@@ -158,18 +440,32 @@ export const SettingsScreen = () => {
                         value="CSV, Excel"
                         onPress={handleExport}
                         isFirst
+                        theme={theme}
+                        colors={colors}
                     />
-                    <Separator />
+                    <Separator theme={theme} />
+                    <GroupedItem
+                        label="Import Data"
+                        value="CSV, XLSX"
+                        onPress={performImport}
+                        loading={isBusy && busyAction === 'import'}
+                        theme={theme}
+                        colors={colors}
+                    />
+                    <Separator theme={theme} />
                     <GroupedItem
                         label="Cloud Backup"
-                        value="Google Drive / iCloud"
-                        onPress={() => Alert.alert('Coming Soon', 'Cloud backup is under development.')}
+                        value="Backup + Restore"
+                        onPress={handleCloudBackup}
+                        loading={isBusy && busyAction === 'cloud'}
                         isLast
+                        theme={theme}
+                        colors={colors}
                     />
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Pocket Log v1.0.0</Text>
+                    <Text style={[styles.footerText, { color: theme.textSecondary }]}>{APP_NAME} v{APP_VERSION}</Text>
                 </View>
             </ScrollView>
 
@@ -186,15 +482,28 @@ export const SettingsScreen = () => {
                         <FlatList
                             data={CURRENCIES}
                             keyExtractor={item => item.code}
+                            initialScrollIndex={Math.max(0, CURRENCIES.findIndex(c => c.code === currencyCode))}
+                            getItemLayout={(_, index) => ({
+                                length: (Spacing.lg + Spacing.xxs) * 2 + Typography.sizes.md,
+                                offset: ((Spacing.lg + Spacing.xxs) * 2 + Typography.sizes.md) * index,
+                                index,
+                            })}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
-                                    style={[styles.modalItem, { borderBottomColor: theme.border }]}
+                                    style={[
+                                        styles.modalItem,
+                                        { borderBottomColor: theme.border },
+                                        item.code === currencyCode && { backgroundColor: colors.primary + '15' },
+                                    ]}
                                     onPress={() => handleCurrencySelect(item)}
                                 >
                                     <Text style={[styles.modalItemText, { color: theme.text }]}>
                                         {item.symbol} {item.name}
                                     </Text>
-                                    <Text style={{ color: theme.textSecondary }}>{item.code}</Text>
+                                    {item.code === currencyCode
+                                        ? <Text style={[styles.selectedText, { color: colors.primary }]}>✓</Text>
+                                        : <Text style={{ color: theme.textSecondary }}>{item.code}</Text>
+                                    }
                                 </TouchableOpacity>
                             )}
                         />
@@ -205,7 +514,7 @@ export const SettingsScreen = () => {
             {/* Theme Picker Modal */}
             <Modal visible={themePickerVisible} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: 240 }]}>
+                    <View style={[styles.modalContent, styles.themeModalContent, { backgroundColor: theme.surface }]}>
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: theme.text }]}>Select Theme</Text>
                             <TouchableOpacity onPress={() => setThemePickerVisible(false)}>
@@ -226,13 +535,77 @@ export const SettingsScreen = () => {
                                     {opt.label}
                                 </Text>
                                 {themeMode === opt.value && (
-                                    <Text style={{ color: colors.primary, fontWeight: 'bold' }}>✓</Text>
+                                    <Text style={[styles.selectedText, { color: colors.primary }]}>✓</Text>
                                 )}
                             </TouchableOpacity>
                         ))}
                     </View>
                 </View>
             </Modal>
+
+            {/* Export Picker Modal */}
+            <Modal visible={exportPickerVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, styles.exportModalContent, { backgroundColor: theme.surface }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: theme.text }]}>Export Data</Text>
+                            <TouchableOpacity
+                                disabled={!!exportingFormat}
+                                onPress={() => setExportPickerVisible(false)}
+                            >
+                                <Text style={{ color: colors.primary, opacity: exportingFormat ? 0.5 : 1 }}>
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {[
+                            { value: 'csv' as ExportFormat, label: 'CSV (.csv)', subtitle: 'Transactions only' },
+                            { value: 'xlsx' as ExportFormat, label: 'Excel (.xlsx)', subtitle: 'Transactions, accounts, categories, settings' },
+                        ].map(option => (
+                            <TouchableOpacity
+                                key={option.value}
+                                style={[styles.modalItem, { borderBottomColor: theme.border }]}
+                                onPress={() => handleExportFormat(option.value)}
+                                disabled={!!exportingFormat}
+                            >
+                                <View style={styles.itemContent}>
+                                    <Text style={[styles.modalItemText, { color: theme.text }]}>
+                                        {option.label}
+                                    </Text>
+                                    <Text style={[styles.modalItemSubText, { color: theme.textSecondary }]}>
+                                        {option.subtitle}
+                                    </Text>
+                                </View>
+                                {exportingFormat === option.value ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <Text style={[styles.chevronText, { color: theme.textSecondary }]}>›</Text>
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            </Modal>
+
+            {pinStep !== null && (() => {
+                const { mode, title } = getPinModalProps();
+                return (
+                    <PinSetupModal
+                        key={pinStep}
+                        visible
+                        mode={mode}
+                        title={title}
+                        validatePin={
+                            (pinStep === 'disable' || pinStep === 'change_verify')
+                                ? p => p === appPin
+                                : undefined
+                        }
+                        onSuccess={handlePinSuccess}
+                        onCancel={() => setPinStep(null)}
+                    />
+                );
+            })()}
         </SafeAreaView>
     );
 };
@@ -240,20 +613,20 @@ export const SettingsScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
     },
-    headerTitle: { fontSize: 28, fontWeight: 'bold' },
+    headerTitle: { fontSize: Typography.sizes.xl, fontWeight: Typography.weights.bold },
     scrollContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 40,
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: Spacing.xxxxxl,
     },
     sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        marginLeft: 4,
-        marginBottom: 6,
-        marginTop: 24,
+        fontSize: LedgerTextHierarchyPreset.meta.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.meta.fontWeight,
+        marginLeft: Spacing.xs,
+        marginBottom: Spacing.md,
+        marginTop: FormDensityPreset.sectionSpacing,
         textTransform: 'uppercase',
     },
     cardGroup: {
@@ -263,55 +636,93 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: FormDensityPreset.rowPaddingVertical,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
-    itemLabel: { fontSize: 16 },
-    itemValue: { fontSize: 12, marginTop: 2 },
+    itemContent: { flex: 1 },
+    itemLabel: {
+        fontSize: LedgerTextHierarchyPreset.primary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.primary.fontWeight,
+    },
+    itemValue: {
+        fontSize: LedgerTextHierarchyPreset.meta.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.meta.fontWeight,
+        marginTop: LedgerSummaryCardMetricsPreset.labelValueSpacing,
+    },
+    itemSubtext: {
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
+        marginTop: LedgerSummaryCardMetricsPreset.labelValueSpacing,
+    },
     separator: {
-        height: StyleSheet.hairlineWidth,
-        marginLeft: 16,
+        height: LedgerRowDensityPreset.separatorThickness,
+        marginLeft: LedgerRowDensityPreset.paddingHorizontal,
+        marginRight: LedgerRowDensityPreset.paddingHorizontal,
     },
     toggle: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 14,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        borderRadius: FormDensityPreset.controlRadius + Spacing.sm,
+    },
+    toggleText: {
+        color: Colors.white,
+        fontWeight: Typography.weights.bold,
+        fontSize: Typography.sizes.sm,
     },
     footer: {
-        marginTop: 40,
+        marginTop: Spacing.xxxxxl,
         alignItems: 'center',
-        paddingBottom: 40,
+        paddingBottom: Spacing.xxxxxl,
+    },
+    footerText: {
+        fontSize: LedgerTextHierarchyPreset.meta.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.meta.fontWeight,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.overlayMedium,
         justifyContent: 'flex-end',
     },
     modalContent: {
         maxHeight: '50%',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 16,
+        borderTopLeftRadius: Layout.radius.lg + Spacing.xs,
+        borderTopRightRadius: Layout.radius.lg + Spacing.xs,
+        paddingTop: Spacing.xl,
+        paddingBottom: Spacing.xl,
+        overflow: 'hidden',
+    },
+    themeModalContent: {
+        maxHeight: 240,
+    },
+    exportModalContent: {
+        maxHeight: 260,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: Typography.sizes.lg,
+        fontWeight: Typography.weights.bold,
     },
     modalItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 4,
+        paddingVertical: Spacing.lg + Spacing.xxs,
+        paddingHorizontal: Spacing.xl,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
     modalItemText: {
-        fontSize: 16,
+        fontSize: Typography.sizes.md,
     },
+    modalItemSubText: {
+        fontSize: Typography.sizes.sm,
+        marginTop: Spacing.xxs,
+    },
+    chevronText: { fontSize: Typography.sizes.lg },
+    selectedText: { fontWeight: Typography.weights.bold },
 });

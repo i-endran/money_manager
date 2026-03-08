@@ -8,7 +8,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { useAppTheme } from '../../../core/theme';
+import {
+    LedgerRowDensityPreset,
+    LedgerSummaryCardMetricsPreset,
+    LedgerTextHierarchyPreset,
+    Layout,
+    Spacing,
+    Typography,
+    FormHeaderPreset,
+    useAppTheme
+} from '../../../core/theme';
 import { db } from '../../../database';
 import * as schema from '../../../database/schema';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -57,36 +66,44 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
         const incomes = buildTree(null, CategoryType.INCOME);
 
         const result = [];
-        result.push({ title: 'EXPENSE CATEGORIES', type: CategoryType.EXPENSE, data: expandedSections[CategoryType.EXPENSE] ? expenses : [] });
-        result.push({ title: 'INCOME CATEGORIES', type: CategoryType.INCOME, data: expandedSections[CategoryType.INCOME] ? incomes : [] });
+        result.push({ title: 'Expense Categories', type: CategoryType.EXPENSE, data: expandedSections[CategoryType.EXPENSE] ? expenses : [] });
+        result.push({ title: 'Income Categories', type: CategoryType.INCOME, data: expandedSections[CategoryType.INCOME] ? incomes : [] });
 
         return result;
     }, [categories, expandedSections]);
 
     const renderNode = (item: CategoryWithChildren, isFirst: boolean, isLast: boolean) => {
-        const renderChild = (child: CategoryWithChildren, isChildLast: boolean) => {
+        const renderChild = (child: CategoryWithChildren, _isChildLast: boolean) => {
             return (
-                <View key={child.id} style={styles.childRowContainer}>
+                <View
+                    key={child.id}
+                    style={[
+                        styles.childRowContainer,
+                        { borderLeftWidth: 2, borderLeftColor: theme.primary },
+                    ]}
+                >
                     <TouchableOpacity
-                        style={[styles.childRow, { paddingLeft: 16 + (child.level - 1) * 20 }]}
+                        style={styles.childRow}
                         activeOpacity={0.6}
                         onPress={() => navigation.navigate('CategoryForm', { categoryId: child.id })}
                     >
                         <Text style={[styles.childName, { color: theme.textSecondary }]}>
-                            {child.level > 1 ? '↳ ' : ''}{child.iconName ? `${child.iconName} ` : ''}{child.name}
+                            {child.iconName ? `${child.iconName} ` : ''}{child.name}
                         </Text>
                         <View style={styles.rootActions}>
                             <View style={[
                                 styles.statusDot,
-                                { backgroundColor: child.isActive ? '#34C759' : '#AEAEB2', marginRight: child.level < 3 ? 12 : 0 }
+                                { backgroundColor: child.isActive ? theme.statusActive : theme.statusInactive },
                             ]} />
-                            {child.level < 3 && (
+                            {child.level < 3 ? (
                                 <TouchableOpacity
-                                    style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
+                                    style={styles.addBtn}
                                     onPress={() => navigation.navigate('CategoryForm', { initialType: child.type, parentId: child.id })}
                                 >
                                     <Icon name="add" size={16} color={colors.primary} />
                                 </TouchableOpacity>
+                            ) : (
+                                <View style={styles.addBtn} />
                             )}
                         </View>
                     </TouchableOpacity>
@@ -101,17 +118,20 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
             );
         };
 
+        const itemRadiusStyle = isFirst && isLast
+            ? styles.itemRadiusAll
+            : isFirst
+                ? styles.itemRadiusTop
+                : isLast
+                    ? styles.itemRadiusBottom
+                    : undefined;
+
         return (
             <View style={[
                 styles.itemContainer,
-                {
-                    backgroundColor: theme.surface,
-                    borderTopLeftRadius: isFirst ? 16 : 0,
-                    borderTopRightRadius: isFirst ? 16 : 0,
-                    borderBottomLeftRadius: isLast ? 16 : 0,
-                    borderBottomRightRadius: isLast ? 16 : 0,
-                },
-                !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
+                itemRadiusStyle,
+                { backgroundColor: theme.surface },
+                !isLast && [styles.itemDivider, { borderBottomColor: theme.border }],
             ]}>
                 <TouchableOpacity
                     style={styles.rootRow}
@@ -126,10 +146,12 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
                     <View style={styles.rootActions}>
                         <View style={[
                             styles.statusDot,
-                            { backgroundColor: item.isActive ? '#34C759' : '#AEAEB2', marginRight: 12 }
+                            {
+                                backgroundColor: item.isActive ? theme.statusActive : theme.statusInactive,
+                            }
                         ]} />
                         <TouchableOpacity
-                            style={[styles.addReserveBtn, { backgroundColor: theme.background }]}
+                            style={styles.addBtn}
                             onPress={() => navigation.navigate('CategoryForm', { initialType: item.type, parentId: item.id })}
                         >
                             <Icon name="add" size={16} color={colors.primary} />
@@ -152,7 +174,7 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-                    <Text style={{ color: colors.primary, fontSize: 16 }}>Back</Text>
+                    <Text style={[styles.headerButtonText, { color: colors.primary }]}>Back</Text>
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Manage Categories</Text>
                 <View style={styles.headerBtn} />
@@ -171,12 +193,12 @@ export const CategoryManagementScreen = ({ navigation }: any) => {
                         onPress={() => toggleSection(type)}
                         activeOpacity={0.7}
                     >
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={styles.sectionHeaderContent}>
                             <Icon
                                 name={expandedSections[type] ? 'expand-more' : 'chevron-right'}
-                                size={20}
+                                size={14}
                                 color={theme.textSecondary}
-                                style={{ marginRight: 4 }}
+                                style={styles.sectionChevronIcon}
                             />
                             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
                         </View>
@@ -203,65 +225,83 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
+        paddingVertical: LedgerSummaryCardMetricsPreset.paddingVertical,
         alignItems: 'center',
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    headerBtn: { padding: 4, minWidth: 60, alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '700' },
+    headerBtn: { padding: Spacing.xs, minWidth: 60, alignItems: 'center' },
+    headerButtonText: {
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
+    },
+    headerTitle: { ...FormHeaderPreset.title },
     listContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 40,
-        paddingTop: 16,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
+        paddingBottom: Spacing.xxxxxl,
+        paddingTop: LedgerRowDensityPreset.paddingVertical,
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 8,
-        paddingHorizontal: 4,
+        marginTop: Spacing.lg,
+        marginBottom: Spacing.xs,
+        paddingRight: LedgerRowDensityPreset.paddingHorizontal,
+        paddingVertical: Spacing.xs,
     },
+    sectionHeaderContent: { flexDirection: 'row', alignItems: 'center' },
+    sectionChevronIcon: { marginRight: Spacing.xxs },
     sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        fontSize: Typography.sizes.md,
+        fontWeight: Typography.weights.medium,
     },
     itemContainer: {
         overflow: 'hidden',
+    },
+    itemRadiusTop: {
+        borderTopLeftRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+        borderTopRightRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+    },
+    itemRadiusBottom: {
+        borderBottomLeftRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+        borderBottomRightRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+    },
+    itemRadiusAll: {
+        borderRadius: LedgerSummaryCardMetricsPreset.cardRadius,
+    },
+    itemDivider: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
     },
     rootRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
     rootInfo: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    name: { fontSize: 16, fontWeight: '500' },
+    name: { ...LedgerTextHierarchyPreset.primary },
     statusDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        width: Spacing.md,
+        height: Spacing.md,
+        borderRadius: Spacing.md / 2,
     },
     rootActions: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: Spacing.md,
     },
-    addReserveBtn: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: 'center',
+    addBtn: {
+        width: Spacing.xxl,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     childrenContainer: {
-        paddingBottom: 8,
+        paddingBottom: LedgerRowDensityPreset.paddingVertical,
     },
     childRowContainer: {
         flexDirection: 'column',
@@ -271,15 +311,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingRight: 16,
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingLeft: Spacing.xl,
+        paddingRight: LedgerRowDensityPreset.paddingHorizontal,
     },
     childName: {
-        fontSize: 15,
-        marginLeft: 8,
+        ...LedgerTextHierarchyPreset.secondary,
     },
     emptyContainer: {
-        padding: 40,
+        padding: Spacing.xxxxxl,
         alignItems: 'center',
     },
 });
