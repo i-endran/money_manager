@@ -1,6 +1,8 @@
 # 💰 Pocket Log
 
-A personal finance mobile app built with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+A personal finance mobile appbuilt with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
 
 ---
 
@@ -13,6 +15,7 @@ A personal finance mobile app built with **React Native**. Track expenses, incom
 | [Task Plan](./docs/task_plan.md) | Detailed feature checklist and completion status |
 | [Test Cases](./docs/test_cases.md) | 75+ test cases organized by checkpoint |
 | [Privacy Policy](./docs/privacy_policy.md) | App privacy policy for store listings |
+| [GitHub Pages](./docs/index.html) | Public landing page (index + privacy policy HTML) |
 
 ---
 
@@ -156,4 +159,6 @@ PIN codes are stored securely in the device keychain (never in AsyncStorage or p
 
 ## 📄 License
 
-Private project — all rights reserved.
+This project is licensed under the **GNU General Public License v3.0** — see the [LICENSE](./LICENSE) file for details.
+
+In short: you are free to use, modify, and distribute this project, but any distributed derivative work must also be open sourced under GPL v3.

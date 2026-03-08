@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Pocket Log</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1B3A5C;
+      --navy-light: #2568c5;
+      --bg: #F5F5F7;
+      --card: #ffffff;
+      --text: #1c1c1e;
+      --muted: #6e6e73;
+      --border: #e0e0e5;
+      --green: #34c759;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+    header .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      font-size: 0.875rem;
+      margin-bottom: 24px;
+    }
+    header .back:hover { color: #fff; }
+    header h1 { font-size: 2rem; font-weight: 700; }
+    header .meta {
+      margin-top: 12px;
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.6);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+    }
+    header .meta span::before { content: "·"; margin-right: 16px; }
+    header .meta span:first-child::before { content: ""; margin-right: 0; }
+
+    /* ── Zero-collect badge ── */
+    .summary-bar {
+      background: var(--navy-light);
+      color: #fff;
+      text-align: center;
+      padding: 14px 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 760px;
+      margin-inline: auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 40px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .toc h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 14px; font-weight: 700; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 6px; }
+    .toc a { color: var(--navy-light); text-decoration: none; font-size: 0.9rem; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── Sections ── */
+    .section { margin-bottom: 48px; }
+    .section h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+    }
+    .section h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 20px 0 10px;
+      color: var(--text);
+    }
+    .section p { font-size: 0.95rem; color: #333; margin-bottom: 12px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      background: var(--bg);
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+    }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tbody { background: var(--card); border-radius: var(--radius); }
+    .table-wrap { border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
+    td:last-child { color: var(--muted); }
+
+    /* ── Check list ── */
+    .check-list { list-style: none; padding: 0; }
+    .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 0.95rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .check-list li:last-child { border-bottom: none; }
+    .check-list .check { color: var(--green); font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
+
+    /* ── Bullet list ── */
+    .bullet-list { padding-left: 20px; }
+    .bullet-list li { margin-bottom: 8px; font-size: 0.95rem; }
+    .bullet-list strong { color: var(--text); }
+
+    /* ── Inline code ── */
+    code {
+      background: #eef2f7;
+      color: var(--navy);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.85em;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    /* ── Highlight box ── */
+    .highlight {
+      background: #eef5ff;
+      border-left: 4px solid var(--navy-light);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 0.95rem;
+    }
+    .highlight strong { color: var(--navy); }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .contact-card p { font-size: 0.9rem; margin-bottom: 8px; }
+    .contact-card a { color: var(--navy-light); text-decoration: none; }
+    .contact-card a:hover { text-decoration: underline; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--navy-light); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="back" href="index.html">← Pocket Log</a>
+    <h1>🔐 Privacy Policy</h1>
+    <div class="meta">
+      <span>Effective Date: March 8, 2026</span>
+      <span>Developer: qubitPixel</span>
+      <span>Platforms: Android &amp; iOS</span>
+    </div>
+  </header>
+
+  <div class="summary-bar">
+    🛡️ Everything stays on your device — we collect nothing, share nothing, and have no servers.
+  </div>
+
+  <div class="container">
+
+    <!-- TOC -->
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#data-collected">Data We Collect and Store</a></li>
+        <li><a href="#not-collected">Data We Do NOT Collect</a></li>
+        <li><a href="#network">Internet and Network Access</a></li>
+        <li><a href="#import-export">Data Import and Export</a></li>
+        <li><a href="#third-party">Third-Party Services</a></li>
+        <li><a href="#retention">Data Retention and Deletion</a></li>
+        <li><a href="#security">Data Security</a></li>
+        <li><a href="#children">Children's Privacy</a></li>
+        <li><a href="#rights">Your Rights</a></li>
+        <li><a href="#changes">Changes to This Policy</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ol>
+    </nav>
+
+    <!-- 1. Overview -->
+    <section class="section" id="overview">
+      <h2>1. Overview</h2>
+      <p>Pocket Log is a personal finance tracking application. We take privacy seriously. This policy explains exactly what data the app accesses, where it is stored, and how it is used.</p>
+      <div class="highlight">
+        <strong>The short version:</strong> Everything stays on your device. We collect nothing. We share nothing. We have no servers.
+      </div>
+    </section>
+
+    <!-- 2. Data collected -->
+    <section class="section" id="data-collected">
+      <h2>2. Data We Collect and Store</h2>
+      <p>All data created in Pocket Log is stored <strong>locally on your device only</strong> in a SQLite database. It never leaves your device unless you explicitly export it yourself.</p>
+
+      <h3>2.1 Financial Data (You Create This)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Where Stored</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Transactions (amount, type, date, note, description)</td><td>On-device SQLite</td><td>Core app functionality</td></tr>
+            <tr><td>Accounts (name, type, balance, settings)</td><td>On-device SQLite</td><td>Account management</td></tr>
+            <tr><td>Categories (name, hierarchy, type)</td><td>On-device SQLite</td><td>Transaction categorisation</td></tr>
+            <tr><td>App settings (currency, theme, carry-forward toggle)</td><td>On-device SQLite</td><td>User preferences</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>2.2 Security Credentials</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Where Stored</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>4-digit PIN (hashed)</td><td>Device Keychain (iOS) / Keystore (Android)</td><td>App lock screen</td></tr>
+            <tr><td>Biometric preference (enabled/disabled)</td><td>Device local storage</td><td>Remember your auth choice</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The PIN is stored using your device's native secure credential storage (<code>react-native-keychain</code>). We never see it, and it never leaves your device.</p>
+
+      <h3>2.3 Biometric Data</h3>
+      <p>Pocket Log can optionally use Face ID, Touch ID, or fingerprint authentication to unlock the app. <strong>We do not access, store, or process your biometric data.</strong> Authentication is handled entirely by your device's operating system (iOS LocalAuthentication / Android BiometricPrompt). The app only receives a pass/fail result.</p>
+    </section>
+
+    <!-- 3. Not collected -->
+    <section class="section" id="not-collected">
+      <h2>3. Data We Do NOT Collect</h2>
+      <ul class="check-list">
+        <li><span class="check">✓</span> No analytics or usage tracking</li>
+        <li><span class="check">✓</span> No crash reporting sent to external servers</li>
+        <li><span class="check">✓</span> No advertising identifiers</li>
+        <li><span class="check">✓</span> No location data</li>
+        <li><span class="check">✓</span> No device identifiers (IMEI, advertising ID, etc.)</li>
+        <li><span class="check">✓</span> No contact list, camera, or microphone access</li>
+        <li><span class="check">✓</span> No account registration required</li>
+        <li><span class="check">✓</span> No internet connection required or used</li>
+      </ul>
+    </section>
+
+    <!-- 4. Network -->
+    <section class="section" id="network">
+      <h2>4. Internet and Network Access</h2>
+      <p>Pocket Log <strong>does not make any network requests</strong>. The app functions entirely offline. While Android declares the <code>INTERNET</code> permission in its manifest, this is an unused artifact from the React Native framework template and is not exercised by the app.</p>
+    </section>
+
+    <!-- 5. Import / Export -->
+    <section class="section" id="import-export">
+      <h2>5. Data Import and Export</h2>
+      <h3>Export</h3>
+      <p>You can export your data as a CSV or XLSX file via <strong>Settings → Export</strong>. The file is written temporarily to your device's storage and shared using your device's native share sheet. You choose where it goes — your device, iCloud, Google Drive, email, etc. We have no involvement in or visibility into that transfer.</p>
+      <h3>Import</h3>
+      <p>You can import a CSV or XLSX file via <strong>Settings → Import</strong>. The file is read locally, parsed on-device, and written to the local SQLite database. No data passes through any external service.</p>
+    </section>
+
+    <!-- 6. Third-party -->
+    <section class="section" id="third-party">
+      <h2>6. Third-Party Services</h2>
+      <p>Pocket Log does not integrate with any third-party analytics, advertising, or data processing services. The open-source libraries used by the app operate entirely on-device and do not transmit data externally.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Library</th><th>Purpose</th><th>Sends data externally?</th></tr></thead>
+          <tbody>
+            <tr><td>op-sqlite / Drizzle ORM</td><td>Local database</td><td>No</td></tr>
+            <tr><td>react-native-keychain</td><td>Secure credential storage</td><td>No</td></tr>
+            <tr><td>react-native-biometrics</td><td>Biometric auth (OS-delegated)</td><td>No</td></tr>
+            <tr><td>react-native-document-picker</td><td>File import UI</td><td>No</td></tr>
+            <tr><td>react-native-fs</td><td>Local file read/write</td><td>No</td></tr>
+            <tr><td>xlsx</td><td>CSV/XLSX parsing and generation</td><td>No</td></tr>
+            <tr><td>All UI/navigation libraries</td><td>Interface rendering</td><td>No</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7. Retention -->
+    <section class="section" id="retention">
+      <h2>7. Data Retention and Deletion</h2>
+      <p>Since all data is stored locally on your device:</p>
+      <ul class="bullet-list">
+        <li><strong>To delete all app data:</strong> Uninstall Pocket Log. All SQLite data, settings, and the stored PIN are removed.</li>
+        <li><strong>To delete individual data:</strong> Use the app's built-in delete functionality for transactions, accounts, and categories.</li>
+        <li><strong>PIN and biometric preference:</strong> Cleared automatically on uninstall.</li>
+      </ul>
+      <p style="margin-top:12px;">We have no ability to delete your data on your behalf because we never have access to it.</p>
+    </section>
+
+    <!-- 8. Security -->
+    <section class="section" id="security">
+      <h2>8. Data Security</h2>
+      <ul class="bullet-list">
+        <li>Financial data is stored in a SQLite database in the app's private storage directory, inaccessible to other apps.</li>
+        <li>The app lock feature (PIN / biometrics) provides an additional layer of security if your device is accessed by others.</li>
+        <li>The PIN is stored in the device's secure enclave-backed keychain, not in plain text.</li>
+        <li>Exported files are only as secure as wherever you choose to save them.</li>
+      </ul>
+    </section>
+
+    <!-- 9. Children -->
+    <section class="section" id="children">
+      <h2>9. Children's Privacy</h2>
+      <p>Pocket Log does not knowingly collect any information from anyone, including children under the age of 13. Since no data is collected at all, there is no special risk to minors.</p>
+    </section>
+
+    <!-- 10. Rights -->
+    <section class="section" id="rights">
+      <h2>10. Your Rights</h2>
+      <p>Since we collect no personal data and have no servers, there is no data to access, correct, port, or erase on our end. All rights over your data are exercised directly on your device:</p>
+      <ul class="bullet-list">
+        <li><strong>Access:</strong> Your data is in the app.</li>
+        <li><strong>Export:</strong> Settings → Export.</li>
+        <li><strong>Delete:</strong> Delete entries in-app, or uninstall.</li>
+      </ul>
+    </section>
+
+    <!-- 11. Changes -->
+    <section class="section" id="changes">
+      <h2>11. Changes to This Policy</h2>
+      <p>If we update this policy in a future app version, we will update the <strong>Effective Date</strong> above and note the changes in the app release notes. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+    </section>
+
+    <!-- 12. Contact -->
+    <section class="section" id="contact">
+      <h2>12. Contact</h2>
+      <p>For privacy-related questions or concerns:</p>
+      <div class="contact-card">
+        <p>🏢 <strong>Developer:</strong> qubitPixel</p>
+        <p>📧 <strong>Email:</strong> <a href="mailto:contact.hyperverse@gmail.com">contact.hyperverse@gmail.com</a></p>
+        <p>💻 <strong>GitHub:</strong> <a href="https://github.com/i-endran/money_manager" target="_blank" rel="noopener">github.com/i-endran/money_manager</a></p>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>Pocket Log · <a href="index.html">Home</a> · Built by <strong>qubitPixel</strong> · Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a></p>
+  </footer>
+
+</body>
+</html>
