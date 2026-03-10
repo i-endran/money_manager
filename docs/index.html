@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pocket Log</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1B3A5C;
+      --navy-light: #2568c5;
+      --bg: #F5F5F7;
+      --card: #ffffff;
+      --text: #1c1c1e;
+      --muted: #6e6e73;
+      --border: #e0e0e5;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--navy);
+      color: #fff;
+      padding: 80px 24px 64px;
+      text-align: center;
+    }
+    .hero-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .hero h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .hero p {
+      margin-top: 12px;
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.75);
+      max-width: 520px;
+      margin-inline: auto;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 24px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 860px;
+      margin-inline: auto;
+      padding: 56px 24px;
+    }
+
+    /* ── Section headings ── */
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    /* ── Feature grid ── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 56px;
+    }
+    .feature-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .feature-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .feature-card p { font-size: 0.875rem; color: var(--muted); }
+
+    /* ── Privacy highlight ── */
+    .privacy-box {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 56px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .privacy-box .shield { font-size: 2.5rem; flex-shrink: 0; }
+    .privacy-box h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .privacy-box p { font-size: 0.9rem; color: var(--muted); margin-bottom: 12px; }
+    .privacy-box a {
+      display: inline-block;
+      background: var(--navy);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 999px;
+    }
+    .privacy-box a:hover { background: var(--navy-light); }
+
+    /* ── Tech stack ── */
+    .stack {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      margin-bottom: 56px;
+    }
+    .stack table { width: 100%; border-collapse: collapse; }
+    .stack td, .stack th {
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .stack th { font-weight: 700; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg); }
+    .stack tr:last-child td { border-bottom: none; }
+    .stack td:first-child { font-weight: 600; color: var(--navy); width: 140px; }
+
+    /* ── Links section ── */
+    .links {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 56px;
+    }
+    .link-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: box-shadow 0.15s;
+    }
+    .link-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+    .link-card .link-icon { font-size: 1.4rem; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--navy-light); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-icon">💰</span>
+    <h1>Pocket Log</h1>
+    <p>A personal finance tracker for Android &amp; iOS. Fully offline, zero tracking, open source.</p>
+    <span class="badge">Open Source · GPL v3</span>
+  </section>
+
+  <div class="container">
+
+    <!-- Features -->
+    <h2 class="section-title">Features</h2>
+    <div class="features">
+      <div class="feature-card">
+        <div class="icon">📅</div>
+        <h3>Month-view Ledger</h3>
+        <p>Day-grouped transactions with a unified month selector and carry-forward balance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">💸</div>
+        <h3>Transactions</h3>
+        <p>Add, edit, and delete expenses, income, and atomic transfers across accounts.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🏦</div>
+        <h3>Multi-account</h3>
+        <p>Bank, Cash, Card, Wallet with nested reserve accounts and closed-box support.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🗂️</div>
+        <h3>3-level Categories</h3>
+        <p>Full parent → child → grandchild category hierarchy with emoji icons.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🎨</div>
+        <h3>Themes</h3>
+        <p>Light, Dark, and System Default theme profiles with a Navy Blue accent.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📦</div>
+        <h3>Import &amp; Export</h3>
+        <p>Back up and restore your data as CSV or XLSX files at any time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔒</div>
+        <h3>Biometric Lock</h3>
+        <p>PIN + Face ID / Touch ID lock screen. Auto-locks when sent to background.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">💱</div>
+        <h3>Dynamic Currency</h3>
+        <p>Choose your currency symbol — applied everywhere in the app instantly.</p>
+      </div>
+    </div>
+
+    <!-- Privacy highlight -->
+    <div class="privacy-box">
+      <span class="shield">🛡️</span>
+      <div>
+        <h2>Your data never leaves your device</h2>
+        <p>No accounts. No internet required. No analytics. No servers. Everything is stored locally in an on-device SQLite database — only you have access to it.</p>
+        <a href="privacy-policy.html">Read the full Privacy Policy →</a>
+      </div>
+    </div>
+
+    <!-- Tech stack -->
+    <h2 class="section-title">Tech Stack</h2>
+    <div class="stack">
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>Technology</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>UI</td><td>React Native 0.84 + TypeScript</td></tr>
+          <tr><td>Navigation</td><td>React Navigation 7 (Tabs + Stack)</td></tr>
+          <tr><td>Database</td><td>op-sqlite + Drizzle ORM (local SQLite)</td></tr>
+          <tr><td>State</td><td>Zustand</td></tr>
+          <tr><td>Security</td><td>react-native-keychain, react-native-biometrics</td></tr>
+          <tr><td>License</td><td>GNU General Public License v3.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Links -->
+    <h2 class="section-title">Links</h2>
+    <div class="links">
+      <a class="link-card" href="https://github.com/i-endran/money_manager" target="_blank" rel="noopener">
+        <span class="link-icon">📁</span> Source Code
+      </a>
+      <a class="link-card" href="privacy-policy.html">
+        <span class="link-icon">🔐</span> Privacy Policy
+      </a>
+      <a class="link-card" href="https://github.com/i-endran/money_manager/blob/main/LICENSE" target="_blank" rel="noopener">
+        <span class="link-icon">⚖️</span> GPL v3 License
+      </a>
+      <a class="link-card" href="https://github.com/i-endran/money_manager/issues" target="_blank" rel="noopener">
+        <span class="link-icon">🐛</span> Report an Issue
+      </a>
+    </div>
+
+  </div>
+
+  <footer>
+    <p>Pocket Log · Built by <strong>Qubit Pixel</strong> · Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a></p>
+  </footer>
+
+</body>
+</html>
