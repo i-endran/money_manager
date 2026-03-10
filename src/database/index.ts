@@ -25,6 +25,7 @@ export async function initDatabase() {
         initial_balance REAL DEFAULT 0 NOT NULL,
         icon_name TEXT NOT NULL,
         is_active INTEGER DEFAULT 1 NOT NULL,
+        settlement_day INTEGER DEFAULT 10 NOT NULL,
         created_at TEXT NOT NULL
     )`);
 
@@ -64,21 +65,31 @@ export async function initDatabase() {
     // Migration: Add new columns to accounts table for Milestone 2
     try {
         await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN parent_id INTEGER`);
-    } catch (e) {
+    } catch {
         // Column might already exist
     }
 
     try {
         await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL`);
-    } catch (e) {
+    } catch {
         // Column might already exist
     }
 
     try {
         await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN exclude_from_summaries INTEGER DEFAULT 0 NOT NULL`);
-    } catch (e) {
+    } catch {
         // Column might already exist
     }
+
+    try {
+        await opsqlite.execute(`ALTER TABLE accounts ADD COLUMN settlement_day INTEGER DEFAULT 10 NOT NULL`);
+    } catch {
+        // Column might already exist
+    }
+
+    await opsqlite.execute(`CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON transactions(account_id, date)`);
+    await opsqlite.execute(`CREATE INDEX IF NOT EXISTS idx_transactions_type_date ON transactions(type, date)`);
+    await opsqlite.execute(`CREATE INDEX IF NOT EXISTS idx_accounts_type_parent_active_closed ON accounts(type, parent_id, is_active, exclude_from_summaries)`);
 
     // Check for existing settings
     const settings = await db.select().from(schema.appSettings).limit(1);

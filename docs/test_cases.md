@@ -132,9 +132,10 @@ After each git checkpoint, run all test cases tagged for that checkpoint. Mark `
 | M2.3 | Grouped Account Management | Settings -> Manage Accounts | Accounts are grouped by Type (Bank, Cash, etc) |
 | M2.4 | Account Reordering | Account Manage -> Edit Order -> Drag | Accounts reorder, drag handles appear, order persists on reload |
 | M2.5 | Add Nested Reserve | Save new account -> click Yes on prompt | Reserve form opens with parent ID set, saves under parent |
-| M2.6 | Closed Box Account | Add/Edit Account -> Toggle Closed-Box | Account receives "Closed-Box" badge in management |
-| M2.7 | Closed Box excluded from picker | Open Income/Expense form | Closed-box account does NOT appear in account picker |
-| M2.8 | Closed Box transfers | Transfer OUT of Closed Box | Summary counts it as INCOME |
+| M2.6 | Opt Out Account | Add/Edit Account -> Toggle Opt Out | Account receives "Opt Out" badge in management |
+| M2.7 | Opt Out account in picker | Open Income/Expense form | Opt-out account appears in picker (direct transactions allowed) |
+| M2.8 | Opt Out transfers – global view | Transfer OUT of Opt Out account | Global ledger summary counts it as INCOME |
+| M2.8b | Opt Out transfers – filtered view | Filter ledger to Opt Out account; record transfer TO it | Transaction shows as INCOME in that account's filtered view |
 | M2.9 | Nested Picker UI | Transaction form -> Account Picker | Reserves shown formatted as `Paren.. > Reserve` |
 | M2.10 | Account Name Live Update | Edit account name -> View Ledger | Ledger reflects new name immediately without restart |
 | M2.11 | Categories Grouping | Settings -> Manage Categories | Categories are grouped into Expense and Income sections |

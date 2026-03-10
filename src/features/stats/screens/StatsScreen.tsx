@@ -1,46 +1,53 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Spacing, Typography, useAppTheme } from '../../../core/theme';
 
 export const StatsScreen: React.FC = () => {
-    const { theme, colors } = useAppTheme();
+    const { theme } = useAppTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
                 <Text style={[styles.title, { color: theme.text }]}>Statistics</Text>
             </View>
             <View style={styles.center}>
-                <Text style={{ fontSize: 48, marginBottom: 16 }}>📊</Text>
+                <Text style={styles.chartIcon}>📊</Text>
                 <Text style={[styles.comingSoon, { color: theme.textSecondary }]}>
                     Charts & Insights
                 </Text>
-                <Text style={{ color: theme.textSecondary, marginTop: 4 }}>Coming Soon</Text>
+                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Coming Soon</Text>
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     },
     header: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: Spacing.xl,
+        paddingVertical: Spacing.lg,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: Typography.sizes.xl,
+        fontWeight: Typography.weights.bold,
     },
     center: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
     },
+    chartIcon: {
+        fontSize: Typography.sizes.hero,
+        marginBottom: Spacing.xl,
+    },
     comingSoon: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: Typography.sizes.lg,
+        fontWeight: Typography.weights.semibold,
+    },
+    subtitle: {
+        marginTop: Spacing.xs,
     },
 });

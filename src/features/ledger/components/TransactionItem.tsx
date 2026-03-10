@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAppTheme } from '../../../core/theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 import { formatCurrency, splitEmoji } from '../../../core/utils';
 import { TransactionType } from '../../../core/constants';
 import { useSettingsStore } from '../../../stores/settingsStore';
@@ -36,7 +37,11 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <View style={[styles.container, { opacity: 0.5 }]}>
                 <View style={styles.left}>
                     <View style={[styles.iconPlaceholder, { backgroundColor: theme.border }]}>
-                        <Text style={styles.iconText}>{transaction.type === TransactionType.INCOME ? '📥' : '📤'}</Text>
+                        <Ionicons
+                            name="arrow-up-outline"
+                            size={Typography.sizes.md}
+                            color={theme.textSecondary}
+                        />
                     </View>
                     <View style={styles.details}>
                         <Text style={[styles.category, { color: theme.textSecondary }]}>
@@ -59,7 +64,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     return (
         <TouchableOpacity
             onPress={() => onPress(transaction)}
-            style={[styles.container]}>
+            style={styles.container}>
             <View style={styles.left}>
                 <View style={[styles.iconPlaceholder, { backgroundColor: isTransfer ? theme.border : theme.background }]}>
                     <Text style={styles.iconText}>{isTransfer ? '🔄' : emoji}</Text>
@@ -91,8 +96,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
+        paddingVertical: Spacing.md,
+        paddingHorizontal: Spacing.xl,
     },
     left: {
         flexDirection: 'row',
@@ -100,37 +105,36 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     iconPlaceholder: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: Layout.iconSize.md,
+        height: Layout.iconSize.md,
+        borderRadius: Layout.iconSize.md / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        marginRight: Spacing.lg,
     },
     iconText: {
-        fontSize: 16,
+        fontSize: Typography.sizes.base,
     },
     details: {
         flex: 1,
     },
     category: {
-        fontSize: 16,
-        fontWeight: '500',
+        fontSize: Typography.sizes.sm2,
+        fontWeight: Typography.weights.medium,
     },
     note: {
-        fontSize: 12,
-        marginTop: 2,
+        fontSize: Typography.sizes.xs2,
+        marginTop: Spacing.xxs,
     },
     right: {
         alignItems: 'flex-end',
     },
     amount: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: Typography.sizes.sm2,
+        fontWeight: Typography.weights.semibold,
     },
     account: {
-        fontSize: 10,
-        marginTop: 2,
+        fontSize: Typography.sizes.xs,
+        marginTop: Spacing.xxs,
     },
 });
-
