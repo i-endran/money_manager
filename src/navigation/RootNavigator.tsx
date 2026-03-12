@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigatorScreenParams } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from '@react-native-community/blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LedgerScreen } from '../features/ledger/screens/LedgerScreen';
 // @ts-ignore
@@ -30,12 +31,12 @@ export type RootStackParamList = {
 
 export type TabParamList = {
     Ledger:
-        | {
-              accountId?: number;
-              accountName?: string;
-              fromAccounts?: boolean;
-          }
-        | undefined;
+    | {
+        accountId?: number;
+        accountName?: string;
+        fromAccounts?: boolean;
+    }
+    | undefined;
     Accounts: undefined;
     Stats: undefined;
     Settings: undefined;
@@ -59,6 +60,7 @@ const withOpacity = (hexColor: string, opacity: number) => {
 
 const MainTabs = () => {
     const { theme, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const iosTabBarGlassColor = withOpacity(isDark ? Colors.dark.tabBar : Colors.light.tabBar, 0.35);
     const iosTabBarBorderColor = withOpacity(isDark ? Colors.white : Colors.black, isDark ? 0.16 : 0.08);
 
@@ -99,9 +101,9 @@ const MainTabs = () => {
                     borderTopColor: Platform.OS === 'ios' ? 'transparent' : theme.border,
                     borderTopWidth: Platform.OS === 'ios' ? 0 : 0.5,
                     elevation: 0,
-                    paddingBottom: Platform.OS === 'ios' ? Spacing.xs + Spacing.sm : Spacing.md,
+                    paddingBottom: Platform.OS === 'ios' ? Spacing.xs + Spacing.sm : Math.max(Spacing.md, insets.bottom + Spacing.xs),
                     paddingTop: Spacing.sm,
-                    height: Platform.OS === 'ios' ? 76 : 60,
+                    height: Platform.OS === 'ios' ? 76 : 60 + Math.max(0, insets.bottom + Spacing.xs - Spacing.md),
                     ...(Platform.OS === 'ios' ? {
                         position: 'absolute',
                         marginHorizontal: Spacing.lg,
