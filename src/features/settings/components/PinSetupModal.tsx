@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -6,8 +6,8 @@ import {
     TouchableOpacity,
     Modal,
     Vibration,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Layout, Spacing, Typography, useAppTheme } from '../../../core/theme';
 
 export type PinSetupMode = 'setup' | 'verify';
@@ -41,6 +41,16 @@ export const PinSetupModal: React.FC<Props> = ({
     const [pin, setPin] = useState('');
     const [firstPin, setFirstPin] = useState('');
     const [error, setError] = useState('');
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         if (visible) {
@@ -52,11 +62,22 @@ export const PinSetupModal: React.FC<Props> = ({
     }, [visible]);
 
     const showError = (msg: string) => {
-        Vibration.vibrate(400);
+        try {
+            // Some Android versions can crash if vibration is called in certain contexts
+            Vibration.vibrate(400);
+        } catch (e) {
+            console.warn('Vibration failed:', e);
+        }
+        
         setError(msg);
-        setTimeout(() => {
-            setPin('');
-            setError('');
+        
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        
+        timeoutRef.current = setTimeout(() => {
+            if (isMounted.current) {
+                setPin('');
+                setError('');
+            }
         }, 700);
     };
 

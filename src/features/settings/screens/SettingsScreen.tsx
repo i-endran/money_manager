@@ -8,11 +8,12 @@ import {
     Alert,
     Modal,
     FlatList,
-    Share,
     Switch,
-    Platform,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
+import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     Colors,
@@ -142,16 +143,50 @@ export const SettingsScreen = () => {
         setExportPickerVisible(true);
     };
 
-    const shareFile = async (title: string, filePath: string) => {
-        const url = Platform.OS === 'ios' ? `file://${filePath}` : filePath;
-        await Share.share({ title, url });
+    const shareFile = async (title: string, filePath: string, mimeType?: string) => {
+        try {
+            await Share.open({
+                title,
+                url: `file://${filePath}`,
+                type: mimeType,
+                failOnCancel: false,
+            });
+        } catch (error: any) {
+            if (!error.message.includes('User did not share')) {
+                throw error;
+            }
+        }
     };
 
-    const handleExportFormat = async (format: ExportFormat) => {
+    const saveFileToDevice = async (sourcePath: string) => {
+        try {
+            const fileName = sourcePath.split('/').pop() || `export_${Date.now()}`;
+            const destPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+            
+            let finalDestPath = destPath;
+            if (await RNFS.exists(destPath)) {
+                const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                const ext = fileName.substring(fileName.lastIndexOf('.'));
+                finalDestPath = `${RNFS.DownloadDirectoryPath}/${nameWithoutExt}_${Date.now()}${ext}`;
+            }
+
+            await RNFS.copyFile(sourcePath, finalDestPath);
+            Alert.alert('Success', `File saved to Downloads:\n${finalDestPath}`);
+        } catch (err) {
+            console.error('Failed to save file:', err);
+            Alert.alert('Error', 'Failed to save file structure.');
+        }
+    };
+
+    const processExport = async (format: ExportFormat, action: 'share' | 'save') => {
         setExportingFormat(format);
         try {
             const payload = await createExportPayload(format);
-            await shareFile('Export Data', payload.filePath);
+            if (action === 'share') {
+                await shareFile('Export Data', payload.filePath, payload.mimeType);
+            } else {
+                await saveFileToDevice(payload.filePath);
+            }
             setExportPickerVisible(false);
         } catch (error) {
             console.error(`Failed to export ${format}:`, error);
@@ -161,12 +196,33 @@ export const SettingsScreen = () => {
         }
     };
 
+    const handleExportFormat = async (format: ExportFormat) => {
+        setExportPickerVisible(false);
+        
+        // Wait briefly for modal to dismiss completely to avoid React Native alert/modal presentation issues
+        setTimeout(() => {
+            if (Platform.OS === 'android') {
+                Alert.alert(
+                    'Export Ready',
+                    'How would you like to handle the exported file?',
+                    [
+                        { text: 'Share to another app', onPress: () => processExport(format, 'share') },
+                        { text: 'Save to Downloads', onPress: () => processExport(format, 'save') },
+                        { text: 'Cancel', style: 'cancel' }
+                    ]
+                );
+            } else {
+                processExport(format, 'share');
+            }
+        }, 100);
+    };
+
     const downloadTemplate = async (format: 'csv' | 'xlsx') => {
         setBusyAction('template');
         setIsBusy(true);
         try {
             const payload = await createImportTemplatePayload(format);
-            await shareFile('Import Template', payload.filePath);
+            await shareFile('Import Template', payload.filePath, payload.mimeType);
         } catch (error) {
             console.error('Template generation failed:', error);
             Alert.alert('Template Failed', `Could not create ${format.toUpperCase()} template.`);
@@ -237,7 +293,7 @@ export const SettingsScreen = () => {
                     setIsBusy(true);
                     try {
                         const payload = await createExportPayload('xlsx');
-                        await shareFile('Cloud Backup', payload.filePath);
+                        await shareFile('Cloud Backup', payload.filePath, payload.mimeType);
                     } catch (error) {
                         console.error('Cloud backup failed:', error);
                         Alert.alert('Backup Failed', 'Could not prepare backup file.');
@@ -588,24 +644,20 @@ export const SettingsScreen = () => {
                 </View>
             </Modal>
 
-            {pinStep !== null && (() => {
-                const { mode, title } = getPinModalProps();
-                return (
-                    <PinSetupModal
-                        key={pinStep}
-                        visible
-                        mode={mode}
-                        title={title}
-                        validatePin={
-                            (pinStep === 'disable' || pinStep === 'change_verify')
-                                ? p => p === appPin
-                                : undefined
-                        }
-                        onSuccess={handlePinSuccess}
-                        onCancel={() => setPinStep(null)}
-                    />
-                );
-            })()}
+            {/* PIN Setup Modal */}
+            <PinSetupModal
+                visible={pinStep !== null}
+                key={pinStep || 'idle'}
+                mode={pinStep ? getPinModalProps().mode : 'setup'}
+                title={pinStep ? getPinModalProps().title : ''}
+                validatePin={
+                    (pinStep === 'disable' || pinStep === 'change_verify')
+                        ? p => p === appPin
+                        : undefined
+                }
+                onSuccess={handlePinSuccess}
+                onCancel={() => setPinStep(null)}
+            />
         </SafeAreaView>
     );
 };
