@@ -5,7 +5,7 @@ import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/b
 import { NavigatorScreenParams } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from '@react-native-community/blur';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { LiquidGlassView, LiquidGlassContainerView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LedgerScreen } from '../features/ledger/screens/LedgerScreen';
@@ -24,7 +24,6 @@ import { Colors, Layout, Spacing, useAppTheme } from '../core/theme';
 const PILL_HEIGHT = 70;
 const TAB_H_MARGIN = 20;
 
-// Both states use filled icons. Inactive gets a dark muted color (not outline wireframe).
 const TAB_ICONS: Record<string, string> = {
     Ledger: 'book',
     Accounts: 'wallet',
@@ -40,7 +39,7 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
     const indicatorX = useRef(new Animated.Value(0)).current;
     const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-    // Hide on keyboard (Android only — iOS keyboard never covers a floating tab bar)
+    // Hide on keyboard (Android only)
     useEffect(() => {
         if (Platform.OS !== 'android') return;
         const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -71,14 +70,12 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
             canPreventDefault: true,
         });
         if (!event.defaultPrevented) {
-            // @ts-ignore — merge keeps current params on same-tab re-press
+            // @ts-ignore
             navigation.navigate({ name: route.name, merge: true });
         }
     };
 
     // ── Android: clean flat tab bar ──────────────────────────────────────────
-    // insets.bottom = Android nav-bar height (0 on gesture nav, ~48px on 3-button nav).
-    // paddingBottom pushes our content above it; height grows to fit.
     if (Platform.OS === 'android') {
         const androidTabHeight = 56;
         return (
@@ -116,14 +113,60 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
         );
     }
 
-    // ── iOS: liquid glass floating pill ─────────────────────────────────────
-    // Sit 4pt from the screen bottom edge — matching native iOS tab bar placement.
-    // The home indicator is a system overlay that floats above content, so it's
-    // safe to position the pill well below the safe area inset.
-    const bottomGap = 4;
+    // ── iOS ──────────────────────────────────────────────────────────────────
+    const bottomGap = 22;
     const itemWidth = containerWidth > 0 ? containerWidth / state.routes.length : 0;
-    const capsuleHInset = Spacing.xs;   // horizontal gap between adjacent capsules
-    const capsuleVInset = Spacing.sm;   // vertical inset inside pill
+    const capsuleHInset = Spacing.xs;
+    const capsuleVInset = Spacing.sm;
+
+    // Active capsule + tab icons rendered inside the glass bar
+    const tabContent = (
+        <>
+            {/* Sliding active-tab capsule */}
+            {itemWidth > 0 && (
+                <Animated.View style={[iosStyles.capsule, {
+                    width: itemWidth - capsuleHInset * 2,
+                    top: capsuleVInset,
+                    bottom: capsuleVInset,
+                    left: capsuleHInset,
+                    backgroundColor: isDark
+                        ? 'rgba(255,255,255,0.14)'
+                        : 'rgba(255,255,255,0.86)',
+                    shadowColor: isDark ? Colors.white : Colors.light.primary,
+                    shadowOpacity: isDark ? 0.0 : 0.12,
+                    transform: [{ translateX: indicatorX }],
+                }]} />
+            )}
+
+            {/* Tab items */}
+            <View style={iosStyles.tabRow}>
+                {state.routes.map((route, index) => {
+                    const focused = state.index === index;
+                    const iconName = TAB_ICONS[route.name];
+                    return (
+                        <Pressable
+                            key={route.key}
+                            onPress={() => navigate(route)}
+                            style={iosStyles.tabItem}
+                            hitSlop={8}
+                        >
+                            <Ionicons
+                                name={iconName}
+                                size={22}
+                                color={focused ? theme.tabBarActive : theme.tabBarInactive}
+                            />
+                            <Text style={[iosStyles.label, {
+                                color: focused ? theme.tabBarActive : theme.tabBarInactive,
+                                fontWeight: focused ? '600' : '400',
+                            }]}>
+                                {route.name}
+                            </Text>
+                        </Pressable>
+                    );
+                })}
+            </View>
+        </>
+    );
 
     return (
         <View
@@ -136,83 +179,40 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
                 height: PILL_HEIGHT,
             }}
         >
-            <View
-                style={[iosStyles.pill, {
-                    shadowOpacity: isLiquidGlassSupported ? 0 : (isDark ? 0.45 : 0.18),
-                }]}
-                onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}
-            >
-                {/* Glass background — native Liquid Glass on iOS 26+, BlurView fallback */}
-                {isLiquidGlassSupported ? (
-                    <LiquidGlassView
+            {isLiquidGlassSupported ? (
+                <LiquidGlassView
+                    style={[iosStyles.pill, { shadowOpacity: 0 }]}
+                    effect="regular"
+                    interactive
+                    colorScheme={isDark ? 'dark' : 'light'}
+                    onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}
+                >
+                    {tabContent}
+                </LiquidGlassView>
+            ) : (
+                <View
+                    style={[iosStyles.pill, {
+                        shadowOpacity: isDark ? 0.45 : 0.18,
+                    }]}
+                    onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}
+                >
+                    <BlurView
                         style={StyleSheet.absoluteFill}
-                        effect="regular"
-                        interactive
-                        colorScheme={isDark ? 'dark' : 'light'}
+                        blurType={isDark ? 'chromeMaterialDark' : 'chromeMaterial'}
+                        blurAmount={40}
+                        reducedTransparencyFallbackColor={theme.tabBar}
                     />
-                ) : (
-                    <>
-                        <BlurView
-                            style={StyleSheet.absoluteFill}
-                            blurType={isDark ? 'chromeMaterialDark' : 'chromeMaterial'}
-                            blurAmount={40}
-                            reducedTransparencyFallbackColor={theme.tabBar}
-                        />
-                        <View style={[StyleSheet.absoluteFill, iosStyles.glassTint, {
-                            backgroundColor: isDark
-                                ? 'rgba(28,28,30,0.52)'
-                                : 'rgba(255,255,255,0.50)',
-                            borderColor: isDark
-                                ? 'rgba(255,255,255,0.13)'
-                                : 'rgba(255,255,255,0.92)',
-                        }]} />
-                    </>
-                )}
-
-                {/* Animated active-tab capsule */}
-                {itemWidth > 0 && (
-                    <Animated.View style={[iosStyles.capsule, {
-                        width: itemWidth - capsuleHInset * 2,
-                        top: capsuleVInset,
-                        bottom: capsuleVInset,
-                        left: capsuleHInset,
+                    <View style={[StyleSheet.absoluteFill, iosStyles.glassTint, {
                         backgroundColor: isDark
-                            ? 'rgba(255,255,255,0.14)'
-                            : 'rgba(255,255,255,0.86)',
-                        shadowColor: isDark ? Colors.white : Colors.light.primary,
-                        shadowOpacity: isDark ? 0.0 : 0.12,
-                        transform: [{ translateX: indicatorX }],
+                            ? 'rgba(28,28,30,0.52)'
+                            : 'rgba(255,255,255,0.50)',
+                        borderColor: isDark
+                            ? 'rgba(255,255,255,0.13)'
+                            : 'rgba(255,255,255,0.92)',
                     }]} />
-                )}
-
-                {/* Tab items */}
-                <View style={iosStyles.tabRow}>
-                    {state.routes.map((route, index) => {
-                        const focused = state.index === index;
-                        const iconName = TAB_ICONS[route.name];
-                        return (
-                            <Pressable
-                                key={route.key}
-                                onPress={() => navigate(route)}
-                                style={iosStyles.tabItem}
-                                hitSlop={8}
-                            >
-                                <Ionicons
-                                    name={iconName}
-                                    size={22}
-                                    color={focused ? theme.tabBarActive : theme.tabBarInactive}
-                                />
-                                <Text style={[iosStyles.label, {
-                                    color: focused ? theme.tabBarActive : theme.tabBarInactive,
-                                    fontWeight: focused ? '600' : '400',
-                                }]}>
-                                    {route.name}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
+                    {tabContent}
                 </View>
-            </View>
+            )}
         </View>
     );
 };
