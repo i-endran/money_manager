@@ -1,0 +1,4 @@
+# Files that the AI assistant should never read
+# Signing secrets
+android/*.keystore
+android/keystore.properties
