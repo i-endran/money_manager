@@ -13,7 +13,7 @@ Pocket Log is a **React Native** mobile application for iOS and Android. The app
 | **Database** | `op-sqlite` + Drizzle ORM |
 | **State Management** | Zustand |
 | **Security** | `react-native-keychain` + `react-native-biometrics` |
-| **Visual Effects** | `@react-native-community/blur` (Frosted Glass) |
+| **Visual Effects** | `@react-native-community/blur` (Frosted Glass), `react-native-system-navigation-bar` (Android System Bars) |
 | **Branding** | `react-native-bootsplash` (Splash) + `react-native-make` (Icons) |
 | **File System** | `react-native-fs` (export/import file I/O) |
 | **Data Transfer** | `xlsx` (CSV/XLSX generation & parsing) + `react-native-document-picker` (file selection) |
@@ -183,7 +183,7 @@ src/features/
 │   └── screens/TransactionFormScreen.tsx  # Dynamic form (Expense/Income/Transfer)
 └── settings/
     ├── components/
-    │   └── PinSetupModal.tsx             # Full-screen PIN entry (setup: enter+confirm / verify: enter+validate)
+    │   └── PinSetupModal.tsx             # Full-screen PIN entry (safeguarded vibration and react state logic)
     └── screens/
         ├── SettingsScreen.tsx           # Preferences, currency/theme pickers with selection highlight;
         │                                #   SECURITY section (App Lock, Biometrics, Change PIN);
