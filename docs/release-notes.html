@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Release Notes — Pocket Log</title>
+  <link rel="stylesheet" href="assets/docs-common.css" />
+  <link rel="stylesheet" href="assets/docs-pages.css" />
+</head>
+<body class="page-release">
+  <header>
+    <a class="back" href="index.html">← Pocket Log</a>
+    <h1>📝 Release Notes</h1>
+    <p>Chronological product updates and release highlights.</p>
+  </header>
+
+  <main class="container">
+    <!--
+      Release Notes Authoring Guidelines:
+      1) Keep releases in descending order (latest version first).
+      2) Add a polished, non-technical one-line summary for each release.
+      3) Put technical details in the Highlights section for that release.
+    -->
+    <article class="release-card" id="v1-0">
+      <h2>v1.0 — 2026-03-14</h2>
+      <p class="summary">
+        Major polish release with platform-adaptive navigation, full settings/import-export workflow, stronger PIN/biometric reliability, and refreshed iOS/Android branding.
+      </p>
+
+      <h3>Highlights</h3>
+      <ul>
+        <li>Platform-adaptive navigation refresh:
+          <ul>
+            <li>iOS Liquid Glass tab bar.</li>
+            <li>Android tab refinements with filled icons and improved inactive contrast.</li>
+          </ul>
+        </li>
+        <li>Expanded Settings experience:
+          <ul>
+            <li>Import/export actions, app preferences, security controls, and cloud-backup handoff.</li>
+            <li>Android export flow now supports both <strong>Share</strong> and <strong>Save to Downloads</strong>.</li>
+          </ul>
+        </li>
+        <li>Security/stability fixes:
+          <ul>
+            <li>Biometric unlock switched to <code>ReactNativeBiometrics.simplePrompt()</code>.</li>
+            <li>Android PIN-change crash path hardened (including vibration safeguards + manifest permission).</li>
+          </ul>
+        </li>
+        <li>Accounts summary behavior refinements:
+          <ul>
+            <li>Summary subtotal sign/color normalization updates.</li>
+            <li>Follow-up tuning for Holding display behavior.</li>
+          </ul>
+        </li>
+        <li>Branding updates:
+          <ul>
+            <li>New app icon assets for iOS and Android (final white-based style).</li>
+          </ul>
+        </li>
+      </ul>
+    </article>
+  </main>
+
+  <footer>
+    <p>Pocket Log · Built by <strong>Qubit Pixel</strong> · Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL v3</a></p>
+  </footer>
+</body>
+</html>

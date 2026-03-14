@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-A personal finance mobile appbuilt with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
+A personal finance mobile app built with **React Native**. Track expenses, income, and transfers across multiple accounts with a hierarchical category system, biometric security, and a clean month-view ledger.
 
 ---
 
@@ -15,6 +15,7 @@ A personal finance mobile appbuilt with **React Native**. Track expenses, income
 | [Task Plan](./docs/task_plan.md) | Detailed feature checklist and completion status |
 | [Test Cases](./docs/test_cases.md) | 75+ test cases organized by checkpoint |
 | [Privacy Policy](./docs/privacy_policy.md) | App privacy policy for store listings |
+| [Release Notes](./docs/release_notes.md) | Public release notes (latest-first, one-line + detailed sections) |
 | [GitHub Pages](./docs/index.html) | Public landing page (index + privacy policy HTML) |
 
 ---
@@ -43,7 +44,7 @@ A personal finance mobile appbuilt with **React Native**. Track expenses, income
 ### ⚙️ Settings
 - **Theme profiles** — Light, Dark, and System Default with dynamic native system bar styling.
 - **Dynamic currency** — User-defined currency symbol applied globally.
-- **Export data** — Save all transactions to CSV or XLSX via the system share sheet.
+- **Export data** — CSV/XLSX export via share sheet, with Android "Save to Downloads" option.
 - **Import data** — Restore or append data from a CSV or XLSX file.
 
 ### 🔒 Security
@@ -53,6 +54,7 @@ A personal finance mobile appbuilt with **React Native**. Track expenses, income
 
 ### 🎨 UI
 - **iOS Settings style** — Squircle-rounded cards and grouped sections throughout.
+- **Platform-adaptive tab bar** — iOS Liquid Glass floating capsule + Android clean filled-icon tab row.
 - **Native branding** — Custom splash screen and app icon.
 - **Fully offline** — No account, no internet, no tracking.
 

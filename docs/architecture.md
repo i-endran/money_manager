@@ -13,10 +13,10 @@ Pocket Log is a **React Native** mobile application for iOS and Android. The app
 | **Database** | `op-sqlite` + Drizzle ORM |
 | **State Management** | Zustand |
 | **Security** | `react-native-keychain` + `react-native-biometrics` |
-| **Visual Effects** | `@react-native-community/blur` (Frosted Glass), `react-native-system-navigation-bar` (Android System Bars) |
+| **Visual Effects** | `@callstack/liquid-glass` (iOS glass), `@react-native-community/blur` (frosted fallback), `react-native-system-navigation-bar` (Android system bars) |
 | **Branding** | `react-native-bootsplash` (Splash) + `react-native-make` (Icons) |
 | **File System** | `react-native-fs` (export/import file I/O) |
-| **Data Transfer** | `xlsx` (CSV/XLSX generation & parsing) + `react-native-document-picker` (file selection) |
+| **Data Transfer** | `xlsx` (CSV/XLSX generation & parsing), `react-native-document-picker` (file selection), `react-native-share` (native sharing) |
 
 ---
 
@@ -200,7 +200,8 @@ src/features/
 ### Export
 - **`createExportPayload(format: 'csv' | 'xlsx')`** queries all four tables, builds an XLSX workbook, writes it to `RNFS.TemporaryDirectoryPath`, and returns `{ filename, filePath }`.
 - **CSV** export contains only the Transactions sheet; **XLSX** export contains Transactions, Accounts, Categories, and Settings sheets.
-- The caller shares the file via `Share.share({ url: 'file://...' })` (iOS native share sheet — Save to Files, AirDrop, email, etc.).
+- Sharing is performed via `Share.open({ url: 'file://...' })` using `react-native-share`.
+- On Android, export now supports both **Share to another app** and **Save to Downloads**.
 
 ### Import
 - **`importDataFromFilePath(filePath)`** reads the file with `RNFS.readFile(path, 'base64')` and passes it to `XLSX.read`. This is reliable for `file://` URIs from `react-native-document-picker`.
@@ -218,7 +219,12 @@ Use `bundle exec pod install` (not bare `pod install`) — the project pins coco
 
 The app uses a hybrid navigation structure:
 1. **RootStack**: Manages top-level screens and modal forms.
-2. **MainTabs**: 4-tab bottom navigator (Ledger, Accounts, Stats, Settings).
+2. **MainTabs**: 4-tab bottom navigator (Ledger, Accounts, Stats, Settings) with a custom platform-adaptive tab bar.
+
+### Tab Bar Behavior
+- **iOS**: Floating Liquid Glass pill with a sliding active capsule and blur fallback.
+- **Android**: Flat filled-icon tab row with theme-aware active/inactive states.
+- **System bars**: `RootNavigator` updates Android navigation bar colors/icons to match the app theme.
 
 ---
 
@@ -229,7 +235,7 @@ The app uses a hybrid navigation structure:
   - Biometrics enabled flag stored in `AsyncStorage`.
   - `initialize()`: if PIN found in keychain → `isLocked: true`; otherwise `isLocked: false` (auth is off by default).
   - `lockApp()`: only locks if a PIN is set — no PIN means the app never locks.
-  - `unlockWithBiometrics()`: uses Keychain `ACCESS_CONTROL.BIOMETRY_CURRENT_SET` to trigger Face ID / Touch ID before returning the stored PIN.
+  - `unlockWithBiometrics()`: uses `ReactNativeBiometrics.simplePrompt()` and unlocks only on successful OS-level biometric authentication.
   - Auth is **off by default** — users opt-in via Settings → Security → App Lock.
 - **`ledgerStore`**: Tracks the currently viewed month and triggers refreshes.
 
