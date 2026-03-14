@@ -39,7 +39,7 @@ function flattenGroupRows(group: AccountGroup): Array<{ item: AccountBalanceItem
 export const AccountsScreen: React.FC = () => {
     const { theme, colors } = useAppTheme();
     const currencySymbol = useSettingsStore(state => state.currencySymbol);
-    const refreshTick    = useLedgerStore(state => state.refreshTick);
+    const refreshTick = useLedgerStore(state => state.refreshTick);
     const setCurrentDate = useLedgerStore(state => state.setCurrentDate);
     const { loading, summary, load } = useAccountsSummary();
     const navigation = useNavigation<NavType>();
@@ -124,7 +124,7 @@ export const AccountsScreen: React.FC = () => {
                         <View style={styles.summaryColumn}>
                             <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Holding</Text>
                             <Text style={[styles.summaryValue, { color: holdingAmountColor }]}>
-                                {formatCurrency(summary.standingBalance, currencySymbol)}
+                                {formatCurrency(Math.abs(summary.standingBalance), currencySymbol)}
                             </Text>
                         </View>
                         <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
