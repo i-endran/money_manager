@@ -5,6 +5,7 @@ import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/b
 import { NavigatorScreenParams } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from '@react-native-community/blur';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LedgerScreen } from '../features/ledger/screens/LedgerScreen';
@@ -22,7 +23,6 @@ import { Colors, Layout, Spacing, useAppTheme } from '../core/theme';
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PILL_HEIGHT = 70;
 const TAB_H_MARGIN = 20;
-const TAB_BOTTOM_OFFSET = 10; // gap above home indicator / screen edge
 
 const TAB_ICONS: Record<string, { focused: string; unfocused: string }> = {
     Ledger: { focused: 'book', unfocused: 'book-outline' },
@@ -76,13 +76,16 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
     };
 
     // ── Android: clean flat tab bar ──────────────────────────────────────────
+    // insets.bottom = Android nav-bar height (0 on gesture nav, ~48px on 3-button nav).
+    // paddingBottom pushes our content above it; height grows to fit.
     if (Platform.OS === 'android') {
+        const androidTabHeight = 56;
         return (
             <View style={[androidStyles.container, {
                 backgroundColor: theme.tabBar,
                 borderTopColor: theme.border,
                 paddingBottom: insets.bottom,
-                height: 56 + insets.bottom,
+                height: androidTabHeight + insets.bottom,
             }]}>
                 {state.routes.map((route, index) => {
                     const focused = state.index === index;
@@ -113,7 +116,8 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
     }
 
     // ── iOS: liquid glass floating pill ─────────────────────────────────────
-    const bottomGap = Math.max(insets.bottom, TAB_BOTTOM_OFFSET) + TAB_BOTTOM_OFFSET;
+    // iOS 26+ always has a home indicator (insets.bottom ≥ 34). Sit flush.
+    const bottomGap = insets.bottom;
     const itemWidth = containerWidth > 0 ? containerWidth / state.routes.length : 0;
     const capsuleHInset = Spacing.xs;   // horizontal gap between adjacent capsules
     const capsuleVInset = Spacing.sm;   // vertical inset inside pill
@@ -130,28 +134,39 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
             }}
         >
             <View
-                style={[iosStyles.pill, { shadowOpacity: isDark ? 0.45 : 0.18 }]}
+                style={[iosStyles.pill, {
+                    shadowOpacity: isLiquidGlassSupported ? 0 : (isDark ? 0.45 : 0.18),
+                }]}
                 onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}
             >
-                {/* ① Blur — chromeMaterial matches UIKit's .regularMaterial */}
-                <BlurView
-                    style={StyleSheet.absoluteFill}
-                    blurType={isDark ? 'chromeMaterialDark' : 'chromeMaterial'}
-                    blurAmount={40}
-                    reducedTransparencyFallbackColor={theme.tabBar}
-                />
+                {/* Glass background — native Liquid Glass on iOS 26+, BlurView fallback */}
+                {isLiquidGlassSupported ? (
+                    <LiquidGlassView
+                        style={StyleSheet.absoluteFill}
+                        effect="regular"
+                        interactive
+                        colorScheme={isDark ? 'dark' : 'light'}
+                    />
+                ) : (
+                    <>
+                        <BlurView
+                            style={StyleSheet.absoluteFill}
+                            blurType={isDark ? 'chromeMaterialDark' : 'chromeMaterial'}
+                            blurAmount={40}
+                            reducedTransparencyFallbackColor={theme.tabBar}
+                        />
+                        <View style={[StyleSheet.absoluteFill, iosStyles.glassTint, {
+                            backgroundColor: isDark
+                                ? 'rgba(28,28,30,0.52)'
+                                : 'rgba(255,255,255,0.50)',
+                            borderColor: isDark
+                                ? 'rgba(255,255,255,0.13)'
+                                : 'rgba(255,255,255,0.92)',
+                        }]} />
+                    </>
+                )}
 
-                {/* ② Glass tint + hairline border */}
-                <View style={[StyleSheet.absoluteFill, iosStyles.glassTint, {
-                    backgroundColor: isDark
-                        ? 'rgba(28,28,30,0.52)'
-                        : 'rgba(255,255,255,0.50)',
-                    borderColor: isDark
-                        ? 'rgba(255,255,255,0.13)'
-                        : 'rgba(255,255,255,0.92)',
-                }]} />
-
-                {/* ③ Animated active-tab capsule */}
+                {/* Animated active-tab capsule */}
                 {itemWidth > 0 && (
                     <Animated.View style={[iosStyles.capsule, {
                         width: itemWidth - capsuleHInset * 2,
@@ -167,7 +182,7 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
                     }]} />
                 )}
 
-                {/* ④ Tab items */}
+                {/* Tab items */}
                 <View style={iosStyles.tabRow}>
                     {state.routes.map((route, index) => {
                         const focused = state.index === index;
@@ -282,10 +297,7 @@ const MainTabs = () => {
     const insets = useSafeAreaInsets();
 
     // Tell React Navigation how tall the tab bar area is so screens get correct bottom padding
-    const tabBarTotalHeight = PILL_HEIGHT
-        + Math.max(insets.bottom, TAB_BOTTOM_OFFSET)
-        + TAB_BOTTOM_OFFSET
-        + Spacing.md;
+    const tabBarTotalHeight = PILL_HEIGHT + insets.bottom + Spacing.sm;
 
     return (
         <Tab.Navigator
