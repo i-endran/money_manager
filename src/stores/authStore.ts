@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as Keychain from 'react-native-keychain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_NAME } from '../core/constants';
+import ReactNativeBiometrics from 'react-native-biometrics';
 
 interface AuthState {
     isLocked: boolean;
@@ -64,12 +65,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     unlockWithBiometrics: async () => {
         try {
-            const result = await Keychain.getGenericPassword({
-                service: 'app_pin',
-                authenticationPrompt: { title: `Unlock ${APP_NAME}` },
-                accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_CURRENT_SET,
+            const rnBiometrics = new ReactNativeBiometrics();
+            const { success } = await rnBiometrics.simplePrompt({
+                promptMessage: `Unlock ${APP_NAME}`,
             });
-            if (result) {
+            if (success) {
                 set({ isLocked: false });
                 return true;
             }
