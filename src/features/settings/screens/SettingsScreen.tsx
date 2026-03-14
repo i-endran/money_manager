@@ -8,11 +8,10 @@ import {
     Alert,
     Modal,
     FlatList,
-    Share,
     Switch,
-    Platform,
     ActivityIndicator,
 } from 'react-native';
+import Share from 'react-native-share';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     Colors,
@@ -142,16 +141,20 @@ export const SettingsScreen = () => {
         setExportPickerVisible(true);
     };
 
-    const shareFile = async (title: string, filePath: string) => {
-        const url = Platform.OS === 'ios' ? `file://${filePath}` : filePath;
-        await Share.share({ title, url });
+    const shareFile = async (title: string, filePath: string, mimeType?: string) => {
+        await Share.open({
+            title,
+            url: `file://${filePath}`,
+            type: mimeType,
+            failOnCancel: false,
+        });
     };
 
     const handleExportFormat = async (format: ExportFormat) => {
         setExportingFormat(format);
         try {
             const payload = await createExportPayload(format);
-            await shareFile('Export Data', payload.filePath);
+            await shareFile('Export Data', payload.filePath, payload.mimeType);
             setExportPickerVisible(false);
         } catch (error) {
             console.error(`Failed to export ${format}:`, error);
@@ -166,7 +169,7 @@ export const SettingsScreen = () => {
         setIsBusy(true);
         try {
             const payload = await createImportTemplatePayload(format);
-            await shareFile('Import Template', payload.filePath);
+            await shareFile('Import Template', payload.filePath, payload.mimeType);
         } catch (error) {
             console.error('Template generation failed:', error);
             Alert.alert('Template Failed', `Could not create ${format.toUpperCase()} template.`);
@@ -237,7 +240,7 @@ export const SettingsScreen = () => {
                     setIsBusy(true);
                     try {
                         const payload = await createExportPayload('xlsx');
-                        await shareFile('Cloud Backup', payload.filePath);
+                        await shareFile('Cloud Backup', payload.filePath, payload.mimeType);
                     } catch (error) {
                         console.error('Cloud backup failed:', error);
                         Alert.alert('Backup Failed', 'Could not prepare backup file.');
