@@ -10,8 +10,10 @@ import {
     FlatList,
     Switch,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     Colors,
@@ -142,19 +144,49 @@ export const SettingsScreen = () => {
     };
 
     const shareFile = async (title: string, filePath: string, mimeType?: string) => {
-        await Share.open({
-            title,
-            url: `file://${filePath}`,
-            type: mimeType,
-            failOnCancel: false,
-        });
+        try {
+            await Share.open({
+                title,
+                url: `file://${filePath}`,
+                type: mimeType,
+                failOnCancel: false,
+            });
+        } catch (error: any) {
+            if (!error.message.includes('User did not share')) {
+                throw error;
+            }
+        }
     };
 
-    const handleExportFormat = async (format: ExportFormat) => {
+    const saveFileToDevice = async (sourcePath: string) => {
+        try {
+            const fileName = sourcePath.split('/').pop() || `export_${Date.now()}`;
+            const destPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+            
+            let finalDestPath = destPath;
+            if (await RNFS.exists(destPath)) {
+                const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                const ext = fileName.substring(fileName.lastIndexOf('.'));
+                finalDestPath = `${RNFS.DownloadDirectoryPath}/${nameWithoutExt}_${Date.now()}${ext}`;
+            }
+
+            await RNFS.copyFile(sourcePath, finalDestPath);
+            Alert.alert('Success', `File saved to Downloads:\n${finalDestPath}`);
+        } catch (err) {
+            console.error('Failed to save file:', err);
+            Alert.alert('Error', 'Failed to save file structure.');
+        }
+    };
+
+    const processExport = async (format: ExportFormat, action: 'share' | 'save') => {
         setExportingFormat(format);
         try {
             const payload = await createExportPayload(format);
-            await shareFile('Export Data', payload.filePath, payload.mimeType);
+            if (action === 'share') {
+                await shareFile('Export Data', payload.filePath, payload.mimeType);
+            } else {
+                await saveFileToDevice(payload.filePath);
+            }
             setExportPickerVisible(false);
         } catch (error) {
             console.error(`Failed to export ${format}:`, error);
@@ -162,6 +194,27 @@ export const SettingsScreen = () => {
         } finally {
             setExportingFormat(null);
         }
+    };
+
+    const handleExportFormat = async (format: ExportFormat) => {
+        setExportPickerVisible(false);
+        
+        // Wait briefly for modal to dismiss completely to avoid React Native alert/modal presentation issues
+        setTimeout(() => {
+            if (Platform.OS === 'android') {
+                Alert.alert(
+                    'Export Ready',
+                    'How would you like to handle the exported file?',
+                    [
+                        { text: 'Share to another app', onPress: () => processExport(format, 'share') },
+                        { text: 'Save to Downloads', onPress: () => processExport(format, 'save') },
+                        { text: 'Cancel', style: 'cancel' }
+                    ]
+                );
+            } else {
+                processExport(format, 'share');
+            }
+        }, 100);
     };
 
     const downloadTemplate = async (format: 'csv' | 'xlsx') => {
