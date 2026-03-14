@@ -141,3 +141,4 @@ After each git checkpoint, run all test cases tagged for that checkpoint. Mark `
 | M2.11 | Categories Grouping | Settings -> Manage Categories | Categories are grouped into Expense and Income sections |
 | M2.12 | Nested Category Creation | Manage Categories -> Tap inline `+` | New Category form opens with Expense/Income & Parent predrawn |
 | M2.13 | Integrated Category Emojis | Add Category | Emoji typed into Name field displays natively; custom Emoji input is absent |
+| M2.14 | Android & iOS Export | Settings -> Export (CSV/XLSX) | Share sheet opens with file correctly attached |
