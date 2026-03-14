@@ -24,11 +24,12 @@ import { Colors, Layout, Spacing, useAppTheme } from '../core/theme';
 const PILL_HEIGHT = 70;
 const TAB_H_MARGIN = 20;
 
-const TAB_ICONS: Record<string, { focused: string; unfocused: string }> = {
-    Ledger: { focused: 'book', unfocused: 'book-outline' },
-    Accounts: { focused: 'wallet', unfocused: 'wallet-outline' },
-    Stats: { focused: 'pie-chart', unfocused: 'pie-chart-outline' },
-    Settings: { focused: 'settings', unfocused: 'settings-outline' },
+// Both states use filled icons. Inactive gets a dark muted color (not outline wireframe).
+const TAB_ICONS: Record<string, string> = {
+    Ledger: 'book',
+    Accounts: 'wallet',
+    Stats: 'pie-chart',
+    Settings: 'settings',
 };
 
 // ─── Glass Tab Bar ────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
             }]}>
                 {state.routes.map((route, index) => {
                     const focused = state.index === index;
-                    const icons = TAB_ICONS[route.name];
+                    const iconName = TAB_ICONS[route.name];
                     return (
                         <Pressable
                             key={route.key}
@@ -98,7 +99,7 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
                             android_ripple={{ color: theme.tabBarInactive + '33', borderless: true }}
                         >
                             <Ionicons
-                                name={focused ? icons.focused : icons.unfocused}
+                                name={iconName}
                                 size={22}
                                 color={focused ? theme.tabBarActive : theme.tabBarInactive}
                             />
@@ -186,7 +187,7 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
                 <View style={iosStyles.tabRow}>
                     {state.routes.map((route, index) => {
                         const focused = state.index === index;
-                        const icons = TAB_ICONS[route.name];
+                        const iconName = TAB_ICONS[route.name];
                         return (
                             <Pressable
                                 key={route.key}
@@ -195,7 +196,7 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
                                 hitSlop={8}
                             >
                                 <Ionicons
-                                    name={focused ? icons.focused : icons.unfocused}
+                                    name={iconName}
                                     size={22}
                                     color={focused ? theme.tabBarActive : theme.tabBarInactive}
                                 />

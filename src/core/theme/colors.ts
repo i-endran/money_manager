@@ -27,7 +27,7 @@ export const Colors = {
         card: '#FFFFFF',
         tabBar: '#FFFFFF',
         tabBarActive: '#1B3A5C',
-        tabBarInactive: '#8E8E93',
+        tabBarInactive: '#3C3C43', // iOS secondaryLabel — dark enough for filled icons
         statusActive: '#2E7D32',
         statusInactive: '#8E8E93',
     },
@@ -50,7 +50,7 @@ export const Colors = {
         card: '#242426',
         tabBar: '#1C1C1E',
         tabBarActive: '#5B9BD5',
-        tabBarInactive: '#636366',
+        tabBarInactive: '#8E8E93', // lighter against dark background for filled icons
         statusActive: '#73bd77ff',
         statusInactive: '#636366',
     },
