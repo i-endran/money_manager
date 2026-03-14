@@ -23,6 +23,7 @@ import * as schema from '../../../database/schema';
 import { eq, desc } from 'drizzle-orm';
 import { AccountType, LABEL_OPT_OUT, LABEL_OPT_OUT_FULL, LABEL_OPT_OUT_DESCRIPTION, LABEL_OPT_OUT_MANDATORY_DESCRIPTION } from '../../../core/constants';
 import { BlurView } from '@react-native-community/blur';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { useLedgerStore } from '../../../stores/ledgerStore';
 import { isMandatoryClosedBoxType, normalizeInitialBalanceByType } from '../../../core/utils';
 
@@ -222,7 +223,15 @@ export const AccountFormScreen = ({ navigation, route }: any) => {
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + Spacing.md }]}>
+            <View style={[styles.header, { borderBottomColor: isLiquidGlassSupported ? 'transparent' : theme.border, paddingTop: insets.top + Spacing.md }]}>
+                {isLiquidGlassSupported && (
+                    <LiquidGlassView
+                        style={StyleSheet.absoluteFill}
+                        effect="clear"
+                        interactive
+                        colorScheme={isDark ? 'dark' : 'light'}
+                    />
+                )}
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary, fontSize: Typography.sizes.md, fontWeight: Typography.weights.medium }}>Cancel</Text>
                 </TouchableOpacity>
@@ -362,6 +371,7 @@ const styles = StyleSheet.create({
         paddingVertical: FormDensityPreset.rowPaddingVertical,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
+        overflow: 'hidden',
     },
     title: { ...FormHeaderPreset.title },
     saveText: { fontSize: Typography.sizes.md, fontWeight: Typography.weights.semibold },

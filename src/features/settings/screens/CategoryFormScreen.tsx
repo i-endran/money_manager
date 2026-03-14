@@ -15,6 +15,7 @@ import { eq } from 'drizzle-orm';
 import { CategoryType } from '../../../core/constants';
 import { CategoryPicker } from '../../transaction/components/CategoryPicker';
 import { BlurView } from '@react-native-community/blur';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 export const CategoryFormScreen = ({ navigation, route }: any) => {
     const { theme, colors, isDark } = useAppTheme();
@@ -139,7 +140,15 @@ export const CategoryFormScreen = ({ navigation, route }: any) => {
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + 8 }]}>
+            <View style={[styles.header, { borderBottomColor: isLiquidGlassSupported ? 'transparent' : theme.border, paddingTop: insets.top + 8 }]}>
+                {isLiquidGlassSupported && (
+                    <LiquidGlassView
+                        style={StyleSheet.absoluteFill}
+                        effect="clear"
+                        interactive
+                        colorScheme={isDark ? 'dark' : 'light'}
+                    />
+                )}
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={{ color: colors.primary }}>Cancel</Text>
                 </TouchableOpacity>
@@ -232,6 +241,7 @@ const styles = StyleSheet.create({
         padding: Spacing.xl,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
+        overflow: 'hidden',
     },
     title: { fontSize: Typography.sizes.lg, fontWeight: Typography.weights.bold },
     saveText: { fontWeight: Typography.weights.semibold, fontSize: Typography.sizes.md },

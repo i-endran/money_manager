@@ -31,6 +31,7 @@ import { useSettingsStore } from '../../../stores/settingsStore';
 import { eq, or } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { BlurView } from '@react-native-community/blur';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 const FormTextRoles = {
     label: LedgerTextHierarchyPreset.secondary,
@@ -308,7 +309,15 @@ export const TransactionFormScreen = ({ navigation, route }: any) => {
                 blurType={isDark ? 'dark' : 'light'}
                 blurAmount={10}
             />
-            <View style={[styles.header, { borderBottomColor: theme.border, paddingTop: insets.top + Spacing.md }]}>
+            <View style={[styles.header, { borderBottomColor: isLiquidGlassSupported ? 'transparent' : theme.border, paddingTop: insets.top + Spacing.md }]}>
+                {isLiquidGlassSupported && (
+                    <LiquidGlassView
+                        style={StyleSheet.absoluteFill}
+                        effect="clear"
+                        interactive
+                        colorScheme={isDark ? 'dark' : 'light'}
+                    />
+                )}
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={[styles.cancelText, { color: colors.primary }]}>Cancel</Text>
                 </TouchableOpacity>
@@ -541,6 +550,7 @@ const styles = StyleSheet.create({
         paddingBottom: FormDensityPreset.rowPaddingVertical + Spacing.sm,
         borderBottomWidth: StyleSheet.hairlineWidth,
         alignItems: 'center',
+        overflow: 'hidden',
     },
     cancelText: {
         fontSize: Typography.sizes.md,
