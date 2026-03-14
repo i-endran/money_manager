@@ -1,7 +1,7 @@
-import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { NavigatorScreenParams } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from '@react-native-community/blur';
@@ -17,9 +17,240 @@ import { AccountManagementScreen } from '../features/settings/screens/AccountMan
 import { CategoryManagementScreen } from '../features/settings/screens/CategoryManagementScreen';
 import { AccountFormScreen } from '../features/settings/screens/AccountFormScreen';
 import { CategoryFormScreen } from '../features/settings/screens/CategoryFormScreen';
-import { Colors, Layout, Spacing, Typography, useAppTheme } from '../core/theme';
+import { Colors, Layout, Spacing, useAppTheme } from '../core/theme';
 
-// --- Type definitions ---
+// ─── Constants ───────────────────────────────────────────────────────────────
+const PILL_HEIGHT = 70;
+const TAB_H_MARGIN = 20;
+const TAB_BOTTOM_OFFSET = 10; // gap above home indicator / screen edge
+
+const TAB_ICONS: Record<string, { focused: string; unfocused: string }> = {
+    Ledger: { focused: 'book', unfocused: 'book-outline' },
+    Accounts: { focused: 'wallet', unfocused: 'wallet-outline' },
+    Stats: { focused: 'pie-chart', unfocused: 'pie-chart-outline' },
+    Settings: { focused: 'settings', unfocused: 'settings-outline' },
+};
+
+// ─── Glass Tab Bar ────────────────────────────────────────────────────────────
+const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
+    const { theme, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
+    const [containerWidth, setContainerWidth] = useState(0);
+    const indicatorX = useRef(new Animated.Value(0)).current;
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    // Hide on keyboard (Android only — iOS keyboard never covers a floating tab bar)
+    useEffect(() => {
+        if (Platform.OS !== 'android') return;
+        const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+        const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+        return () => { show.remove(); hide.remove(); };
+    }, []);
+
+    // Animate active capsule to the focused tab
+    useEffect(() => {
+        if (containerWidth <= 0) return;
+        const itemWidth = containerWidth / state.routes.length;
+        Animated.spring(indicatorX, {
+            toValue: state.index * itemWidth,
+            useNativeDriver: true,
+            stiffness: 380,
+            damping: 34,
+            mass: 1,
+            overshootClamping: false,
+        }).start();
+    }, [state.index, containerWidth, indicatorX]);
+
+    if (keyboardVisible) return null;
+
+    const navigate = (route: (typeof state.routes)[0]) => {
+        const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+        });
+        if (!event.defaultPrevented) {
+            // @ts-ignore — merge keeps current params on same-tab re-press
+            navigation.navigate({ name: route.name, merge: true });
+        }
+    };
+
+    // ── Android: clean flat tab bar ──────────────────────────────────────────
+    if (Platform.OS === 'android') {
+        return (
+            <View style={[androidStyles.container, {
+                backgroundColor: theme.tabBar,
+                borderTopColor: theme.border,
+                paddingBottom: insets.bottom,
+                height: 56 + insets.bottom,
+            }]}>
+                {state.routes.map((route, index) => {
+                    const focused = state.index === index;
+                    const icons = TAB_ICONS[route.name];
+                    return (
+                        <Pressable
+                            key={route.key}
+                            onPress={() => navigate(route)}
+                            style={androidStyles.item}
+                            android_ripple={{ color: theme.tabBarInactive + '33', borderless: true }}
+                        >
+                            <Ionicons
+                                name={focused ? icons.focused : icons.unfocused}
+                                size={22}
+                                color={focused ? theme.tabBarActive : theme.tabBarInactive}
+                            />
+                            <Text style={[androidStyles.label, {
+                                color: focused ? theme.tabBarActive : theme.tabBarInactive,
+                                fontWeight: focused ? '600' : '400',
+                            }]}>
+                                {route.name}
+                            </Text>
+                        </Pressable>
+                    );
+                })}
+            </View>
+        );
+    }
+
+    // ── iOS: liquid glass floating pill ─────────────────────────────────────
+    const bottomGap = Math.max(insets.bottom, TAB_BOTTOM_OFFSET) + TAB_BOTTOM_OFFSET;
+    const itemWidth = containerWidth > 0 ? containerWidth / state.routes.length : 0;
+    const capsuleHInset = Spacing.xs;   // horizontal gap between adjacent capsules
+    const capsuleVInset = Spacing.sm;   // vertical inset inside pill
+
+    return (
+        <View
+            pointerEvents="box-none"
+            style={{
+                position: 'absolute',
+                bottom: bottomGap,
+                left: TAB_H_MARGIN,
+                right: TAB_H_MARGIN,
+                height: PILL_HEIGHT,
+            }}
+        >
+            <View
+                style={[iosStyles.pill, { shadowOpacity: isDark ? 0.45 : 0.18 }]}
+                onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}
+            >
+                {/* ① Blur — chromeMaterial matches UIKit's .regularMaterial */}
+                <BlurView
+                    style={StyleSheet.absoluteFill}
+                    blurType={isDark ? 'chromeMaterialDark' : 'chromeMaterial'}
+                    blurAmount={40}
+                    reducedTransparencyFallbackColor={theme.tabBar}
+                />
+
+                {/* ② Glass tint + hairline border */}
+                <View style={[StyleSheet.absoluteFill, iosStyles.glassTint, {
+                    backgroundColor: isDark
+                        ? 'rgba(28,28,30,0.52)'
+                        : 'rgba(255,255,255,0.50)',
+                    borderColor: isDark
+                        ? 'rgba(255,255,255,0.13)'
+                        : 'rgba(255,255,255,0.92)',
+                }]} />
+
+                {/* ③ Animated active-tab capsule */}
+                {itemWidth > 0 && (
+                    <Animated.View style={[iosStyles.capsule, {
+                        width: itemWidth - capsuleHInset * 2,
+                        top: capsuleVInset,
+                        bottom: capsuleVInset,
+                        left: capsuleHInset,
+                        backgroundColor: isDark
+                            ? 'rgba(255,255,255,0.14)'
+                            : 'rgba(255,255,255,0.86)',
+                        shadowColor: isDark ? Colors.white : Colors.light.primary,
+                        shadowOpacity: isDark ? 0.0 : 0.12,
+                        transform: [{ translateX: indicatorX }],
+                    }]} />
+                )}
+
+                {/* ④ Tab items */}
+                <View style={iosStyles.tabRow}>
+                    {state.routes.map((route, index) => {
+                        const focused = state.index === index;
+                        const icons = TAB_ICONS[route.name];
+                        return (
+                            <Pressable
+                                key={route.key}
+                                onPress={() => navigate(route)}
+                                style={iosStyles.tabItem}
+                                hitSlop={8}
+                            >
+                                <Ionicons
+                                    name={focused ? icons.focused : icons.unfocused}
+                                    size={22}
+                                    color={focused ? theme.tabBarActive : theme.tabBarInactive}
+                                />
+                                <Text style={[iosStyles.label, {
+                                    color: focused ? theme.tabBarActive : theme.tabBarInactive,
+                                    fontWeight: focused ? '600' : '400',
+                                }]}>
+                                    {route.name}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+            </View>
+        </View>
+    );
+};
+
+const iosStyles = StyleSheet.create({
+    pill: {
+        flex: 1,
+        borderRadius: Layout.radius.full,
+        overflow: 'hidden',
+        shadowColor: Colors.black,
+        shadowRadius: 28,
+        shadowOffset: { width: 0, height: 10 },
+    },
+    glassTint: {
+        borderRadius: Layout.radius.full,
+        borderWidth: StyleSheet.hairlineWidth,
+    },
+    capsule: {
+        position: 'absolute',
+        borderRadius: Layout.radius.full,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    tabRow: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    tabItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+    },
+    label: {
+        fontSize: 10,
+        letterSpacing: 0.1,
+    },
+});
+
+const androidStyles = StyleSheet.create({
+    container: {
+        flexDirection: 'row',
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    item: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+    },
+    label: {
+        fontSize: 10,
+    },
+});
+
+// ─── Type definitions ─────────────────────────────────────────────────────────
 export type RootStackParamList = {
     MainTabs: NavigatorScreenParams<TabParamList> | undefined;
     TransactionForm: { transactionId?: number; selectedDate?: string } | undefined;
@@ -45,110 +276,27 @@ export type TabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// --- Bottom Tab Navigator ---
-const TAB_ICONS: Record<string, { focused: string; unfocused: string }> = {
-    Ledger: { focused: 'book', unfocused: 'book-outline' },
-    Accounts: { focused: 'wallet', unfocused: 'wallet-outline' },
-    Stats: { focused: 'pie-chart', unfocused: 'pie-chart-outline' },
-    Settings: { focused: 'settings', unfocused: 'settings-outline' },
-};
-
-const withOpacity = (hexColor: string, opacity: number) => {
-    const alpha = Math.round(opacity * 255).toString(16).padStart(2, '0');
-    return `${hexColor}${alpha}`;
-};
-
+// ─── Main Tabs ────────────────────────────────────────────────────────────────
 const MainTabs = () => {
-    const { theme, isDark } = useAppTheme();
+    const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
-    const iosTabBarGlassColor = withOpacity(isDark ? Colors.dark.tabBar : Colors.light.tabBar, 0.35);
-    const iosTabBarBorderColor = withOpacity(isDark ? Colors.white : Colors.black, isDark ? 0.16 : 0.08);
+
+    // Tell React Navigation how tall the tab bar area is so screens get correct bottom padding
+    const tabBarTotalHeight = PILL_HEIGHT
+        + Math.max(insets.bottom, TAB_BOTTOM_OFFSET)
+        + TAB_BOTTOM_OFFSET
+        + Spacing.md;
 
     return (
         <Tab.Navigator
-            screenOptions={({ route }) => ({
+            tabBar={(props) => <GlassTabBar {...props} />}
+            screenOptions={{
                 headerShown: false,
-                animation: Platform.OS === 'ios' ? 'shift' : 'none',
-                transitionSpec: Platform.OS === 'ios'
-                    ? {
-                        animation: 'spring',
-                        config: {
-                            stiffness: 1000,
-                            damping: 500,
-                            mass: 3,
-                            overshootClamping: true,
-                            restDisplacementThreshold: 0.01,
-                            restSpeedThreshold: 0.01,
-                        },
-                    }
-                    : undefined,
-                tabBarIcon: ({ focused, color, size }) => {
-                    const icons = TAB_ICONS[route.name];
-                    const iconName = focused ? icons.focused : icons.unfocused;
-                    return (
-                        <Ionicons
-                            name={iconName}
-                            size={focused ? size + 1 : size}
-                            color={color}
-                        />
-                    );
-                },
-                tabBarActiveTintColor: theme.tabBarActive,
-                tabBarInactiveTintColor: theme.tabBarInactive,
-                tabBarHideOnKeyboard: true,
                 tabBarStyle: {
-                    backgroundColor: Platform.OS === 'ios' ? 'transparent' : theme.tabBar,
-                    borderTopColor: Platform.OS === 'ios' ? 'transparent' : theme.border,
-                    borderTopWidth: Platform.OS === 'ios' ? 0 : 0.5,
-                    elevation: 0,
-                    paddingBottom: Platform.OS === 'ios' ? Spacing.xs + Spacing.sm : Math.max(Spacing.md, insets.bottom + Spacing.xs),
-                    paddingTop: Spacing.sm,
-                    height: Platform.OS === 'ios' ? 76 : 60 + Math.max(0, insets.bottom + Spacing.xs - Spacing.md),
-                    ...(Platform.OS === 'ios' ? {
-                        position: 'absolute',
-                        marginHorizontal: Spacing.lg,
-                        marginBottom: Spacing.xs + Spacing.sm,
-                        borderRadius: Layout.radius.xl,
-                        overflow: 'hidden',
-                        shadowColor: Colors.black,
-                        shadowOpacity: 0.15,
-                        shadowRadius: Spacing.xl,
-                        shadowOffset: { width: 0, height: Spacing.md },
-                    } : {}),
+                    position: 'absolute',
+                    height: tabBarTotalHeight,
                 },
-                tabBarItemStyle: Platform.OS === 'ios' ? {
-                    marginHorizontal: Spacing.xxs,
-                    borderRadius: Layout.radius.md + Spacing.xxs,
-                } : undefined,
-                tabBarBackground: () =>
-                    Platform.OS === 'ios' ? (
-                        <View style={StyleSheet.absoluteFill}>
-                            <BlurView
-                                style={StyleSheet.absoluteFill}
-                                blurType={isDark ? 'dark' : 'light'}
-                                blurAmount={26}
-                                reducedTransparencyFallbackColor={theme.tabBar}
-                            />
-                            <View
-                                style={[
-                                    StyleSheet.absoluteFill,
-                                    {
-                                        backgroundColor: iosTabBarGlassColor,
-                                        borderRadius: Layout.radius.xl,
-                                        borderWidth: StyleSheet.hairlineWidth,
-                                        borderColor: iosTabBarBorderColor,
-                                    },
-                                ]}
-                            />
-                        </View>
-                    ) : (
-                        <View style={{ flex: 1, backgroundColor: theme.tabBar }} />
-                    ),
-                tabBarLabelStyle: {
-                    fontSize: Typography.sizes.xs2,
-                    fontWeight: Typography.weights.medium,
-                },
-            })}
+            }}
         >
             <Tab.Screen
                 name="Ledger"
