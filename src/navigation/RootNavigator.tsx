@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Keyboard, Platform, Pressable, StyleSheet, Text, View, StatusBar } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { NavigatorScreenParams } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BlurView } from '@react-native-community/blur';
 import { LiquidGlassView, LiquidGlassContainerView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
 import { LedgerScreen } from '../features/ledger/screens/LedgerScreen';
 // @ts-ignore
@@ -339,13 +340,26 @@ const MainTabs = () => {
 
 // --- Root Stack Navigator (tabs + modal screens) ---
 export const RootNavigator = () => {
-    const { theme } = useAppTheme();
+    const { theme, isDark } = useAppTheme();
+
+    useEffect(() => {
+        if (Platform.OS === 'android') {
+            SystemNavigationBar.setNavigationColor(theme.background, isDark ? 'light' : 'dark', 'both');
+            // 'both' makes it blend slightly with system edges if needed
+        }
+    }, [isDark, theme.background]);
 
     return (
-        <Stack.Navigator
-            screenOptions={{
-                headerShown: false,
-                animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right',
+        <>
+            <StatusBar
+                barStyle={isDark ? 'light-content' : 'dark-content'}
+                backgroundColor={theme.background}
+                animated
+            />
+            <Stack.Navigator
+                screenOptions={{
+                    headerShown: false,
+                    animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right',
                 gestureEnabled: true,
                 fullScreenGestureEnabled: Platform.OS === 'ios',
                 contentStyle: { backgroundColor: theme.background },
@@ -372,5 +386,6 @@ export const RootNavigator = () => {
                 options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
             />
         </Stack.Navigator>
+        </>
     );
 };
