@@ -21,6 +21,11 @@ import { RootStackParamList } from '../../../navigation/RootNavigator';
 import { AccountType, LABEL_OPT_OUT } from '../../../core/constants';
 import { isLoanLikeType, liabilityAmountFromBalance } from '../../../core/utils';
 import { AccountBalanceItem, AccountGroup, useAccountsSummary } from '../hooks/useAccountsSummary';
+import {
+    colorForSignedAmount,
+    signedAmountForLoanAwareTotal,
+    signedAmountFromLiability,
+} from '../utils/summaryDisplay';
 
 type NavType = NativeStackNavigationProp<RootStackParamList>;
 
@@ -64,9 +69,23 @@ export const AccountsScreen: React.FC = () => {
     // and re-executes the effect if navigation.isFocused() is true at that point.
     useFocusEffect(
         useCallback(() => {
+            void refreshTick;
             load();
         }, [load, refreshTick]),
     );
+
+    const holdingAmountColor = colorForSignedAmount(summary.standingBalance, {
+        positive: colors.income,
+        negative: colors.expense,
+        neutral: theme.text,
+    });
+    const payableSignedAmount = signedAmountFromLiability(summary.liabilities);
+    const payableAmountColor = colorForSignedAmount(payableSignedAmount, {
+        positive: colors.income,
+        negative: colors.expense,
+        neutral: theme.text,
+    });
+    const summarySubtotalColor = theme.textSecondary;
 
     return (
         <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: theme.background }]}>
@@ -104,14 +123,14 @@ export const AccountsScreen: React.FC = () => {
                         ]}>
                         <View style={styles.summaryColumn}>
                             <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Holding</Text>
-                            <Text style={[styles.summaryValue, { color: colors.income }]}>
+                            <Text style={[styles.summaryValue, { color: holdingAmountColor }]}>
                                 {formatCurrency(summary.standingBalance, currencySymbol)}
                             </Text>
                         </View>
                         <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
                         <View style={styles.summaryColumn}>
                             <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Payable</Text>
-                            <Text style={[styles.summaryValue, { color: colors.expense }]}>
+                            <Text style={[styles.summaryValue, { color: payableAmountColor }]}>
                                 {formatCurrency(summary.liabilities, currencySymbol)}
                             </Text>
                         </View>
@@ -143,6 +162,8 @@ export const AccountsScreen: React.FC = () => {
                                     if (!breakdown) return sum;
                                     return sum + liabilityAmountFromBalance(breakdown.current);
                                 }, 0);
+                                const signedTotalPayable = signedAmountFromLiability(totalPayable);
+                                const signedTotalUnbilled = signedAmountFromLiability(totalUnbilled);
 
                                 return (
                                     <View key={group.type} style={styles.sectionBlock}>
@@ -161,9 +182,9 @@ export const AccountsScreen: React.FC = () => {
                                                     <Text
                                                         style={[
                                                             styles.cardColumnValue,
-                                                            { color: totalPayable > 0 ? colors.expense : theme.text },
+                                                            { color: summarySubtotalColor },
                                                         ]}>
-                                                        {formatCurrency(totalPayable, currencySymbol)}
+                                                        {formatCurrency(signedTotalPayable, currencySymbol)}
                                                     </Text>
                                                 </View>
                                                 <View style={styles.cardColumn}>
@@ -171,66 +192,127 @@ export const AccountsScreen: React.FC = () => {
                                                     <Text
                                                         style={[
                                                             styles.cardColumnValue,
-                                                            { color: totalUnbilled > 0 ? colors.expense : theme.text },
+                                                            { color: summarySubtotalColor },
                                                         ]}>
-                                                        {formatCurrency(totalUnbilled, currencySymbol)}
+                                                        {formatCurrency(signedTotalUnbilled, currencySymbol)}
                                                     </Text>
                                                 </View>
                                             </View>
                                         </View>
 
                                         <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
-                                            {rows.map((row, index) => {
-                                                const isLast = index === rows.length - 1;
-                                                const breakdown = cardBreakdownById.get(row.item.id);
-                                                const payable = liabilityAmountFromBalance(breakdown?.billGenerated || 0);
-                                                const unbilled = liabilityAmountFromBalance(breakdown?.current || 0);
+                                            {group.accounts.map((account, accountIndex) => {
+                                                const accountRows = [
+                                                    { item: account, isReserve: false },
+                                                    ...account.reserves.map(reserve => ({ item: reserve, isReserve: true })),
+                                                ];
+                                                const hasReserves = account.reserves.length > 0;
+                                                const isLastAccount = accountIndex === group.accounts.length - 1;
+                                                const subtotalPayable = accountRows.reduce((sum, row) => {
+                                                    const breakdown = cardBreakdownById.get(row.item.id);
+                                                    if (!breakdown) return sum;
+                                                    return sum + liabilityAmountFromBalance(breakdown.billGenerated);
+                                                }, 0);
+                                                const subtotalUnbilled = accountRows.reduce((sum, row) => {
+                                                    const breakdown = cardBreakdownById.get(row.item.id);
+                                                    if (!breakdown) return sum;
+                                                    return sum + liabilityAmountFromBalance(breakdown.current);
+                                                }, 0);
+                                                const signedSubtotalPayable = signedAmountFromLiability(subtotalPayable);
+                                                const signedSubtotalUnbilled = signedAmountFromLiability(subtotalUnbilled);
 
                                                 return (
-                                                    <TouchableOpacity
-                                                        key={`${group.type}-${row.item.id}`}
-                                                        activeOpacity={0.72}
-                                                        onPress={() => openFilteredLedger(row.item)}
-                                                        style={[
-                                                             styles.cardRow,
-                                                             row.isReserve && {
-                                                                 paddingLeft: Spacing.xxxl,
-                                                                 borderLeftWidth: 2,
-                                                                 borderLeftColor: theme.primary,
-                                                             },
-                                                             !isLast && {
-                                                                borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
-                                                                 borderBottomColor: theme.border,
-                                                             },
-                                                         ]}>
-                                                        <View style={styles.rowNameWrap}>
-                                                            <Text
+                                                    <React.Fragment key={`${group.type}-account-${account.id}`}>
+                                                        {accountRows.map((row, rowIndex) => {
+                                                            const isLastRowForAccount = rowIndex === accountRows.length - 1;
+                                                            const showRowDivider = !isLastRowForAccount || (!hasReserves && !isLastAccount);
+                                                            const breakdown = cardBreakdownById.get(row.item.id);
+                                                            const payable = liabilityAmountFromBalance(breakdown?.billGenerated || 0);
+                                                            const unbilled = liabilityAmountFromBalance(breakdown?.current || 0);
+
+                                                            return (
+                                                                <TouchableOpacity
+                                                                    key={`${group.type}-${row.item.id}`}
+                                                                    activeOpacity={0.72}
+                                                                    onPress={() => openFilteredLedger(row.item)}
+                                                                    style={[
+                                                                        styles.cardRow,
+                                                                        row.isReserve && styles.reserveRow,
+                                                                        row.isReserve && { borderLeftColor: theme.primary },
+                                                                        showRowDivider && {
+                                                                            borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                            borderBottomColor: theme.border,
+                                                                        },
+                                                                    ]}>
+                                                                    <View style={styles.rowNameWrap}>
+                                                                        <Text
+                                                                            style={[
+                                                                                styles.rowName,
+                                                                                { color: row.isReserve ? theme.textSecondary : theme.text },
+                                                                                row.isReserve && styles.reserveName,
+                                                                            ]}>
+                                                                            {row.item.name}
+                                                                        </Text>
+                                                                        {row.item.isClosedBoxLike && !group.isClosedBoxType && (
+                                                                            <View style={[styles.badge, { backgroundColor: colors.expense }]}>
+                                                                                <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
+                                                                            </View>
+                                                                        )}
+                                                                    </View>
+                                                                    <View style={styles.cardRowAmounts}>
+                                                                        <Text
+                                                                            style={[
+                                                                                styles.cardRowAmount,
+                                                                                { color: payable > 0 ? colors.expense : theme.text },
+                                                                            ]}>
+                                                                            {formatCurrency(payable, currencySymbol)}
+                                                                        </Text>
+                                                                        <Text
+                                                                            style={[
+                                                                                styles.cardRowAmount,
+                                                                                { color: unbilled > 0 ? colors.expense : theme.text },
+                                                                            ]}>
+                                                                            {formatCurrency(unbilled, currencySymbol)}
+                                                                        </Text>
+                                                                    </View>
+                                                                </TouchableOpacity>
+                                                            );
+                                                        })}
+
+                                                        {hasReserves && (
+                                                            <View
                                                                 style={[
-                                                                    styles.rowName,
-                                                                    { color: row.isReserve ? theme.textSecondary : theme.text },
-                                                                    row.isReserve && styles.reserveName,
+                                                                    styles.subtotalRow,
+                                                                    {
+                                                                        borderTopWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                        borderTopColor: theme.border,
+                                                                        backgroundColor: theme.background,
+                                                                    },
+                                                                    !isLastAccount && {
+                                                                        borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                        borderBottomColor: theme.border,
+                                                                    },
                                                                 ]}>
-                                                                {row.item.name}
-                                                            </Text>
-                                                            {row.item.isClosedBoxLike && !group.isClosedBoxType && (
-                                                                <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                                                    <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
+                                                                <Text style={[styles.subtotalLabel, { color: theme.textSecondary }]}>Total</Text>
+                                                                <View style={styles.cardRowAmounts}>
+                                                                    <Text
+                                                                        style={[
+                                                                            styles.subtotalCardAmount,
+                                                                            { color: summarySubtotalColor },
+                                                                        ]}>
+                                                                        {formatCurrency(signedSubtotalPayable, currencySymbol)}
+                                                                    </Text>
+                                                                    <Text
+                                                                        style={[
+                                                                            styles.subtotalCardAmount,
+                                                                            { color: summarySubtotalColor },
+                                                                        ]}>
+                                                                        {formatCurrency(signedSubtotalUnbilled, currencySymbol)}
+                                                                    </Text>
                                                                 </View>
-                                                            )}
-                                                        </View>
-                                                        <View style={styles.cardRowAmounts}>
-                                                            <Text style={[styles.cardRowAmount, { color: payable > 0 ? colors.expense : theme.text }]}>
-                                                                {formatCurrency(payable, currencySymbol)}
-                                                            </Text>
-                                                            <Text
-                                                                style={[
-                                                                    styles.cardRowAmount,
-                                                                    { color: unbilled > 0 ? colors.expense : theme.text },
-                                                                ]}>
-                                                                {formatCurrency(unbilled, currencySymbol)}
-                                                            </Text>
-                                                        </View>
-                                                    </TouchableOpacity>
+                                                            </View>
+                                                        )}
+                                                    </React.Fragment>
                                                 );
                                             })}
                                         </View>
@@ -238,14 +320,7 @@ export const AccountsScreen: React.FC = () => {
                                 );
                             }
 
-                            const normalizedGroupAmount = group.isLoanLike
-                                ? -liabilityAmountFromBalance(group.total)
-                                : group.total;
-                            const groupAmountColor = normalizedGroupAmount > 0
-                                ? colors.income
-                                : normalizedGroupAmount < 0
-                                    ? colors.expense
-                                    : theme.text;
+                            const normalizedGroupAmount = signedAmountForLoanAwareTotal(group.total, group.isLoanLike);
 
                             return (
                                 <View key={group.type} style={styles.sectionBlock}>
@@ -258,65 +333,101 @@ export const AccountsScreen: React.FC = () => {
                                                 </View>
                                             )}
                                         </View>
-                                        <Text style={[styles.sectionAmount, { color: groupAmountColor }]}>
-                                            {formatCurrency(
-                                                group.isLoanLike ? liabilityAmountFromBalance(group.total) : group.total,
-                                                currencySymbol,
-                                            )}
+                                        <Text style={[styles.sectionAmount, { color: summarySubtotalColor }]}>
+                                            {formatCurrency(normalizedGroupAmount, currencySymbol)}
                                         </Text>
                                     </View>
                                     <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
-                                        {rows.map((row, index) => {
-                                            const isLast = index === rows.length - 1;
-                                            const isLoan = isLoanLikeType(row.item.type);
-                                            const signedAmount = isLoan
-                                                ? -liabilityAmountFromBalance(row.item.balance)
-                                                : row.item.balance;
-                                            const amountColor = signedAmount > 0
-                                                ? colors.income
-                                                : signedAmount < 0 || isLoan
-                                                    ? colors.expense
-                                                    : theme.text;
+                                        {group.accounts.map((account, accountIndex) => {
+                                            const accountRows = [
+                                                { item: account, isReserve: false },
+                                                ...account.reserves.map(reserve => ({ item: reserve, isReserve: true })),
+                                            ];
+                                            const hasReserves = account.reserves.length > 0;
+                                            const isLastAccount = accountIndex === group.accounts.length - 1;
+                                            const subtotalBalance = accountRows.reduce((sum, row) => sum + row.item.balance, 0);
+                                            const accountIsLoan = isLoanLikeType(account.type);
+                                            const subtotalSignedAmount = signedAmountForLoanAwareTotal(
+                                                subtotalBalance,
+                                                accountIsLoan,
+                                            );
 
                                             return (
-                                                <TouchableOpacity
-                                                    key={`${group.type}-${row.item.id}`}
-                                                    activeOpacity={0.72}
-                                                    onPress={() => openFilteredLedger(row.item)}
-                                                    style={[
-                                                         styles.row,
-                                                         row.isReserve && {
-                                                             paddingLeft: Spacing.xxxl,
-                                                             borderLeftWidth: 2,
-                                                             borderLeftColor: theme.primary,
-                                                         },
-                                                         !isLast && {
-                                                            borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
-                                                            borderBottomColor: theme.border,
-                                                        },
-                                                    ]}>
-                                                    <View style={styles.rowNameWrap}>
-                                                        <Text
+                                                <React.Fragment key={`${group.type}-account-${account.id}`}>
+                                                    {accountRows.map((row, rowIndex) => {
+                                                        const isLastRowForAccount = rowIndex === accountRows.length - 1;
+                                                        const showRowDivider = !isLastRowForAccount || (!hasReserves && !isLastAccount);
+                                                        const isLoan = isLoanLikeType(row.item.type);
+                                                        const signedAmount = signedAmountForLoanAwareTotal(
+                                                            row.item.balance,
+                                                            isLoan,
+                                                        );
+                                                        const amountColor = signedAmount > 0
+                                                            ? colors.income
+                                                            : signedAmount < 0 || isLoan
+                                                                ? colors.expense
+                                                                : theme.text;
+
+                                                        return (
+                                                            <TouchableOpacity
+                                                                key={`${group.type}-${row.item.id}`}
+                                                                activeOpacity={0.72}
+                                                                onPress={() => openFilteredLedger(row.item)}
+                                                                style={[
+                                                                    styles.row,
+                                                                    row.isReserve && styles.reserveRow,
+                                                                    row.isReserve && { borderLeftColor: theme.primary },
+                                                                    showRowDivider && {
+                                                                        borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                        borderBottomColor: theme.border,
+                                                                    },
+                                                                ]}>
+                                                                <View style={styles.rowNameWrap}>
+                                                                    <Text
+                                                                        style={[
+                                                                            styles.rowName,
+                                                                            { color: row.isReserve ? theme.textSecondary : theme.text },
+                                                                            row.isReserve && styles.reserveName,
+                                                                        ]}>
+                                                                        {row.item.name}
+                                                                    </Text>
+                                                                    {row.item.isClosedBoxLike && !group.isClosedBoxType && (
+                                                                        <View style={[styles.badge, { backgroundColor: colors.expense }]}>
+                                                                            <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
+                                                                        </View>
+                                                                    )}
+                                                                </View>
+                                                                <Text style={[styles.rowAmount, { color: amountColor }]}>
+                                                                    {formatCurrency(
+                                                                        isLoan ? liabilityAmountFromBalance(row.item.balance) : row.item.balance,
+                                                                        currencySymbol,
+                                                                    )}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })}
+
+                                                    {hasReserves && (
+                                                        <View
                                                             style={[
-                                                                styles.rowName,
-                                                                { color: row.isReserve ? theme.textSecondary : theme.text },
-                                                                row.isReserve && styles.reserveName,
+                                                                styles.subtotalRow,
+                                                                {
+                                                                    borderTopWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                    borderTopColor: theme.border,
+                                                                    backgroundColor: theme.background,
+                                                                },
+                                                                !isLastAccount && {
+                                                                    borderBottomWidth: LedgerRowDensityPreset.separatorThickness,
+                                                                    borderBottomColor: theme.border,
+                                                                },
                                                             ]}>
-                                                            {row.item.name}
-                                                        </Text>
-                                                        {row.item.isClosedBoxLike && !group.isClosedBoxType && (
-                                                            <View style={[styles.badge, { backgroundColor: colors.expense }]}>
-                                                                <Text style={styles.badgeText}>{LABEL_OPT_OUT}</Text>
-                                                            </View>
-                                                        )}
-                                                    </View>
-                                                    <Text style={[styles.rowAmount, { color: amountColor }]}>
-                                                        {formatCurrency(
-                                                            isLoan ? liabilityAmountFromBalance(row.item.balance) : row.item.balance,
-                                                            currencySymbol,
-                                                        )}
-                                                    </Text>
-                                                </TouchableOpacity>
+                                                            <Text style={[styles.subtotalLabel, { color: theme.textSecondary }]}>Total</Text>
+                                                            <Text style={[styles.subtotalAmount, { color: summarySubtotalColor }]}>
+                                                                {formatCurrency(subtotalSignedAmount, currencySymbol)}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </React.Fragment>
                                             );
                                         })}
                                     </View>
@@ -432,6 +543,26 @@ const styles = StyleSheet.create({
         paddingVertical: LedgerRowDensityPreset.paddingVertical,
         paddingHorizontal: LedgerRowDensityPreset.paddingHorizontal,
     },
+    reserveRow: {
+        paddingLeft: Spacing.xxxl,
+        borderLeftWidth: 2,
+    },
+    subtotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: LedgerRowDensityPreset.paddingVertical,
+        paddingRight: LedgerRowDensityPreset.paddingHorizontal,
+        paddingLeft: Spacing.xxxl,
+    },
+    subtotalLabel: {
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
+    },
+    subtotalAmount: {
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
+    },
     rowNameWrap: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -488,6 +619,12 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         fontSize: LedgerTextHierarchyPreset.amount.fontSize,
         fontWeight: LedgerTextHierarchyPreset.amount.fontWeight,
+    },
+    subtotalCardAmount: {
+        flex: 1,
+        textAlign: 'right',
+        fontSize: LedgerTextHierarchyPreset.secondary.fontSize,
+        fontWeight: LedgerTextHierarchyPreset.secondary.fontWeight,
     },
     center: {
         paddingVertical: Spacing.xxxl,
