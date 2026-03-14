@@ -45,6 +45,7 @@ This document provides a compressed overview of the **Pocket Log** project for A
   - **Carry Forward Balance**: Computes and displays opening balance row from prior months.
   - **Unified Header**: Month selector and summary merged into a single bubble.
   - **App Icon & Splash**: Updated to the new Pocket Log branding (Navy Blue).
+  - **UI & Stability Polish**: Removed negative signs from Holding balance, fixed Android PIN change crash (modal re-renders + Vibrate permission), and added dynamic Android system navigation bar custom coloring.
 
 ---
 

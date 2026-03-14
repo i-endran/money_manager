@@ -41,7 +41,7 @@ A personal finance mobile appbuilt with **React Native**. Track expenses, income
 - **Drill-down picker** — Hierarchical navigation for selecting categories.
 
 ### ⚙️ Settings
-- **Theme profiles** — Light, Dark, and System Default.
+- **Theme profiles** — Light, Dark, and System Default with dynamic native system bar styling.
 - **Dynamic currency** — User-defined currency symbol applied globally.
 - **Export data** — Save all transactions to CSV or XLSX via the system share sheet.
 - **Import data** — Restore or append data from a CSV or XLSX file.
@@ -67,7 +67,7 @@ A personal finance mobile appbuilt with **React Native**. Track expenses, income
 | Database | `op-sqlite` + Drizzle ORM |
 | State | Zustand |
 | Security | `react-native-keychain`, `react-native-biometrics` |
-| Styling | Vanilla StyleSheet (Navy Blue `#1B3A5C` accent) |
+| Styling | Vanilla StyleSheet (Navy Blue `#1B3A5C` accent), `react-native-system-navigation-bar` |
 
 ---
 
