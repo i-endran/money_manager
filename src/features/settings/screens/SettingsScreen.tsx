@@ -644,24 +644,20 @@ export const SettingsScreen = () => {
                 </View>
             </Modal>
 
-            {pinStep !== null && (() => {
-                const { mode, title } = getPinModalProps();
-                return (
-                    <PinSetupModal
-                        key={pinStep}
-                        visible
-                        mode={mode}
-                        title={title}
-                        validatePin={
-                            (pinStep === 'disable' || pinStep === 'change_verify')
-                                ? p => p === appPin
-                                : undefined
-                        }
-                        onSuccess={handlePinSuccess}
-                        onCancel={() => setPinStep(null)}
-                    />
-                );
-            })()}
+            {/* PIN Setup Modal */}
+            <PinSetupModal
+                visible={pinStep !== null}
+                key={pinStep || 'idle'}
+                mode={pinStep ? getPinModalProps().mode : 'setup'}
+                title={pinStep ? getPinModalProps().title : ''}
+                validatePin={
+                    (pinStep === 'disable' || pinStep === 'change_verify')
+                        ? p => p === appPin
+                        : undefined
+                }
+                onSuccess={handlePinSuccess}
+                onCancel={() => setPinStep(null)}
+            />
         </SafeAreaView>
     );
 };
