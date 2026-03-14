@@ -117,8 +117,10 @@ const GlassTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
     }
 
     // ── iOS: liquid glass floating pill ─────────────────────────────────────
-    // iOS 26+ always has a home indicator (insets.bottom ≥ 34). Sit flush.
-    const bottomGap = insets.bottom;
+    // Sit 4pt from the screen bottom edge — matching native iOS tab bar placement.
+    // The home indicator is a system overlay that floats above content, so it's
+    // safe to position the pill well below the safe area inset.
+    const bottomGap = 4;
     const itemWidth = containerWidth > 0 ? containerWidth / state.routes.length : 0;
     const capsuleHInset = Spacing.xs;   // horizontal gap between adjacent capsules
     const capsuleVInset = Spacing.sm;   // vertical inset inside pill
@@ -297,8 +299,9 @@ const MainTabs = () => {
     const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
 
-    // Tell React Navigation how tall the tab bar area is so screens get correct bottom padding
-    const tabBarTotalHeight = PILL_HEIGHT + insets.bottom + Spacing.sm;
+    // Screen content needs padding at the bottom to avoid being hidden under the pill.
+    // Pill is 4pt from screen bottom + PILL_HEIGHT + a little extra breathing room.
+    const tabBarTotalHeight = PILL_HEIGHT + 4 + Spacing.lg;
 
     return (
         <Tab.Navigator
